@@ -8,6 +8,7 @@ from typing import Any, Iterable
 
 from .alignment import align_by_overlap
 from .srt import JAPANESE_RE, SubtitleBlock, has_japanese, parse_srt, write_srt
+from .translation_model import DEFAULT_TRANSLATION_MODEL, resolve_translation_model
 
 
 DECISION_FIELDS = [
@@ -17,6 +18,7 @@ DECISION_FIELDS = [
     "source_faithful_korean",
     "viewer_natural_korean",
     "translation_method",
+    "translation_model",
     "status",
     "confidence",
     "uncertain_slots",
@@ -149,7 +151,9 @@ def build_translation_queue(
     review_context_path: Path | None = None,
     review_queue_path: Path | None = None,
     capture_index_path: Path | None = None,
+    translation_model: str = DEFAULT_TRANSLATION_MODEL,
 ) -> dict[str, Any]:
+    translation_model = resolve_translation_model(translation_model)
     structure, _, _ = parse_srt(structure_path)
     japanese, _, _ = parse_srt(ja_path)
     previous = parse_srt(previous_ko_path)[0] if previous_ko_path and previous_ko_path.exists() else []
@@ -196,6 +200,7 @@ def build_translation_queue(
             "capture_semantic_interpretation": False if capture_available else None,
             "decision_status": "untranslated",
             "translation_method_required": "semantic_review_from_japanese",
+            "translation_model_required": translation_model,
             "translation_constraints": [
                 "preserve_question_negation_request_refusal_speaker_action_target_location_tense_intensity",
                 "do_not_add_screen_only_actions_or_body_parts",
@@ -218,6 +223,7 @@ def build_translation_queue(
         "priority_blocks": sum(record["review_band"] in {"P1", "P2"} for record in records),
         "structure_equals_japanese_source": structure_equals_ja,
         "capture_semantic_interpretation": False if capture_available else None,
+        "translation_model": translation_model,
         "next_required_action": "supply one semantic translation decision per block before SRT promotion",
         "final_promotion_allowed": False,
     }
@@ -226,10 +232,12 @@ def build_translation_queue(
     return report
 
 
-def initialize_translation_decisions(queue_path: Path, output_path: Path) -> dict[str, Any]:
+def initialize_translation_decisions(queue_path: Path, output_path: Path, *, translation_model: str = DEFAULT_TRANSLATION_MODEL) -> dict[str, Any]:
+    translation_model = resolve_translation_model(translation_model)
     queue = _read_jsonl(queue_path)
     records: list[dict[str, Any]] = []
     for item in queue:
+        required_model = item.get("translation_model_required", translation_model)
         records.append({
             "block_number": item.get("block_number"),
             "source_japanese": item.get("source_japanese", ""),
@@ -237,6 +245,7 @@ def initialize_translation_decisions(queue_path: Path, output_path: Path) -> dic
             "source_faithful_korean": "",
             "viewer_natural_korean": "",
             "translation_method": "",
+            "translation_model": resolve_translation_model(required_model),
             "status": "untranslated",
             "confidence": "",
             "uncertain_slots": item.get("required_semantic_slots", []),
@@ -252,6 +261,7 @@ def initialize_translation_decisions(queue_path: Path, output_path: Path) -> dic
         "queue": str(queue_path),
         "output": str(output_path),
         "blocks": len(records),
+        "translation_model": translation_model,
         "final_promotion_allowed": False,
     }
 
@@ -315,6 +325,7 @@ def _decision_errors(record: dict[str, Any], *, strict: bool) -> list[str]:
     viewer = _decision_text(record, "viewer_natural_korean")
     status = str(record.get("status", "")).strip()
     method = str(record.get("translation_method", "")).strip()
+    model = record.get("translation_model")
     confidence = str(record.get("confidence", "")).strip().lower()
     if not source or not viewer:
         errors.append(f"{block}: source_faithful_korean/viewer_natural_korean 누락")
@@ -322,6 +333,13 @@ def _decision_errors(record: dict[str, Any], *, strict: bool) -> list[str]:
         errors.append(f"{block}: 승인되지 않은 상태 {status!r}")
     if strict and method in {"", "carryover", "previous_korean_copy", "aligned_previous"}:
         errors.append(f"{block}: 의미 번역 방법이 아니거나 누락됨")
+    if model is None or not str(model).strip():
+        errors.append(f"{block}: translation_model 누락")
+    else:
+        try:
+            resolve_translation_model(model)
+        except ValueError as exc:
+            errors.append(f"{block}: {exc}")
     if strict and confidence not in {"high", "medium"}:
         errors.append(f"{block}: 확신도는 high 또는 medium이어야 함")
     for field, text in (("source_faithful_korean", source), ("viewer_natural_korean", viewer)):
@@ -365,6 +383,7 @@ def validate_translation_decisions(structure_path: Path, decisions_path: Path, *
         "errors": errors,
         "missing_blocks": missing,
         "extra_blocks": extra,
+        "translation_model": DEFAULT_TRANSLATION_MODEL,
         "final_promotion_allowed": not errors and strict,
     }
 
@@ -377,7 +396,9 @@ def apply_translation_decisions(
     report_path: Path,
     *,
     strict: bool = True,
+    translation_model: str = DEFAULT_TRANSLATION_MODEL,
 ) -> dict[str, Any]:
+    translation_model = resolve_translation_model(translation_model)
     structure, _, _ = parse_srt(structure_path)
     records = _read_jsonl(decisions_path)
     by_number: dict[int, dict[str, Any]] = {}
@@ -407,6 +428,7 @@ def apply_translation_decisions(
             "errors": errors,
             "missing_blocks": missing,
             "extra_blocks": extra,
+            "translation_model": translation_model,
             "final_promotion_allowed": False,
         }
         report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -429,7 +451,11 @@ def apply_translation_decisions(
         "viewer_output": str(viewer_output_path),
         "blocks": len(structure),
         "low_confidence_blocks": [block.number for block in structure if str(by_number[block.number].get("confidence", "")).lower() == "low"],
-        "final_promotion_allowed": strict,
+        "translation_model": translation_model,
+        # SRT application preserves structure but cannot establish human audio
+        # review, evidence completeness, or evaluation readiness on its own.
+        "final_promotion_allowed": False,
+        "next_required_action": "complete evidence, audio, and evaluation gates before final packaging",
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")

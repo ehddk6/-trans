@@ -24,6 +24,7 @@ python -m translation_forensics.cli build-translation-queue `
 - `source_faithful_korean`: 일본어 의미를 가장 충실하게 보존한 한국어
 - `viewer_natural_korean`: 의미를 바꾸지 않고 영상 자막 호흡에 맞춘 한국어
 - `translation_method`: `semantic_review_from_japanese`, `semantic_review_with_asr`, `semantic_review_with_context`, `human_verified_semantic_review` 중 하나
+- `translation_model`: 고정값 `gpt-5.6-terra`. 번역 큐·결정 템플릿·적용 CLI는 이 값 외의 모델을 받지 않으며, ASR 모델에는 적용되지 않는다.
 - `status`: `translated`, `reviewed`, `approved` 중 하나
 - `confidence`: `high`, `medium`, `low`
 - `evidence_refs`: 실제로 사용한 근거의 ID
@@ -44,6 +45,8 @@ python -m translation_forensics.cli apply-translations `
 ```
 
 `--strict`는 모든 구조 블록의 결정, 한국어 문장, 의미 번역 방법, 승인 상태, 확신도, 일본어 잔존·작업 표식 부재를 검사한다. 하나라도 부족하면 두 SRT를 생성하지 않는다.
+
+적용 보고서에도 사용 모델이 기록된다. 과거의 외부 기계번역 초안은 이 정책의 산출물이 아니며, 검증 또는 최종 승격 대상이 아니다.
 
 작품을 여러 차례 나누어 검수할 때는 완료된 블록만 별도 JSONL로 저장한 뒤 병합한다.
 

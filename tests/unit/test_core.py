@@ -225,6 +225,7 @@ def test_apply_translation_decisions_requires_semantic_fields(tmp_path: Path) ->
         "source_faithful_korean": f"한국어 원문 {number}",
         "viewer_natural_korean": f"자연스러운 한국어 {number}",
         "translation_method": "semantic_review_from_japanese",
+        "translation_model": "gpt-5.6-terra",
         "status": "approved",
         "confidence": "high",
         "evidence_refs": ["japanese_srt"],
@@ -235,6 +236,8 @@ def test_apply_translation_decisions_requires_semantic_fields(tmp_path: Path) ->
     report = tmp_path / "apply.report.json"
     result = apply_translation_decisions(fixture("sample.structure.srt"), decisions, source, viewer, report, strict=True)
     assert result["status"] == "text-crosschecked"
+    assert result["translation_model"] == "gpt-5.6-terra"
+    assert result["final_promotion_allowed"] is False
     assert parse_srt(source)[0][0].start == parse_srt(fixture("sample.structure.srt"))[0][0].start
     assert "한국어 원문 1" in source.read_text(encoding="utf-8")
 
@@ -246,6 +249,7 @@ def test_apply_translation_decisions_rejects_carryover_in_strict_mode(tmp_path: 
         "source_faithful_korean": f"한국어 {number}",
         "viewer_natural_korean": f"한국어 {number}",
         "translation_method": "previous_korean_copy",
+        "translation_model": "gpt-5.6-terra",
         "status": "approved",
         "confidence": "high",
         "evidence_refs": ["previous_korean_candidate"],
@@ -265,6 +269,7 @@ def test_translation_decision_template_is_explicitly_incomplete(tmp_path: Path) 
     record = json.loads(output.read_text(encoding="utf-8"))
     assert record["status"] == "untranslated"
     assert record["source_faithful_korean"] == ""
+    assert record["translation_model"] == "gpt-5.6-terra"
 
 
 def test_merge_translation_decisions_preserves_unreviewed_blocks(tmp_path: Path) -> None:
@@ -279,6 +284,24 @@ def test_merge_translation_decisions_preserves_unreviewed_blocks(tmp_path: Path)
     records = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
     assert records[0]["status"] == "reviewed"
     assert records[1]["status"] == "untranslated"
+
+
+def test_translation_decisions_reject_non_terra_model(tmp_path: Path) -> None:
+    decisions = tmp_path / "decisions.jsonl"
+    records = [{
+        "block_number": number,
+        "source_faithful_korean": f"한국어 원문 {number}",
+        "viewer_natural_korean": f"자연스러운 한국어 {number}",
+        "translation_method": "semantic_review_from_japanese",
+        "translation_model": "gpt-5.6-sol",
+        "status": "approved",
+        "confidence": "high",
+        "evidence_refs": ["japanese_srt"],
+    } for number in range(1, 4)]
+    decisions.write_text("\n".join(json.dumps(record, ensure_ascii=False) for record in records) + "\n", encoding="utf-8", newline="\n")
+    result = apply_translation_decisions(fixture("sample.structure.srt"), decisions, tmp_path / "source.srt", tmp_path / "viewer.srt", tmp_path / "report.json", strict=True)
+    assert result["status"] == "fail"
+    assert any("gpt-5.6-terra" in error for error in result["errors"])
 
 
 def test_forensic_frames_escalate_critical_conflicts_and_do_not_double_count_family(tmp_path: Path) -> None:

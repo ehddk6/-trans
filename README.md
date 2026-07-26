@@ -102,6 +102,8 @@ python -m translation_forensics.cli package --project-root . --title SAMPLE `
 
 기존 한국어 자막을 시간 정렬한 `build-korean-draft`는 번역 완료가 아니다. 실제 한국어 번역은 `build-translation-queue`로 만든 블록별 결정 레코드를 `apply-translations --strict`로 적용해야 한다. 이 단계는 일본어 의미, 앞뒤 문맥, ASR, 기존 후보를 분리하고 `source-faithful`과 `viewer-natural`을 별도로 생성한다. 자세한 규격은 `docs/TRANSLATION_DECISIONS.md`를 참조한다.
 
+한국어 의미 번역의 모델은 `gpt-5.6-terra` 하나로 고정된다. [config/translation-model.json](config/translation-model.json)의 선언과 의미 번역 코드가 같은 단일 허용값을 검사한다. 이 정책은 번역 큐·결정 JSONL·적용 보고서에 기록되는 의미 번역에만 적용하며, ASR·Subtitle Forensics·기존 외부 기계번역 초안에는 적용하지 않는다.
+
 ## 차세대 포렌식 기록과 평가
 
 ```powershell
