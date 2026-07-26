@@ -9,13 +9,14 @@ import pytest
 
 from translation_forensics.alignment import align_by_overlap
 from translation_forensics.audio_adapter import ingest_asr, run_asr
-from translation_forensics.asr_evidence import classify_scene, evidence_weight, should_escalate
+from translation_forensics.asr_evidence import classify_scene, declared_slot_conflicts, evidence_weight, read_asr_candidates, should_escalate
 from translation_forensics.decisions import validate_state_transition
 from translation_forensics.discovery import DiscoveryError, resolve_role
 from translation_forensics.forensics_adapter import build_fallback_queue
 from translation_forensics.forensic_model import empty_semantic_frame, evidence_independence, frame_conflicts, initialize_forensic_records, validate_forensic_records
 from translation_forensics.manifest import build_project_manifest, sha256_file
 from translation_forensics.mqm import validate_mqm_csv
+from translation_forensics.evidence_artifacts import validate_alignment_evidence, validate_backtranslation_check, validate_speaker_state
 from translation_forensics.outputs import next_version, package_title_outputs
 from translation_forensics.reporting import build_review_context
 from translation_forensics.semantic_translation import apply_translation_decisions, build_translation_queue, initialize_translation_decisions, merge_translation_decisions
@@ -143,6 +144,30 @@ def test_asr_csv_ingest_and_zip_ingest(tmp_path: Path) -> None:
     other_destination = tmp_path / "work_audio_zip"
     result = ingest_asr(zip_source, other_destination)
     assert result["rows"] == 2
+
+
+def test_asr_defaults_to_one_whisper_family_and_escalates_declared_slot_conflict(tmp_path: Path) -> None:
+    rows = read_asr_candidates(fixture("sample.asr-candidates.csv"))
+    assert {row["source_family"] for row in rows} == {"whisper-family"}
+    claim = lambda value: json.dumps({"polarity": {"state": "confirmed", "value": value}})
+    conflict_rows = [
+        {"semantic_slots_json": claim("positive")},
+        {"semantic_slots_json": claim("negative")},
+    ]
+    assert declared_slot_conflicts(conflict_rows) == ["polarity"]
+    assert "semantic_conflict:polarity" in should_escalate(conflict_rows)[1]
+
+
+def test_reviewer_evidence_artifact_validators_block_bad_or_semantic_flip(tmp_path: Path) -> None:
+    speaker = tmp_path / "speaker.json"
+    speaker.write_text(json.dumps([{"scene_id": "S1", "participants": [], "current_speaker": "unknown", "previous_speaker": "unknown", "addressee": "unknown", "speaker_confidence": "unknown", "relationship": "unknown", "register_by_speaker": {}, "address_terms": [], "current_action_by_participant": {}, "question_owner": "unknown", "expected_responder": "unknown"}]), encoding="utf-8")
+    assert validate_speaker_state(speaker)["status"] == "pass"
+    alignment = tmp_path / "alignment.csv"
+    alignment.write_text("token,start,end,confidence,candidate_source,block_overlap,boundary_warning\nX,2,1,0.9,asr,1,none\n", encoding="utf-8")
+    assert validate_alignment_evidence(alignment)["status"] == "fail"
+    backtranslation = tmp_path / "backtranslation.csv"
+    backtranslation.write_text("block_number,status,difference_types,review_status\n1,meaning-flip,polarity,reviewed\n", encoding="utf-8")
+    assert validate_backtranslation_check(backtranslation)["status"] == "fail"
 
 
 def test_run_asr_dry_run_selects_cpu_profile() -> None:

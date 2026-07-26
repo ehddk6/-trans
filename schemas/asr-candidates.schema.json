@@ -11,7 +11,9 @@
     "avg_logprob": {},
     "no_speech_prob": {},
     "language_probability": {},
-    "error": {"type": "string"}
+    "error": {"type": "string"},
+    "source_family": {"type": "string", "enum": ["whisper-family", "independent-asr-family", "human-listening", "reference-japanese"]},
+    "semantic_slots_json": {"type": "string", "description": "Reviewer-supplied JSON object only; absent means no semantic claim."}
   },
   "additionalProperties": false
 }

@@ -31,3 +31,14 @@
 ## 차세대 추가 계층
 
 `forensic_model.py`와 새 스키마는 의미 프레임의 `null`/`unknown`/`confirmed`/`contradicted` 구분, source-family 단위 독립성, critical slot 충돌 escalation, 가설 원장 검증을 제공한다. `init-forensic-records`가 만드는 레코드는 명시적으로 `unreviewed`이며 번역 또는 검증 완료가 아니다.
+
+## 2026-07-26 implementation delta
+
+`validate-evidence-artifact` now validates reviewer-authored speaker-state,
+alignment-evidence, and backtranslation-check artifacts. ASR rows without an
+explicit family are assigned `whisper-family`; multiple Whisper profiles cannot
+be counted as independent. Only explicit reviewer-supplied confirmed slot
+claims may trigger semantic conflict escalation. This is a validation guard,
+not an ASR semantic parser or a quality-improvement result. See
+`docs/FINAL_STATUS_REPORT.md` for the full evidence boundary and experiment
+status.

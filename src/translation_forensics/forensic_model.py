@@ -126,6 +126,11 @@ def validate_hypotheses(records: Iterable[dict[str, Any]]) -> list[str]:
             errors.append(f"block {number}: semantic_frame 객체가 필요합니다.")
         else:
             errors.extend(f"block {number}: {error}" for error in validate_semantic_frame({"block_number": number, **frame}))
+        for key in ("supported_by", "contradicted_by", "unsupported_specificity"):
+            if not isinstance(row.get(key), list):
+                errors.append(f"block {number}: {key} must be a list")
+        if row.get("status") in {"supported", "dominant"} and not row.get("supported_by"):
+            errors.append(f"block {number}: {row.get('status')} hypothesis needs explicit supporting evidence")
     return errors
 
 

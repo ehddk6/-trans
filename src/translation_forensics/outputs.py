@@ -11,6 +11,7 @@ from .reporting import build_asr_verdicts, build_change_log, build_evidence_ledg
 from .semantic_translation import validate_translation_decisions
 from .forensic_model import validate_forensic_records
 from .mqm import validate_mqm_csv
+from .evidence_artifacts import validate_alignment_evidence, validate_backtranslation_check, validate_speaker_state
 from .srt import parse_srt
 from .validation import validate_pair, write_validation_report
 
@@ -79,6 +80,16 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
             raise RuntimeError("MQM 오류 원장 형식이 잘못되었습니다.")
         if stage in {"evaluation-validated", "final"} and mqm_report["critical_errors"]:
             raise RuntimeError("critical MQM 오류가 남아 있어 평가 검증 상태로 패키징할 수 없습니다.")
+    artifact_validators = {
+        "speaker-state": (speaker_state_path, validate_speaker_state),
+        "alignment-evidence": (alignment_evidence_path, validate_alignment_evidence),
+        "backtranslation-check": (backtranslation_check_path, validate_backtranslation_check),
+    }
+    for label, (artifact_path, validator) in artifact_validators.items():
+        if artifact_path and artifact_path.exists():
+            artifact_report = validator(artifact_path)
+            if artifact_report["status"] != "pass":
+                raise RuntimeError(f"{label} artifact validation failed: {artifact_report['errors'][:3]}")
     version = version or next_version(output_dir, title, stage)
     prefix = f"{title}."
     paths = {

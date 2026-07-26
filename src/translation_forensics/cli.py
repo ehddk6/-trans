@@ -22,6 +22,7 @@ from .drafts import build_korean_aligned_draft
 from .forensics_adapter import analyze_title
 from .forensic_model import initialize_forensic_records, validate_forensic_records
 from .evaluation import initialize_gold_layout
+from .evidence_artifacts import validate_alignment_evidence, validate_backtranslation_check, validate_speaker_state
 from .mqm import validate_mqm_csv
 from .manifest import append_history, build_project_manifest, write_json
 from .outputs import STAGES, package_title_outputs
@@ -375,6 +376,25 @@ def cmd_validate_mqm(args: argparse.Namespace) -> int:
     _emit(result, args); return 0 if result["status"] == "pass" else 1
 
 
+def cmd_validate_evidence_artifact(args: argparse.Namespace) -> int:
+    path = args.input.expanduser().resolve()
+    validators = {
+        "speaker-state": validate_speaker_state,
+        "alignment-evidence": validate_alignment_evidence,
+        "backtranslation-check": validate_backtranslation_check,
+    }
+    try:
+        result = validators[args.kind](path)
+        if args.output and not args.dry_run:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"existing report will not be overwritten: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
 def cmd_prepare_audio(args: argparse.Namespace) -> int:
     root = _project_root(args); workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None); input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
     try:
@@ -521,6 +541,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("validate-forensic-records", help="의미 프레임·가설 원장과 critical conflict escalation 검사"); _add_common(p); p.add_argument("--frames", required=True, type=Path); p.add_argument("--hypotheses", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_forensic_records)
     p = sub.add_parser("init-gold", help="정답을 만들지 않는 gold evaluation 디렉터리 골격 생성"); _add_common(p); p.set_defaults(func=cmd_init_gold)
     p = sub.add_parser("validate-mqm", help="subtitle MQM 오류 원장 형식과 critical 잔존 여부 검사"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_mqm)
+    p = sub.add_parser("validate-evidence-artifact", help="reviewer-authored evidence artifact schema validation"); _add_common(p); p.add_argument("--kind", required=True, choices=("speaker-state", "alignment-evidence", "backtranslation-check")); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_evidence_artifact)
     p = sub.add_parser("prepare-audio", help="P1/P2 장면과 음성 클립 준비"); _add_common(p); _add_title(p); p.add_argument("--review-queue", type=Path); p.add_argument("--audio", type=Path); p.add_argument("--output", type=Path); p.add_argument("--bands", default="P1,P2"); p.add_argument("--padding", type=float, default=2.5); p.add_argument("--merge-gap", type=float, default=1.5); p.add_argument("--max-scene", type=float, default=45.0); p.add_argument("--no-audio", action="store_true"); p.add_argument("--force", action="store_true"); p.set_defaults(func=cmd_prepare_audio)
     p = sub.add_parser("run-asr", help="적응형 다중 ASR 실행"); _add_common(p); _add_title(p); p.add_argument("--scenes", type=Path); p.add_argument("--output", type=Path); p.add_argument("--prompt", type=Path); p.add_argument("--model", default="large-v3"); p.add_argument("--cpu", action="store_true"); p.add_argument("--threshold", type=float, default=0.82); p.add_argument("--max-scenes", type=int, default=0); p.set_defaults(func=cmd_run_asr)
     p = sub.add_parser("ingest-asr", help="ASR CSV/ZIP 검사 및 연결"); _add_common(p); _add_title(p); p.add_argument("--source", required=True, type=Path); p.add_argument("--output", type=Path); p.add_argument("--force", action="store_true"); p.set_defaults(func=cmd_ingest_asr)

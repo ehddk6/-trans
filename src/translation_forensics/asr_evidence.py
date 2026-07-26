@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import csv
+import json
 import re
 from difflib import SequenceMatcher
 from pathlib import Path
 
 
 ASR_FIELDS = ["scene_id", "model", "profile", "audio", "text", "avg_logprob", "no_speech_prob", "language_probability", "error"]
+OPTIONAL_ASR_FIELDS = ("source_family", "semantic_slots_json")
 PROFILES = ("original_unbiased", "dialogue_unbiased", "original_no_vad", "original_prompted")
 BASE_PROFILES = {"original_unbiased", "dialogue_unbiased"}
 
@@ -31,6 +33,33 @@ def as_float(value: object, default: float | None = None) -> float | None:
         return default
 
 
+def declared_slot_conflicts(rows: list[dict[str, str]]) -> list[str]:
+    """Return explicit confirmed-slot disagreements, never inferred ones.
+
+    ``semantic_slots_json`` is reviewer-supplied provenance, not an NLP
+    prediction. A conflict in a critical slot is therefore a reason to
+    escalate for review, not a reason to choose the majority ASR text.
+    """
+    critical = {"polarity", "interrogative", "request_strength", "permission", "prohibition", "actor", "target", "location", "completion_state", "sexual_semantic_class", "speaker"}
+    values: dict[str, set[str]] = {}
+    for row in rows:
+        raw = row.get("semantic_slots_json", "")
+        if not raw:
+            continue
+        try:
+            slots = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(slots, dict):
+            continue
+        for name, claim in slots.items():
+            if name not in critical or not isinstance(claim, dict):
+                continue
+            if claim.get("state") == "confirmed" and claim.get("value") not in {None, ""}:
+                values.setdefault(name, set()).add(str(claim["value"]).strip())
+    return sorted(name for name, candidates in values.items() if len(candidates) > 1)
+
+
 def should_escalate(rows: list[dict[str, str]], threshold: float = 0.82) -> tuple[bool, str]:
     by_profile = {row.get("profile", ""): row for row in rows}
     left = by_profile.get("original_unbiased", {})
@@ -50,6 +79,7 @@ def should_escalate(rows: list[dict[str, str]], threshold: float = 0.82) -> tupl
             reasons.append("high_no_speech")
         if row.get("error"):
             reasons.append("error")
+    reasons.extend(f"semantic_conflict:{slot}" for slot in declared_slot_conflicts(rows))
     return bool(reasons), ",".join(sorted(set(reasons))) or "stable"
 
 
@@ -88,12 +118,28 @@ def validate_asr_rows(rows: list[dict[str, str]]) -> list[str]:
             errors.append(f"행 {index}: 필수 열 누락 {missing}")
         if row.get("profile") not in PROFILES:
             errors.append(f"행 {index}: 알 수 없는 profile {row.get('profile')!r}")
+        family = row.get("source_family", "whisper-family") or "whisper-family"
+        if family not in {"whisper-family", "independent-asr-family", "human-listening", "reference-japanese"}:
+            errors.append(f"row {index}: unsupported source_family {family!r}")
+        raw_slots = row.get("semantic_slots_json", "")
+        if raw_slots:
+            try:
+                decoded = json.loads(raw_slots)
+                if not isinstance(decoded, dict):
+                    raise ValueError
+            except (json.JSONDecodeError, ValueError):
+                errors.append(f"row {index}: semantic_slots_json must be an object")
     return errors
 
 
 def read_asr_candidates(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
+    for row in rows:
+        # Existing runner output has no family column.  Its profiles are one
+        # Whisper family, never several independent pieces of evidence.
+        row.setdefault("source_family", "whisper-family")
+        row.setdefault("semantic_slots_json", "")
     errors = validate_asr_rows(rows)
     if errors:
         raise ValueError("ASR CSV 규격 오류: " + "; ".join(errors[:5]))
