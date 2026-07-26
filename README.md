@@ -37,10 +37,10 @@ python -m translation_forensics.cli doctor --project-root . --json
 프로젝트 규칙에 따라 ADN-622 번역을 시작해. 먼저 자료·근거·누락·충돌을 점검하고, 승인 없이 final을 만들지 마.
 ```
 
-13개 작품 전체는 다음처럼 요청한다.
+여러 작품 또는 작업 폴더의 작품 전체는 다음처럼 요청한다.
 
 ```text
-13개 작품을 프로젝트 규칙에 따라 순차 처리해. 자료 점검→근거 연결→GPT-5.6 의미 번역→검증 순서로 진행하고, 보류 사유와 결과 경로를 기록해.
+지정한 작품들을 프로젝트 규칙에 따라 순차 처리해. 작품 수를 임의로 가정하지 말고, 자료 점검→근거 연결→GPT-5.6 의미 번역→검증 순서로 진행하고, 보류 사유와 결과 경로를 기록해.
 ```
 
 자동 라우팅되는 상세 템플릿은 [`prompts/batch-adult-srt-translation-run.md`](prompts/batch-adult-srt-translation-run.md)와 [`prompts/terra-semantic-translation-v1.md`](prompts/terra-semantic-translation-v1.md)에 있다.
@@ -146,9 +146,20 @@ python -m translation_forensics.cli validate-forensic-records `
 
 # 사람이 작성한 자막 전용 MQM 오류 원장 검사
 python -m translation_forensics.cli validate-mqm --input .\workspaces\SAMPLE\intermediate\SAMPLE.mqm-errors.reviewed-v1.csv
+
+# 직접 청취자가 채울 gold 레코드 템플릿 생성 및 검증
+python -m translation_forensics.cli init-gold-record --project-root . `
+  --gold-id G-SAMPLE-001 --title-id SAMPLE --scene-id S001 --block-ids 1,2 --split development
+python -m translation_forensics.cli validate-gold-record `
+  --input .\evaluation\gold\annotations\G-SAMPLE-001.gold-record.json
+
+# 두 번역안의 출처를 숨긴 로컬 A/B 검수 ZIP 생성
+python -m translation_forensics.cli build-blind-review-pack --project-root . --title SAMPLE `
+  --source-faithful .\draft\SAMPLE.source-faithful-ko.srt `
+  --viewer-natural .\draft\SAMPLE.viewer-natural-ko.srt --random-seed 20260726
 ```
 
-`init-forensic-records`의 결과는 `unreviewed` 템플릿이며 가설은 비어 있다. 이 명령은 해석·번역·검증 결과를 만들지 않는다. 가설은 실제 증거가 있을 때만 기록하고, critical 슬롯 충돌은 해결 또는 `unresolved` 처리 전에는 최종 상태로 승격하지 않는다. 연구 적용 근거는 `docs/research-findings.md`에, 현재 구현 감사는 `docs/current-system-audit.md`에 있다.
+`init-forensic-records`의 결과는 `unreviewed` 템플릿이며 가설은 비어 있다. `init-gold-record`도 직접 청취 완료 전에는 `unresolved-gold` 상태다. 블라인드 ZIP은 검수자에게만 전달하고, 별도 `*.internal-key.json`은 판정 완료 뒤에만 개봉한다. 이 명령들은 해석·번역·검증 완료나 품질 개선을 만들지 않는다. 가설은 실제 증거가 있을 때만 기록하고, critical 슬롯 충돌은 해결 또는 `unresolved` 처리 전에는 최종 상태로 승격하지 않는다. 연구 적용 근거는 `docs/research-findings.md`에, 현재 구현 감사는 `docs/current-system-audit.md`에 있다.
 
 ## External machine-translation drafts
 
