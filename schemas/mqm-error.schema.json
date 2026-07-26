@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Subtitle MQM error v2",
+  "type": "object",
+  "required": ["block_number", "error_type", "severity", "evidence_refs", "review_status"],
+  "properties": {
+    "block_number": {"type": "integer", "minimum": 1},
+    "error_type": {"type": "string"},
+    "severity": {"enum": ["critical", "major", "minor", "neutral"]},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "review_status": {"enum": ["reviewed", "unresolved", "dismissed"]}
+  },
+  "additionalProperties": true
+}

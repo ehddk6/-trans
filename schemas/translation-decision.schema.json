@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "translation-forensics semantic translation decision",
+  "type": "object",
+  "required": [
+    "block_number",
+    "source_faithful_korean",
+    "viewer_natural_korean",
+    "translation_method",
+    "status",
+    "confidence",
+    "evidence_refs"
+  ],
+  "properties": {
+    "block_number": {"type": "integer", "minimum": 1},
+    "source_japanese": {"type": "string"},
+    "previous_korean": {"type": "string"},
+    "source_faithful_korean": {"type": "string", "minLength": 1},
+    "viewer_natural_korean": {"type": "string", "minLength": 1},
+    "translation_method": {
+      "type": "string",
+      "enum": ["semantic_review_from_japanese", "semantic_review_with_asr", "semantic_review_with_context", "human_verified_semantic_review"]
+    },
+    "status": {"type": "string", "enum": ["translated", "reviewed", "approved"]},
+    "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+    "uncertain_slots": {"type": "array", "items": {"type": "string"}},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "review_note": {"type": "string"}
+  },
+  "additionalProperties": true
+}

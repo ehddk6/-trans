@@ -1,0 +1,43 @@
+{
+  "system_version": "1.0.0",
+  "title": "ADN-503",
+  "stage": "화면 영문·사진 검증본",
+  "source_srt": "/mnt/data/ADN-503_photo_english_verified_pass1/ADN-503.photo-english-verified-ko.v1.srt",
+  "manifest": "/mnt/data/ADN-503_photo_english_verified_pass1/ADN-503.block-frame-manifest.csv",
+  "changes": "/mnt/data/ADN-503_photo_english_verified_pass1/ADN-503.photo-english-verified-changes.csv",
+  "validation": {
+    "block_count": 231,
+    "sequential_numbering": true,
+    "monotonic_start_times": true,
+    "blank_blocks": [],
+    "japanese_residue_blocks": [],
+    "placeholder_blocks": [],
+    "over_2_line_blocks": [],
+    "over_42_char_blocks": [],
+    "hard_validation_pass": true
+  },
+  "risk_summary": {
+    "mean_risk": 27.66,
+    "median_risk": 26.99,
+    "max_risk": 53.26,
+    "tier_counts": {
+      "T4": 183,
+      "T3": 48
+    },
+    "absolute_priority_blocks_T1_T2": 0,
+    "review_band_counts": {
+      "P4": 129,
+      "P3": 71,
+      "P2": 30,
+      "P1": 1
+    },
+    "relative_priority_blocks_P1_P2": 31
+  },
+  "scene_count": 84,
+  "known_limitations": [
+    "정지 사진의 의미를 자동으로 새로 판독하지 않았습니다. frame_file은 근거 추적용입니다.",
+    "위험 모델은 ABF-303 한 작품의 검증 변경 이력으로 보정돼 작품 간 일반화 성능은 미확정입니다.",
+    "style-profiles는 실제 화자 식별이 아니라 문장 형식 분류입니다.",
+    "위험 점수는 번역 오류의 확정 판정이 아니라 검수 우선순위입니다."
+  ]
+}

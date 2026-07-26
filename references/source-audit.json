@@ -1,0 +1,54 @@
+{
+  "checked_at": "2026-07-25",
+  "source_directory": "C:\\Users\\ehddk\\OneDrive\\문서\\번역 프로젝트",
+  "materials": [
+    {
+      "name": "subtitle_forensics_v1_bundle.zip",
+      "sha256": "591084E0196C1B2E37AB3FEDE3C04BC0ED98C76AA9D286795ED1F5F06AD1544D",
+      "size_bytes": 4366747,
+      "extracted_to": "vendor/subtitle_forensics_v1",
+      "observed": ["subtitle_forensics.py", "self_test.py", "self-test-report.json", "risk_model.joblib", "model_metrics.json", "17 title output folders"]
+    },
+    {
+      "name": "subtitle_audio_forensics_runner_v1.zip",
+      "sha256": "74AA5F4C6EE1FB81588360F470E0B6815CFC006E0BF895FEB742CDF489BFDAA9",
+      "size_bytes": 32508,
+      "extracted_to": "vendor/subtitle_audio_forensics_runner_v1",
+      "observed": ["run_forensic_audio.py", "prepare_review_pack.py", "run_asr_adaptive.py", "INSTALL_ASR.ps1", "RUN_AUDIO_FORENSICS.bat"]
+    },
+    {
+      "name": "# GPT-5.6 일본어 성인영상 SRT 번역·교정·통합 프롬프.txt",
+      "sha256": "35D3FFFD274F13369E55F1606E17D9065B85FA514EE2104CC0A6D39F2AAE264F",
+      "size_bytes": 37766,
+      "copied_to": "references/translation-prompt-v6.txt"
+    },
+    {
+      "name": "subtitle_audio_crosscheck_method_v1.md",
+      "sha256": "71B3E2EFFF91B3E6C528194249D125F003AAD1572893D450B07D2A682AC1B1AB",
+      "size_bytes": 4711,
+      "copied_to": "references/subtitle-audio-crosscheck-method-v1.md"
+    },
+    {
+      "name": "subtitle_forensics_io_schema_v1.md",
+      "sha256": "F7C99D9A128F817123AE1A0C41AA4B59F1E1C488132F0B91FCB17439729A9BE3",
+      "size_bytes": 2301,
+      "copied_to": "references/subtitle-forensics-io-schema-v1.md"
+    }
+  ],
+  "implementation_findings": {
+    "subtitle_forensics": {
+      "version": "1.0.0",
+      "imports": ["joblib", "numpy", "pandas", "scipy", "scikit-learn"],
+      "cli": "--root, --output",
+      "self_test": "110 checks, 0 failures",
+      "limitation": "expects ABF-303 training inputs not present in the five supplied public materials"
+    },
+    "audio_runner": {
+      "profiles": ["original_unbiased", "dialogue_unbiased", "original_no_vad", "original_prompted"],
+      "dependencies": ["faster-whisper", "ffmpeg"],
+      "checkpoint_key": ["scene_id", "model", "profile"],
+      "limitation": "model download and actual GPU inference were not executed during project construction"
+    }
+  },
+  "integration_decision": "vendor files are preserved unchanged; adapters invoke them when their documented inputs exist and otherwise record a structure_fallback or skipped status"
+}

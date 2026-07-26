@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "status": "empty-no-gold-answers",
+  "required_scene_fields": [
+    "audio_directly_checked",
+    "japanese_transcript",
+    "semantic_frame",
+    "allowed_korean_range",
+    "forbidden_interpretations",
+    "acceptable_answers",
+    "error_types",
+    "severity",
+    "scene_context"
+  ],
+  "split_names": [
+    "train",
+    "development",
+    "locked-test"
+  ],
+  "locked_test_policy": "locked-test 정답은 모델 학습·프롬프트 개발에 사용하지 않습니다.",
+  "note": "이 파일은 평가 골격이며 정답·평가 완료·품질 개선을 의미하지 않습니다."
+}

@@ -1,0 +1,44 @@
+{
+  "system_version": "1.0.0",
+  "title": "SSIS-575",
+  "stage": "사진 대조 1차 교정본",
+  "source_srt": "/mnt/data/SSIS-575_photo_guided_pass1/SSIS-575.photo-guided-pass1-ko.srt",
+  "manifest": "/mnt/data/SSIS-575_photo_guided_pass1/SSIS-575.block-frame-manifest.csv",
+  "changes": "/mnt/data/SSIS-575_photo_guided_pass1/SSIS-575.photo-guided-pass1-changes.csv",
+  "validation": {
+    "block_count": 2218,
+    "sequential_numbering": true,
+    "monotonic_start_times": true,
+    "blank_blocks": [],
+    "japanese_residue_blocks": [],
+    "placeholder_blocks": [],
+    "over_2_line_blocks": [],
+    "over_42_char_blocks": [],
+    "hard_validation_pass": true
+  },
+  "risk_summary": {
+    "mean_risk": 33.98,
+    "median_risk": 34.56,
+    "max_risk": 62.26,
+    "tier_counts": {
+      "T4": 1142,
+      "T3": 1075,
+      "T2": 1
+    },
+    "absolute_priority_blocks_T1_T2": 1,
+    "review_band_counts": {
+      "P4": 1068,
+      "P3": 701,
+      "P2": 423,
+      "P1": 26
+    },
+    "relative_priority_blocks_P1_P2": 449
+  },
+  "scene_count": 201,
+  "known_limitations": [
+    "정지 사진의 의미를 자동으로 새로 판독하지 않았습니다. frame_file은 근거 추적용입니다.",
+    "위험 모델은 ABF-303 한 작품의 검증 변경 이력으로 보정돼 작품 간 일반화 성능은 미확정입니다.",
+    "style-profiles는 실제 화자 식별이 아니라 문장 형식 분류입니다.",
+    "위험 점수는 번역 오류의 확정 판정이 아니라 검수 우선순위입니다."
+  ]
+}

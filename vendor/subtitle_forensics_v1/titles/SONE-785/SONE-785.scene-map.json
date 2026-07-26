@@ -1,0 +1,1551 @@
+[
+  {
+    "scene_id": 1,
+    "start_block": 1,
+    "end_block": 1,
+    "start_time": "00:00:19,510",
+    "end_time": "00:00:21,750",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "경기",
+      "건으로",
+      "주셨습니다"
+    ],
+    "mean_risk": 23.1,
+    "max_risk": 23.1,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 2,
+    "start_block": 2,
+    "end_block": 4,
+    "start_time": "00:00:40,400",
+    "end_time": "00:00:55,220",
+    "block_count": 3,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 1,
+      "존댓말형": 1,
+      "반응형": 1
+    },
+    "top_words": [
+      "그럼",
+      "혹시",
+      "생각이",
+      "바뀌시면",
+      "그때는",
+      "부탁드리겠습니다"
+    ],
+    "mean_risk": 35.65,
+    "max_risk": 51.39,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 3,
+    "start_block": 5,
+    "end_block": 9,
+    "start_time": "00:01:47,990",
+    "end_time": "00:02:27,050",
+    "block_count": 5,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 2,
+      "존댓말형": 3
+    },
+    "top_words": [
+      "이세",
+      "부탁드립니다",
+      "선수를",
+      "소개해",
+      "드리겠습니다",
+      "저희",
+      "회사의",
+      "신입"
+    ],
+    "mean_risk": 45.25,
+    "max_risk": 50.08,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 4,
+    "start_block": 10,
+    "end_block": 13,
+    "start_time": "00:03:00,620",
+    "end_time": "00:03:08,160",
+    "block_count": 4,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "존댓말형": 2,
+      "반응형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "부탁드리겠습니다",
+      "그럼",
+      "뵙겠습니다",
+      "모셔다드리겠습니다",
+      "오늘은",
+      "여기까지",
+      "모시겠습니다"
+    ],
+    "mean_risk": 33.62,
+    "max_risk": 39.63,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 5,
+    "start_block": 14,
+    "end_block": 31,
+    "start_time": "00:03:32,530",
+    "end_time": "00:04:29,400",
+    "block_count": 18,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 8,
+      "중립·혼합형": 5,
+      "반응형": 5
+    },
+    "top_words": [
+      "이세",
+      "밀착",
+      "다큐멘터리까지",
+      "선수",
+      "눈에만",
+      "들면",
+      "방송국에도",
+      "기회가"
+    ],
+    "mean_risk": 36.16,
+    "max_risk": 52.84,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 6,
+    "start_block": 32,
+    "end_block": 45,
+    "start_time": "00:05:00,230",
+    "end_time": "00:06:27,500",
+    "block_count": 14,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 3,
+      "중립·혼합형": 7,
+      "반응형": 3,
+      "존댓말형": 1
+    },
+    "top_words": [
+      "다른",
+      "방송국이",
+      "해낸",
+      "일을",
+      "네가",
+      "해내는",
+      "거야",
+      "말이죠"
+    ],
+    "mean_risk": 40.88,
+    "max_risk": 56.57,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 7,
+    "start_block": 46,
+    "end_block": 64,
+    "start_time": "00:06:39,510",
+    "end_time": "00:08:20,180",
+    "block_count": 19,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 6,
+      "중립·혼합형": 3,
+      "반말형": 8,
+      "존댓말형": 2
+    },
+    "top_words": [
+      "돌아가",
+      "이세",
+      "밀착",
+      "다큐멘터리",
+      "잘했다",
+      "이걸로",
+      "너도",
+      "캐스터로서"
+    ],
+    "mean_risk": 38.68,
+    "max_risk": 52.7,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 8,
+    "start_block": 65,
+    "end_block": 71,
+    "start_time": "00:09:16,610",
+    "end_time": "00:09:53,040",
+    "block_count": 7,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 4,
+      "반말형": 2,
+      "반응형": 1
+    },
+    "top_words": [
+      "이세",
+      "선수의",
+      "고마워",
+      "대단하다",
+      "후와",
+      "마음에",
+      "들어서",
+      "단숨에"
+    ],
+    "mean_risk": 49.57,
+    "max_risk": 56.82,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 9,
+    "start_block": 72,
+    "end_block": 77,
+    "start_time": "00:10:09,260",
+    "end_time": "00:10:31,050",
+    "block_count": 6,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 4,
+      "반말형": 2
+    },
+    "top_words": [
+      "좋아해",
+      "나도",
+      "하지만",
+      "과장님도",
+      "절호의",
+      "기회라며",
+      "기대하시니까",
+      "반드시"
+    ],
+    "mean_risk": 37.21,
+    "max_risk": 52.2,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 10,
+    "start_block": 78,
+    "end_block": 88,
+    "start_time": "00:10:52,280",
+    "end_time": "00:11:19,230",
+    "block_count": 11,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 5,
+      "반말형": 2,
+      "중립·혼합형": 4
+    },
+    "top_words": [
+      "물론이지",
+      "싶은",
+      "그럼",
+      "괜찮아",
+      "어디",
+      "가고",
+      "있어",
+      "보고"
+    ],
+    "mean_risk": 31.91,
+    "max_risk": 44.67,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 11,
+    "start_block": 89,
+    "end_block": 110,
+    "start_time": "00:11:44,640",
+    "end_time": "00:13:04,220",
+    "block_count": 22,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 3,
+      "반말형": 8,
+      "중립·혼합형": 6,
+      "존댓말형": 5
+    },
+    "top_words": [
+      "이세",
+      "경기",
+      "감사합니다",
+      "선수도",
+      "이쪽으로",
+      "부탁드립니다",
+      "그럼",
+      "직후의"
+    ],
+    "mean_risk": 38.23,
+    "max_risk": 52.85,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 12,
+    "start_block": 111,
+    "end_block": 132,
+    "start_time": "00:13:21,160",
+    "end_time": "00:13:57,600",
+    "block_count": 22,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 6,
+      "중립·혼합형": 4,
+      "반말형": 10,
+      "존댓말형": 2
+    },
+    "top_words": [
+      "이세",
+      "선수",
+      "감사합니다",
+      "열심히",
+      "하는",
+      "부탁해",
+      "어때",
+      "어떠셨어요"
+    ],
+    "mean_risk": 35.73,
+    "max_risk": 54.51,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 13,
+    "start_block": 133,
+    "end_block": 157,
+    "start_time": "00:14:29,650",
+    "end_time": "00:16:13,760",
+    "block_count": 25,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 6,
+      "반말형": 14,
+      "중립·혼합형": 3,
+      "존댓말형": 2
+    },
+    "top_words": [
+      "카에데",
+      "이세",
+      "어떻게",
+      "해야",
+      "안녕하세요",
+      "이번",
+      "취재가",
+      "있어"
+    ],
+    "mean_risk": 39.98,
+    "max_risk": 52.54,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 14,
+    "start_block": 158,
+    "end_block": 166,
+    "start_time": "00:16:28,770",
+    "end_time": "00:16:54,750",
+    "block_count": 9,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "존댓말형": 3,
+      "반말형": 4,
+      "반응형": 2
+    },
+    "top_words": [
+      "감사합니다",
+      "얼굴이",
+      "작네요",
+      "전체적인",
+      "인상도",
+      "아주",
+      "좋네",
+      "오늘"
+    ],
+    "mean_risk": 40.12,
+    "max_risk": 50.81,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 15,
+    "start_block": 167,
+    "end_block": 174,
+    "start_time": "00:17:24,200",
+    "end_time": "00:17:43,150",
+    "block_count": 8,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "존댓말형": 3,
+      "반응형": 4,
+      "반말형": 1
+    },
+    "top_words": [
+      "여기에",
+      "달아도",
+      "죄송합니다",
+      "정도면",
+      "괜찮지",
+      "않아",
+      "정말인가요",
+      "회사에서"
+    ],
+    "mean_risk": 34.82,
+    "max_risk": 41.2,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 16,
+    "start_block": 175,
+    "end_block": 189,
+    "start_time": "00:17:58,660",
+    "end_time": "00:18:46,110",
+    "block_count": 15,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "존댓말형": 7,
+      "반응형": 4,
+      "중립·혼합형": 3,
+      "반말형": 1
+    },
+    "top_words": [
+      "괜찮습니다",
+      "그럼",
+      "죄송합니다",
+      "이쪽으로",
+      "주시겠어요",
+      "여기는",
+      "이쪽도",
+      "어색하네"
+    ],
+    "mean_risk": 33.62,
+    "max_risk": 44.05,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 17,
+    "start_block": 190,
+    "end_block": 199,
+    "start_time": "00:19:00,900",
+    "end_time": "00:19:34,960",
+    "block_count": 10,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 5,
+      "반말형": 4,
+      "존댓말형": 1
+    },
+    "top_words": [
+      "겁니다",
+      "기회를",
+      "놓치고",
+      "않을",
+      "오타시",
+      "오늘",
+      "알고",
+      "있지"
+    ],
+    "mean_risk": 39.08,
+    "max_risk": 50.29,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 18,
+    "start_block": 200,
+    "end_block": 228,
+    "start_time": "00:20:08,680",
+    "end_time": "00:21:13,720",
+    "block_count": 29,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 3,
+      "반말형": 8,
+      "중립·혼합형": 13,
+      "존댓말형": 5
+    },
+    "top_words": [
+      "그럼",
+      "시작",
+      "독점",
+      "죄송합니다",
+      "카에데",
+      "여러분",
+      "준비됐습니다",
+      "오늘"
+    ],
+    "mean_risk": 35.32,
+    "max_risk": 54.23,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 19,
+    "start_block": 229,
+    "end_block": 263,
+    "start_time": "00:21:55,440",
+    "end_time": "00:24:15,610",
+    "block_count": 35,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 10,
+      "존댓말형": 7,
+      "중립·혼합형": 9,
+      "반응형": 9
+    },
+    "top_words": [
+      "감사합니다",
+      "그럼",
+      "이게",
+      "마시자",
+      "오늘",
+      "허락해도",
+      "저는",
+      "위해서도"
+    ],
+    "mean_risk": 38.69,
+    "max_risk": 59.22,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 20,
+    "start_block": 264,
+    "end_block": 265,
+    "start_time": "00:24:38,260",
+    "end_time": "00:24:41,940",
+    "block_count": 2,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "존댓말형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "이세",
+      "선수",
+      "먼저",
+      "실례하겠습니다",
+      "그래"
+    ],
+    "mean_risk": 33.28,
+    "max_risk": 45.46,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 21,
+    "start_block": 266,
+    "end_block": 273,
+    "start_time": "00:25:17,890",
+    "end_time": "00:25:54,090",
+    "block_count": 8,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 5,
+      "반말형": 1,
+      "중립·혼합형": 2
+    },
+    "top_words": [
+      "시간은",
+      "괜찮았어",
+      "기운이",
+      "없잖아",
+      "아뇨",
+      "감사합니다",
+      "혹시",
+      "긴장한"
+    ],
+    "mean_risk": 42.51,
+    "max_risk": 55.1,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 22,
+    "start_block": 274,
+    "end_block": 280,
+    "start_time": "00:26:17,190",
+    "end_time": "00:27:40,250",
+    "block_count": 7,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 5,
+      "반말형": 2
+    },
+    "top_words": [
+      "싫은",
+      "아니잖아",
+      "앞으로",
+      "오래",
+      "함께할",
+      "사이인데",
+      "밀착",
+      "취재하러"
+    ],
+    "mean_risk": 42.11,
+    "max_risk": 47.61,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 23,
+    "start_block": 281,
+    "end_block": 287,
+    "start_time": "00:28:26,090",
+    "end_time": "00:28:58,130",
+    "block_count": 7,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "반응형": 3,
+      "반말형": 3,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "상대의",
+      "방어가",
+      "단단하네",
+      "경기",
+      "가드가",
+      "단단하면",
+      "어떻게",
+      "하는"
+    ],
+    "mean_risk": 39.15,
+    "max_risk": 53.54,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 24,
+    "start_block": 288,
+    "end_block": 290,
+    "start_time": "00:29:12,030",
+    "end_time": "00:29:36,980",
+    "block_count": 3,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "반말형": 1,
+      "중립·혼합형": 1,
+      "반응형": 1
+    },
+    "top_words": [
+      "돼요",
+      "시원하지",
+      "으음"
+    ],
+    "mean_risk": 31.69,
+    "max_risk": 37.99,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 25,
+    "start_block": 291,
+    "end_block": 305,
+    "start_time": "00:30:44,140",
+    "end_time": "00:31:50,420",
+    "block_count": 15,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "중립·혼합형": 3,
+      "반말형": 11,
+      "반응형": 1
+    },
+    "top_words": [
+      "그럼",
+      "이건",
+      "후와",
+      "알고",
+      "있지",
+      "돼요",
+      "알았어",
+      "다큐멘터리"
+    ],
+    "mean_risk": 38.9,
+    "max_risk": 51.62,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 26,
+    "start_block": 306,
+    "end_block": 313,
+    "start_time": "00:32:27,480",
+    "end_time": "00:33:23,160",
+    "block_count": 8,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 3,
+      "반응형": 5
+    },
+    "top_words": [
+      "달콤한",
+      "맛이",
+      "나지",
+      "향도",
+      "좋네",
+      "그럼",
+      "넣어",
+      "볼게"
+    ],
+    "mean_risk": 38.75,
+    "max_risk": 51.44,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 27,
+    "start_block": 314,
+    "end_block": 318,
+    "start_time": "00:35:30,280",
+    "end_time": "00:35:40,940",
+    "block_count": 5,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "중립·혼합형": 3,
+      "반응형": 1,
+      "반말형": 1
+    },
+    "top_words": [
+      "배에",
+      "힘을",
+      "뭘요",
+      "힘들어요",
+      "벌써",
+      "미안해요"
+    ],
+    "mean_risk": 32.02,
+    "max_risk": 53.0,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 28,
+    "start_block": 319,
+    "end_block": 320,
+    "start_time": "00:36:47,360",
+    "end_time": "00:38:01,510",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "어떻게",
+      "같아",
+      "이쪽도",
+      "한결",
+      "부드러워졌어"
+    ],
+    "mean_risk": 42.89,
+    "max_risk": 43.07,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 29,
+    "start_block": 321,
+    "end_block": 324,
+    "start_time": "00:38:48,850",
+    "end_time": "00:39:09,360",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 4
+    },
+    "top_words": [
+      "몸이",
+      "뜨거워졌잖아",
+      "나도",
+      "똑같아",
+      "이쪽도",
+      "괜찮을",
+      "같아",
+      "그렇게"
+    ],
+    "mean_risk": 37.07,
+    "max_risk": 42.81,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 30,
+    "start_block": 325,
+    "end_block": 325,
+    "start_time": "00:39:31,150",
+    "end_time": "00:39:32,250",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [
+      "사이좋게",
+      "지내야지"
+    ],
+    "mean_risk": 36.36,
+    "max_risk": 36.36,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 31,
+    "start_block": 326,
+    "end_block": 326,
+    "start_time": "00:39:51,110",
+    "end_time": "00:39:57,200",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "혀를",
+      "내밀어",
+      "친해지자"
+    ],
+    "mean_risk": 48.79,
+    "max_risk": 48.79,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 32,
+    "start_block": 327,
+    "end_block": 327,
+    "start_time": "00:40:13,320",
+    "end_time": "00:40:14,560",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "어떻게",
+      "하면",
+      "돼요"
+    ],
+    "mean_risk": 42.51,
+    "max_risk": 42.51,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 33,
+    "start_block": 328,
+    "end_block": 328,
+    "start_time": "00:43:56,700",
+    "end_time": "00:43:57,660",
+    "block_count": 1,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [
+      "하는",
+      "거야"
+    ],
+    "mean_risk": 44.01,
+    "max_risk": 44.01,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 34,
+    "start_block": 329,
+    "end_block": 330,
+    "start_time": "00:44:10,740",
+    "end_time": "00:44:13,840",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "다리를",
+      "잡아"
+    ],
+    "mean_risk": 34.66,
+    "max_risk": 35.1,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 35,
+    "start_block": 331,
+    "end_block": 332,
+    "start_time": "00:44:27,500",
+    "end_time": "00:44:36,330",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반응형": 1
+    },
+    "top_words": [
+      "벌려",
+      "계속",
+      "그렇게",
+      "말해도",
+      "괜찮겠어"
+    ],
+    "mean_risk": 43.05,
+    "max_risk": 46.51,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 36,
+    "start_block": 333,
+    "end_block": 334,
+    "start_time": "00:44:50,960",
+    "end_time": "00:44:58,810",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "벌리는",
+      "좋아",
+      "부끄러워서",
+      "보겠어요"
+    ],
+    "mean_risk": 45.07,
+    "max_risk": 46.3,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 37,
+    "start_block": 335,
+    "end_block": 335,
+    "start_time": "00:45:53,200",
+    "end_time": "00:45:54,280",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "하아"
+    ],
+    "mean_risk": 45.82,
+    "max_risk": 45.82,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 38,
+    "start_block": 336,
+    "end_block": 336,
+    "start_time": "00:47:10,740",
+    "end_time": "00:47:11,300",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "소리"
+    ],
+    "mean_risk": 50.86,
+    "max_risk": 50.86,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 39,
+    "start_block": 337,
+    "end_block": 340,
+    "start_time": "00:47:49,720",
+    "end_time": "00:48:42,520",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2,
+      "반말형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "아직도",
+      "여유가",
+      "남아",
+      "있네",
+      "됐지",
+      "하아",
+      "이것"
+    ],
+    "mean_risk": 48.77,
+    "max_risk": 57.24,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 40,
+    "start_block": 341,
+    "end_block": 342,
+    "start_time": "00:52:18,650",
+    "end_time": "00:52:19,670",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "으윽"
+    ],
+    "mean_risk": 32.67,
+    "max_risk": 33.8,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 41,
+    "start_block": 343,
+    "end_block": 344,
+    "start_time": "00:53:50,780",
+    "end_time": "00:55:02,430",
+    "block_count": 2,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 2
+    },
+    "top_words": [
+      "돼요",
+      "이래요"
+    ],
+    "mean_risk": 48.66,
+    "max_risk": 59.36,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 42,
+    "start_block": 345,
+    "end_block": 348,
+    "start_time": "00:55:43,130",
+    "end_time": "00:56:18,940",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반말형": 1,
+      "반응형": 2
+    },
+    "top_words": [
+      "엉덩이에",
+      "사귀는",
+      "사이가",
+      "되면",
+      "정도는",
+      "있어야지",
+      "벽에",
+      "손을"
+    ],
+    "mean_risk": 50.81,
+    "max_risk": 52.85,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 43,
+    "start_block": 349,
+    "end_block": 352,
+    "start_time": "00:56:59,530",
+    "end_time": "00:57:15,800",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2,
+      "중립·혼합형": 1,
+      "반말형": 1
+    },
+    "top_words": [
+      "흥분했어",
+      "아래에서",
+      "속옷을",
+      "당겨",
+      "볼게",
+      "여기인가",
+      "직접",
+      "확인해"
+    ],
+    "mean_risk": 38.38,
+    "max_risk": 45.48,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 44,
+    "start_block": 353,
+    "end_block": 353,
+    "start_time": "01:00:31,880",
+    "end_time": "01:00:32,640",
+    "block_count": 1,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [
+      "있지"
+    ],
+    "mean_risk": 41.09,
+    "max_risk": 41.09,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 45,
+    "start_block": 354,
+    "end_block": 356,
+    "start_time": "01:02:02,800",
+    "end_time": "01:03:58,710",
+    "block_count": 3,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "반응형": 1,
+      "중립·혼합형": 1,
+      "반말형": 1
+    },
+    "top_words": [
+      "손가락으로",
+      "잡고",
+      "있을",
+      "테니까",
+      "움직여",
+      "후와",
+      "이런",
+      "처음은"
+    ],
+    "mean_risk": 44.94,
+    "max_risk": 52.2,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 46,
+    "start_block": 357,
+    "end_block": 358,
+    "start_time": "01:10:55,460",
+    "end_time": "01:11:07,000",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "스스로",
+      "움직여도",
+      "좋아",
+      "앞으로",
+      "깊은",
+      "사이가",
+      "거니까"
+    ],
+    "mean_risk": 44.79,
+    "max_risk": 47.59,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 47,
+    "start_block": 359,
+    "end_block": 361,
+    "start_time": "01:11:46,320",
+    "end_time": "01:11:50,760",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "좋아",
+      "입구",
+      "쪽이",
+      "안쪽이",
+      "돼요"
+    ],
+    "mean_risk": 41.21,
+    "max_risk": 51.03,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 48,
+    "start_block": 362,
+    "end_block": 363,
+    "start_time": "01:12:02,890",
+    "end_time": "01:12:05,570",
+    "block_count": 2,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 2
+    },
+    "top_words": [
+      "정말이네",
+      "벌써",
+      "안쪽이",
+      "지친",
+      "같은데"
+    ],
+    "mean_risk": 39.68,
+    "max_risk": 51.57,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 49,
+    "start_block": 364,
+    "end_block": 367,
+    "start_time": "01:16:25,250",
+    "end_time": "01:16:30,490",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2,
+      "반말형": 2
+    },
+    "top_words": [
+      "안쪽까지",
+      "닿으면",
+      "어떻게",
+      "될까",
+      "부끄러운가",
+      "보네",
+      "일단",
+      "뒤에서"
+    ],
+    "mean_risk": 49.47,
+    "max_risk": 59.84,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 50,
+    "start_block": 368,
+    "end_block": 368,
+    "start_time": "01:17:03,910",
+    "end_time": "01:17:04,690",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "자세로는",
+      "모르겠어요"
+    ],
+    "mean_risk": 50.62,
+    "max_risk": 50.62,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 51,
+    "start_block": 369,
+    "end_block": 369,
+    "start_time": "01:19:43,420",
+    "end_time": "01:19:44,180",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "넣어도"
+    ],
+    "mean_risk": 50.79,
+    "max_risk": 50.79,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 52,
+    "start_block": 370,
+    "end_block": 371,
+    "start_time": "01:29:42,900",
+    "end_time": "01:29:54,240",
+    "block_count": 2,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반말형": 1
+    },
+    "top_words": [
+      "운동선수의",
+      "체력을",
+      "몰라",
+      "스포츠",
+      "캐스터라면",
+      "정도는",
+      "알아",
+      "둬야지"
+    ],
+    "mean_risk": 46.53,
+    "max_risk": 48.46,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 53,
+    "start_block": 372,
+    "end_block": 373,
+    "start_time": "01:30:18,250",
+    "end_time": "01:30:26,210",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 1,
+      "반응형": 1
+    },
+    "top_words": [
+      "보통",
+      "사람과",
+      "다른",
+      "느껴지지",
+      "예를",
+      "들어",
+      "남자친구와는"
+    ],
+    "mean_risk": 45.48,
+    "max_risk": 45.56,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 54,
+    "start_block": 374,
+    "end_block": 374,
+    "start_time": "01:35:02,620",
+    "end_time": "01:35:03,180",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "아아"
+    ],
+    "mean_risk": 44.96,
+    "max_risk": 44.96,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 55,
+    "start_block": 375,
+    "end_block": 375,
+    "start_time": "01:37:50,340",
+    "end_time": "01:37:51,280",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "아아"
+    ],
+    "mean_risk": 46.64,
+    "max_risk": 46.64,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 56,
+    "start_block": 376,
+    "end_block": 380,
+    "start_time": "01:46:26,620",
+    "end_time": "01:53:10,020",
+    "block_count": 5,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 4,
+      "반말형": 1
+    },
+    "top_words": [
+      "아아",
+      "가면",
+      "알게",
+      "거야",
+      "안쪽까지",
+      "넣어"
+    ],
+    "mean_risk": 55.36,
+    "max_risk": 68.97,
+    "t1_blocks": 0,
+    "t2_blocks": 2
+  },
+  {
+    "scene_id": 57,
+    "start_block": 381,
+    "end_block": 381,
+    "start_time": "01:53:33,720",
+    "end_time": "01:53:35,280",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "넣고",
+      "나니까",
+      "어때"
+    ],
+    "mean_risk": 26.09,
+    "max_risk": 26.09,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 58,
+    "start_block": 382,
+    "end_block": 384,
+    "start_time": "01:53:51,630",
+    "end_time": "01:54:06,920",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 3
+    },
+    "top_words": [
+      "하아"
+    ],
+    "mean_risk": 23.7,
+    "max_risk": 27.34,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 59,
+    "start_block": 385,
+    "end_block": 385,
+    "start_time": "01:56:20,480",
+    "end_time": "01:56:21,320",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "하아"
+    ],
+    "mean_risk": 39.32,
+    "max_risk": 39.32,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 60,
+    "start_block": 386,
+    "end_block": 386,
+    "start_time": "01:59:17,110",
+    "end_time": "01:59:20,090",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "빼고",
+      "천천히",
+      "받아"
+    ],
+    "mean_risk": 55.49,
+    "max_risk": 55.49,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 61,
+    "start_block": 387,
+    "end_block": 387,
+    "start_time": "02:01:06,900",
+    "end_time": "02:01:08,120",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [
+      "정도로는",
+      "아직",
+      "끝나지",
+      "않을",
+      "거야"
+    ],
+    "mean_risk": 53.32,
+    "max_risk": 53.32,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 62,
+    "start_block": 388,
+    "end_block": 391,
+    "start_time": "02:01:43,360",
+    "end_time": "02:02:30,050",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반응형": 3
+    },
+    "top_words": [
+      "운동선수는",
+      "허리",
+      "힘도",
+      "강하거든",
+      "아직",
+      "제대로",
+      "시작하지도",
+      "않았어"
+    ],
+    "mean_risk": 44.07,
+    "max_risk": 51.22,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 63,
+    "start_block": 392,
+    "end_block": 392,
+    "start_time": "02:02:44,900",
+    "end_time": "02:02:45,800",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [
+      "멈추지",
+      "말고",
+      "계속해"
+    ],
+    "mean_risk": 25.13,
+    "max_risk": 25.13,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  }
+]

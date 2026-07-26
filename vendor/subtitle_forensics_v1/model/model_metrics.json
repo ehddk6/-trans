@@ -1,0 +1,26 @@
+{
+  "system_version": "1.0.0",
+  "training_title": "ABF-303",
+  "blocks": 1248,
+  "positive_changed_blocks": 522,
+  "positive_rate": 0.4182692307692308,
+  "validation": "5-fold StratifiedGroupKFold, contiguous 50-block groups",
+  "roc_auc": 0.6469369768742809,
+  "average_precision": 0.5196013294899491,
+  "threshold_max_f2": 0.14500000000000002,
+  "f2": 0.7849725106902871,
+  "precision": 0.433389544688027,
+  "recall": 0.9846743295019157,
+  "f1": 0.6018735362997658,
+  "confusion_matrix": [
+    [
+      54,
+      672
+    ],
+    [
+      8,
+      514
+    ]
+  ],
+  "warning": "동일 작품 내부의 교차검증 결과이며 다른 작품에 대한 일반화 성능을 보장하지 않습니다."
+}

@@ -1,0 +1,558 @@
+{
+  "pass": true,
+  "check_count": 110,
+  "failed_count": 0,
+  "errors": [],
+  "checks": [
+    {
+      "name": "asset count",
+      "pass": true,
+      "detail": "17"
+    },
+    {
+      "name": "portfolio block count",
+      "pass": true,
+      "detail": "13205"
+    },
+    {
+      "name": "priority score range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "absolute risk range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "review bands",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "absolute tiers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "portfolio sorted descending",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "model load",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-169 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-169 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-169 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-169 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-169 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-169 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-196 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-196 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-196 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-196 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-196 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-196 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-303 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-303 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-303 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-303 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-303 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-303 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-305 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-305 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-305 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-305 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-305 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-305 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-328 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-328 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-328 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-328 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-328 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-328 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-337 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-337 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-337 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-337 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-337 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-337 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-338 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-338 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-338 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-338 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-338 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ABF-338 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-503 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-503 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-503 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-503 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-503 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-503 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-622 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-622 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-622 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-622 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-622 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-622 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-746 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-746 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-746 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-746 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-746 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-746 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-789 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-789 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-789 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-789 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-789 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ADN-789 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SONE-785 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SONE-785 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SONE-785 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SONE-785 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SONE-785 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SONE-785 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-400 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-400 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-400 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-400 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-400 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-400 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-575 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-575 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-575 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-575 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-575 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-575 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-642 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-642 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-642 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-642 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-642 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-642 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-652 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-652 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-652 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-652 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-652 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-652 priority range",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-908 ledger exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-908 report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-908 packets exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-908 row count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-908 sequential blocks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SSIS-908 priority range",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

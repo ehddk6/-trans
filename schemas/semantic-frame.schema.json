@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Subtitle semantic frame v2",
+  "type": "object",
+  "required": ["block_number", "confirmed_slots", "uncertain_slots", "unsupported_slots", "review_status"],
+  "properties": {
+    "block_number": {"type": "integer", "minimum": 1},
+    "review_status": {"enum": ["unreviewed", "reviewed", "unresolved"]},
+    "confirmed_slots": {"type": "array", "items": {"type": "string"}},
+    "uncertain_slots": {"type": "array", "items": {"type": "string"}},
+    "unsupported_slots": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

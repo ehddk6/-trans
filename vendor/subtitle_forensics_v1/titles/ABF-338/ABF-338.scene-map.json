@@ -1,0 +1,2586 @@
+[
+  {
+    "scene_id": 1,
+    "start_block": 1,
+    "end_block": 82,
+    "start_time": "00:00:28,990",
+    "end_time": "00:03:52,670",
+    "block_count": 82,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 19,
+      "존댓말형": 3,
+      "반응형": 34,
+      "중립·혼합형": 26
+    },
+    "top_words": [
+      "같아요",
+      "바로",
+      "기분",
+      "맞아요",
+      "있잖아요",
+      "각도를",
+      "부끄러워요",
+      "오늘은"
+    ],
+    "mean_risk": 35.28,
+    "max_risk": 52.5,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 2,
+    "start_block": 83,
+    "end_block": 144,
+    "start_time": "00:04:07,450",
+    "end_time": "00:07:12,870",
+    "block_count": 62,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 15,
+      "반응형": 26,
+      "반말형": 18,
+      "존댓말형": 3
+    },
+    "top_words": [
+      "같아요",
+      "아무",
+      "뭔가",
+      "거예요",
+      "들어갔다",
+      "좋아하는",
+      "부끄러워요",
+      "그럼"
+    ],
+    "mean_risk": 36.4,
+    "max_risk": 54.89,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 3,
+    "start_block": 145,
+    "end_block": 164,
+    "start_time": "00:07:47,430",
+    "end_time": "00:08:21,210",
+    "block_count": 20,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 8,
+      "반말형": 8,
+      "중립·혼합형": 4
+    },
+    "top_words": [
+      "이런",
+      "좋아요",
+      "위아래로",
+      "잠깐만요",
+      "부끄럽네요",
+      "느낌으로요",
+      "모습이",
+      "좋네요"
+    ],
+    "mean_risk": 30.13,
+    "max_risk": 48.12,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 4,
+    "start_block": 165,
+    "end_block": 167,
+    "start_time": "00:08:33,250",
+    "end_time": "00:08:36,750",
+    "block_count": 3,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 2,
+      "반응형": 1
+    },
+    "top_words": [
+      "뭔가",
+      "소리를",
+      "듣고",
+      "소리가",
+      "나네요",
+      "싶어요",
+      "싶네요"
+    ],
+    "mean_risk": 42.51,
+    "max_risk": 43.35,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 5,
+    "start_block": 168,
+    "end_block": 193,
+    "start_time": "00:08:54,070",
+    "end_time": "00:09:51,510",
+    "block_count": 26,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 6,
+      "중립·혼합형": 15,
+      "반말형": 5
+    },
+    "top_words": [
+      "뒤를",
+      "부끄러워요",
+      "보니",
+      "뒤돌아서",
+      "하는",
+      "보고요",
+      "우와",
+      "소리를"
+    ],
+    "mean_risk": 36.77,
+    "max_risk": 50.26,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 6,
+    "start_block": 194,
+    "end_block": 194,
+    "start_time": "00:10:05,120",
+    "end_time": "00:10:05,560",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [
+      "대단하네요"
+    ],
+    "mean_risk": 40.13,
+    "max_risk": 40.13,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 7,
+    "start_block": 195,
+    "end_block": 209,
+    "start_time": "00:10:18,110",
+    "end_time": "00:10:50,440",
+    "block_count": 15,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 5,
+      "반말형": 3,
+      "반응형": 6,
+      "존댓말형": 1
+    },
+    "top_words": [
+      "달라요",
+      "이건",
+      "역시",
+      "뒤돌아서",
+      "하면",
+      "각도가",
+      "달라지잖아요",
+      "그럼"
+    ],
+    "mean_risk": 36.72,
+    "max_risk": 54.45,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 8,
+    "start_block": 210,
+    "end_block": 228,
+    "start_time": "00:11:25,070",
+    "end_time": "00:12:00,120",
+    "block_count": 19,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 3,
+      "반응형": 9,
+      "중립·혼합형": 6,
+      "존댓말형": 1
+    },
+    "top_words": [
+      "좋아",
+      "기분",
+      "투명한",
+      "보였어요",
+      "부끄러워요",
+      "돼요",
+      "괜찮아요",
+      "움직이는"
+    ],
+    "mean_risk": 31.18,
+    "max_risk": 48.41,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 9,
+    "start_block": 229,
+    "end_block": 231,
+    "start_time": "00:13:20,660",
+    "end_time": "00:13:36,480",
+    "block_count": 3,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 3
+    },
+    "top_words": [
+      "뒤로",
+      "뒤로요"
+    ],
+    "mean_risk": 39.52,
+    "max_risk": 45.72,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 10,
+    "start_block": 232,
+    "end_block": 232,
+    "start_time": "00:14:19,940",
+    "end_time": "00:14:26,560",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "부끄러워요",
+      "엉덩이",
+      "구멍이",
+      "보여서",
+      "너무"
+    ],
+    "mean_risk": 51.44,
+    "max_risk": 51.44,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 11,
+    "start_block": 233,
+    "end_block": 233,
+    "start_time": "00:15:04,860",
+    "end_time": "00:15:10,840",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "엉덩이가",
+      "움찔거리고",
+      "있어요",
+      "진짜",
+      "부끄러워요"
+    ],
+    "mean_risk": 55.59,
+    "max_risk": 55.59,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 12,
+    "start_block": 234,
+    "end_block": 246,
+    "start_time": "00:19:18,010",
+    "end_time": "00:20:02,280",
+    "block_count": 13,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 7,
+      "존댓말형": 2,
+      "반말형": 2,
+      "반응형": 2
+    },
+    "top_words": [
+      "영차",
+      "그렇죠",
+      "후후",
+      "뭐예요",
+      "그러네요",
+      "역시",
+      "완전",
+      "새빨개졌어요"
+    ],
+    "mean_risk": 28.94,
+    "max_risk": 42.01,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 13,
+    "start_block": 247,
+    "end_block": 247,
+    "start_time": "00:20:15,270",
+    "end_time": "00:20:16,750",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "아하하"
+    ],
+    "mean_risk": 33.73,
+    "max_risk": 33.73,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 14,
+    "start_block": 248,
+    "end_block": 248,
+    "start_time": "00:21:57,050",
+    "end_time": "00:21:57,750",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "후후"
+    ],
+    "mean_risk": 34.29,
+    "max_risk": 34.29,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 15,
+    "start_block": 249,
+    "end_block": 256,
+    "start_time": "00:23:08,270",
+    "end_time": "00:24:13,890",
+    "block_count": 8,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 2,
+      "중립·혼합형": 4,
+      "존댓말형": 1,
+      "반말형": 1
+    },
+    "top_words": [
+      "끈을",
+      "뺄게요",
+      "괜찮아요",
+      "번째",
+      "자세로",
+      "다시",
+      "주세요",
+      "허리를"
+    ],
+    "mean_risk": 45.01,
+    "max_risk": 53.4,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 16,
+    "start_block": 257,
+    "end_block": 257,
+    "start_time": "00:25:01,890",
+    "end_time": "00:25:03,530",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "봤어요"
+    ],
+    "mean_risk": 39.71,
+    "max_risk": 39.71,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 17,
+    "start_block": 258,
+    "end_block": 271,
+    "start_time": "00:25:18,870",
+    "end_time": "00:27:25,720",
+    "block_count": 14,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 12,
+      "반말형": 2
+    },
+    "top_words": [
+      "기분",
+      "좋아요",
+      "핥아",
+      "이런",
+      "식으로",
+      "만지는",
+      "거예요",
+      "버렸네요"
+    ],
+    "mean_risk": 38.91,
+    "max_risk": 60.83,
+    "t1_blocks": 0,
+    "t2_blocks": 1
+  },
+  {
+    "scene_id": 18,
+    "start_block": 272,
+    "end_block": 272,
+    "start_time": "00:28:35,940",
+    "end_time": "00:28:36,620",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "장난",
+      "아니네요"
+    ],
+    "mean_risk": 44.18,
+    "max_risk": 44.18,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 19,
+    "start_block": 273,
+    "end_block": 276,
+    "start_time": "00:28:52,120",
+    "end_time": "00:29:03,780",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 3,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "넣어",
+      "보고",
+      "볼까",
+      "들어가는",
+      "싶어",
+      "싶다면",
+      "줄게",
+      "저기요"
+    ],
+    "mean_risk": 38.52,
+    "max_risk": 48.27,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 20,
+    "start_block": 277,
+    "end_block": 277,
+    "start_time": "00:29:16,310",
+    "end_time": "00:29:18,990",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [
+      "자꾸",
+      "어디를",
+      "봐야",
+      "할지",
+      "신경",
+      "쓰여요"
+    ],
+    "mean_risk": 48.61,
+    "max_risk": 48.61,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 21,
+    "start_block": 278,
+    "end_block": 280,
+    "start_time": "00:29:35,400",
+    "end_time": "00:29:39,240",
+    "block_count": 3,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "반응형": 1,
+      "중립·혼합형": 2
+    },
+    "top_words": [
+      "완전히",
+      "아까",
+      "쓰던",
+      "모형과는",
+      "다르지",
+      "달라요",
+      "달라"
+    ],
+    "mean_risk": 38.04,
+    "max_risk": 46.13,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 22,
+    "start_block": 281,
+    "end_block": 284,
+    "start_time": "00:29:58,560",
+    "end_time": "00:30:24,540",
+    "block_count": 4,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "반말형": 2,
+      "반응형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "기쁘네요",
+      "움직임이",
+      "야하네",
+      "어디에",
+      "닿게",
+      "하고",
+      "있어",
+      "거기요"
+    ],
+    "mean_risk": 41.24,
+    "max_risk": 53.16,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 23,
+    "start_block": 285,
+    "end_block": 289,
+    "start_time": "00:31:22,300",
+    "end_time": "00:31:33,760",
+    "block_count": 5,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 3,
+      "중립·혼합형": 2
+    },
+    "top_words": [
+      "잠깐만요",
+      "이건",
+      "어디에",
+      "닿고",
+      "있어",
+      "이거요",
+      "미치겠어요",
+      "안쪽"
+    ],
+    "mean_risk": 40.53,
+    "max_risk": 52.11,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 24,
+    "start_block": 290,
+    "end_block": 293,
+    "start_time": "00:31:52,240",
+    "end_time": "00:32:05,790",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 4
+    },
+    "top_words": [
+      "미치겠다",
+      "너무",
+      "좋아",
+      "기분",
+      "좋아요",
+      "몸을",
+      "눕힐",
+      "같아요"
+    ],
+    "mean_risk": 35.81,
+    "max_risk": 41.95,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 25,
+    "start_block": 294,
+    "end_block": 297,
+    "start_time": "00:32:22,960",
+    "end_time": "00:32:38,350",
+    "block_count": 4,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 2,
+      "중립·혼합형": 2
+    },
+    "top_words": [
+      "보이네요",
+      "보여요",
+      "이거",
+      "훤히",
+      "전부"
+    ],
+    "mean_risk": 32.98,
+    "max_risk": 34.94,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 26,
+    "start_block": 298,
+    "end_block": 298,
+    "start_time": "00:33:14,840",
+    "end_time": "00:33:23,020",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "완전히",
+      "보여요"
+    ],
+    "mean_risk": 37.41,
+    "max_risk": 37.41,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 27,
+    "start_block": 299,
+    "end_block": 302,
+    "start_time": "00:34:10,280",
+    "end_time": "00:34:27,360",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 4
+    },
+    "top_words": [
+      "으음",
+      "장난",
+      "아니에요",
+      "움직일게요"
+    ],
+    "mean_risk": 30.48,
+    "max_risk": 39.4,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 28,
+    "start_block": 303,
+    "end_block": 303,
+    "start_time": "00:35:23,820",
+    "end_time": "00:35:32,740",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "아래에서도",
+      "얼굴이",
+      "보이네요"
+    ],
+    "mean_risk": 39.32,
+    "max_risk": 39.32,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 29,
+    "start_block": 304,
+    "end_block": 304,
+    "start_time": "00:36:04,730",
+    "end_time": "00:36:05,530",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [
+      "미안해요"
+    ],
+    "mean_risk": 36.68,
+    "max_risk": 36.68,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 30,
+    "start_block": 305,
+    "end_block": 308,
+    "start_time": "00:37:44,380",
+    "end_time": "00:39:34,180",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반응형": 3
+    },
+    "top_words": [
+      "침대에서",
+      "다시",
+      "볼게요",
+      "느껴져요",
+      "힘들어요",
+      "크림을",
+      "바르고",
+      "있어요"
+    ],
+    "mean_risk": 40.41,
+    "max_risk": 46.1,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 31,
+    "start_block": 309,
+    "end_block": 309,
+    "start_time": "00:39:56,360",
+    "end_time": "00:40:46,770",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "잠깐",
+      "시간을",
+      "둘게요"
+    ],
+    "mean_risk": 41.65,
+    "max_risk": 41.65,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 32,
+    "start_block": 310,
+    "end_block": 310,
+    "start_time": "00:41:15,720",
+    "end_time": "00:41:31,480",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "으음"
+    ],
+    "mean_risk": 27.17,
+    "max_risk": 27.17,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 33,
+    "start_block": 311,
+    "end_block": 312,
+    "start_time": "00:41:58,540",
+    "end_time": "00:42:14,210",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "미끄럽게",
+      "안쪽까지",
+      "들어가게",
+      "할게요",
+      "그럼",
+      "윤활제를",
+      "바를게요"
+    ],
+    "mean_risk": 49.5,
+    "max_risk": 51.47,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 34,
+    "start_block": 313,
+    "end_block": 323,
+    "start_time": "00:43:29,090",
+    "end_time": "00:45:07,070",
+    "block_count": 11,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 9,
+      "존댓말형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "으음",
+      "이게",
+      "번째",
+      "자세예요",
+      "힘들어요",
+      "몸을",
+      "뒤로",
+      "주세요"
+    ],
+    "mean_risk": 30.87,
+    "max_risk": 50.76,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 35,
+    "start_block": 324,
+    "end_block": 327,
+    "start_time": "00:45:41,930",
+    "end_time": "00:45:53,310",
+    "block_count": 4,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 2,
+      "존댓말형": 1,
+      "반응형": 1
+    },
+    "top_words": [
+      "숨을",
+      "내쉬고",
+      "한번",
+      "들이마셔",
+      "봐요",
+      "다시",
+      "내쉬세요",
+      "천천히"
+    ],
+    "mean_risk": 47.74,
+    "max_risk": 50.62,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 36,
+    "start_block": 328,
+    "end_block": 329,
+    "start_time": "00:46:46,490",
+    "end_time": "00:46:56,730",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "힘들어요",
+      "기분",
+      "좋아요"
+    ],
+    "mean_risk": 36.34,
+    "max_risk": 42.72,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 37,
+    "start_block": 330,
+    "end_block": 331,
+    "start_time": "00:47:09,300",
+    "end_time": "00:47:11,200",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "좋아요",
+      "기분",
+      "좋아"
+    ],
+    "mean_risk": 26.47,
+    "max_risk": 28.45,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 38,
+    "start_block": 332,
+    "end_block": 335,
+    "start_time": "00:47:55,760",
+    "end_time": "00:48:05,600",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 2,
+      "반응형": 2
+    },
+    "top_words": [
+      "옷이",
+      "방해돼요",
+      "방해돼",
+      "방해되는",
+      "같아요",
+      "그럼",
+      "벗어",
+      "버릴게"
+    ],
+    "mean_risk": 36.3,
+    "max_risk": 43.61,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 39,
+    "start_block": 336,
+    "end_block": 341,
+    "start_time": "00:49:24,660",
+    "end_time": "00:49:35,260",
+    "block_count": 6,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 5,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "엉덩이",
+      "엉덩이에도",
+      "앉고",
+      "싶어요",
+      "좋아해",
+      "좋아해요",
+      "엉덩이를",
+      "좋아하는구나"
+    ],
+    "mean_risk": 43.0,
+    "max_risk": 51.1,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 40,
+    "start_block": 342,
+    "end_block": 345,
+    "start_time": "00:49:52,240",
+    "end_time": "00:49:57,660",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 4
+    },
+    "top_words": [
+      "앉고",
+      "싶어",
+      "위에",
+      "싶어요",
+      "좋아"
+    ],
+    "mean_risk": 36.52,
+    "max_risk": 42.01,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 41,
+    "start_block": 346,
+    "end_block": 346,
+    "start_time": "00:51:03,100",
+    "end_time": "00:51:04,220",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "잠깐만요"
+    ],
+    "mean_risk": 48.68,
+    "max_risk": 48.68,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 42,
+    "start_block": 347,
+    "end_block": 349,
+    "start_time": "00:51:19,260",
+    "end_time": "00:51:22,800",
+    "block_count": 3,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "중립·혼합형": 2,
+      "반응형": 1
+    },
+    "top_words": [
+      "기뻐",
+      "좋아요",
+      "그럼",
+      "다시"
+    ],
+    "mean_risk": 34.17,
+    "max_risk": 41.85,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 43,
+    "start_block": 350,
+    "end_block": 352,
+    "start_time": "00:51:37,620",
+    "end_time": "00:51:49,100",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 1,
+      "반응형": 2
+    },
+    "top_words": [
+      "좋은가",
+      "보네",
+      "이런",
+      "엉덩이를",
+      "좋아하는구나",
+      "잠깐만요",
+      "기다려요"
+    ],
+    "mean_risk": 42.49,
+    "max_risk": 51.35,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 44,
+    "start_block": 353,
+    "end_block": 353,
+    "start_time": "00:52:38,660",
+    "end_time": "00:52:39,760",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "젖꼭지를",
+      "좋아해요"
+    ],
+    "mean_risk": 48.95,
+    "max_risk": 48.95,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 45,
+    "start_block": 354,
+    "end_block": 356,
+    "start_time": "00:53:07,590",
+    "end_time": "00:53:12,090",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 1,
+      "반응형": 2
+    },
+    "top_words": [
+      "젖꼭지가",
+      "섰네",
+      "기분",
+      "좋아",
+      "좋아요"
+    ],
+    "mean_risk": 34.56,
+    "max_risk": 45.14,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 46,
+    "start_block": 357,
+    "end_block": 361,
+    "start_time": "00:53:25,540",
+    "end_time": "00:53:42,860",
+    "block_count": 5,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "반말형": 2,
+      "중립·혼합형": 1,
+      "반응형": 2
+    },
+    "top_words": [
+      "기분",
+      "핥아",
+      "좋아해요",
+      "점점",
+      "단단해지네",
+      "버려요",
+      "좋아요",
+      "좋아"
+    ],
+    "mean_risk": 39.55,
+    "max_risk": 54.92,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 47,
+    "start_block": 362,
+    "end_block": 362,
+    "start_time": "00:54:06,510",
+    "end_time": "00:54:07,510",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "기분",
+      "좋아"
+    ],
+    "mean_risk": 31.69,
+    "max_risk": 31.69,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 48,
+    "start_block": 363,
+    "end_block": 365,
+    "start_time": "00:54:52,470",
+    "end_time": "00:55:08,510",
+    "block_count": 3,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반말형": 1,
+      "반응형": 1
+    },
+    "top_words": [
+      "후후후",
+      "자꾸",
+      "조르는",
+      "거야",
+      "욕심이",
+      "많네",
+      "기분",
+      "좋아"
+    ],
+    "mean_risk": 35.37,
+    "max_risk": 45.75,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 49,
+    "start_block": 366,
+    "end_block": 371,
+    "start_time": "00:55:25,270",
+    "end_time": "00:56:16,940",
+    "block_count": 6,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 2,
+      "중립·혼합형": 1,
+      "반응형": 3
+    },
+    "top_words": [
+      "기분",
+      "계속",
+      "이거",
+      "좋네요",
+      "움찔움찔하네",
+      "움찔거려",
+      "있잖아",
+      "허리를"
+    ],
+    "mean_risk": 41.26,
+    "max_risk": 52.12,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 50,
+    "start_block": 372,
+    "end_block": 375,
+    "start_time": "00:56:32,070",
+    "end_time": "00:56:39,970",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "존댓말형": 1,
+      "반응형": 2
+    },
+    "top_words": [
+      "조여",
+      "줘요",
+      "주세요",
+      "줬으면",
+      "좋겠어",
+      "이미",
+      "계속",
+      "닿고"
+    ],
+    "mean_risk": 39.93,
+    "max_risk": 45.32,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 51,
+    "start_block": 376,
+    "end_block": 377,
+    "start_time": "00:57:16,210",
+    "end_time": "00:57:30,100",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "기분",
+      "좋아",
+      "좋아요"
+    ],
+    "mean_risk": 30.63,
+    "max_risk": 33.27,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 52,
+    "start_block": 378,
+    "end_block": 380,
+    "start_time": "00:58:06,340",
+    "end_time": "00:58:11,240",
+    "block_count": 3,
+    "scene_type": "질문·대화 중심",
+    "style_counts": {
+      "반말형": 2,
+      "반응형": 1
+    },
+    "top_words": [
+      "벌써",
+      "대단하네",
+      "커졌어",
+      "쿠퍼액이",
+      "나왔네요"
+    ],
+    "mean_risk": 35.59,
+    "max_risk": 36.7,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 53,
+    "start_block": 381,
+    "end_block": 383,
+    "start_time": "00:58:30,280",
+    "end_time": "00:58:51,110",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 3
+    },
+    "top_words": [
+      "좋아요",
+      "이거",
+      "좋아해",
+      "기분",
+      "좋아"
+    ],
+    "mean_risk": 37.08,
+    "max_risk": 44.13,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 54,
+    "start_block": 384,
+    "end_block": 389,
+    "start_time": "00:59:18,720",
+    "end_time": "00:59:31,520",
+    "block_count": 6,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 2,
+      "존댓말형": 1,
+      "반말형": 3
+    },
+    "top_words": [
+      "침을",
+      "묻혀",
+      "줬으면",
+      "좋겠어요",
+      "잔뜩",
+      "주세요",
+      "부탁해요",
+      "제멋대로네"
+    ],
+    "mean_risk": 41.48,
+    "max_risk": 56.8,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 55,
+    "start_block": 390,
+    "end_block": 391,
+    "start_time": "00:59:43,530",
+    "end_time": "00:59:44,230",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "미치겠어요",
+      "이렇게요"
+    ],
+    "mean_risk": 30.6,
+    "max_risk": 37.33,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 56,
+    "start_block": 392,
+    "end_block": 406,
+    "start_time": "00:59:58,410",
+    "end_time": "01:00:42,150",
+    "block_count": 15,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 8,
+      "반응형": 7
+    },
+    "top_words": [
+      "돼요",
+      "같아",
+      "세게요",
+      "괜찮아",
+      "그건",
+      "뭐가",
+      "그래",
+      "자세가"
+    ],
+    "mean_risk": 33.23,
+    "max_risk": 43.99,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 57,
+    "start_block": 407,
+    "end_block": 409,
+    "start_time": "01:01:06,560",
+    "end_time": "01:01:31,380",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반응형": 2
+    },
+    "top_words": [
+      "기분",
+      "돼요",
+      "좋아",
+      "좋아요"
+    ],
+    "mean_risk": 34.08,
+    "max_risk": 45.89,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 58,
+    "start_block": 410,
+    "end_block": 415,
+    "start_time": "01:02:18,990",
+    "end_time": "01:02:31,010",
+    "block_count": 6,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 2,
+      "반응형": 3,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "그래",
+      "무슨",
+      "일이야",
+      "너무",
+      "좋아서요",
+      "위험해",
+      "괜찮아",
+      "괜찮잖아"
+    ],
+    "mean_risk": 35.48,
+    "max_risk": 42.55,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 59,
+    "start_block": 416,
+    "end_block": 416,
+    "start_time": "01:02:50,890",
+    "end_time": "01:02:51,850",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [],
+    "mean_risk": 35.68,
+    "max_risk": 35.68,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 60,
+    "start_block": 417,
+    "end_block": 443,
+    "start_time": "01:03:04,200",
+    "end_time": "01:05:09,840",
+    "block_count": 27,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 4,
+      "반응형": 17,
+      "존댓말형": 1,
+      "반말형": 5
+    },
+    "top_words": [
+      "싶어",
+      "싶어요",
+      "돼요",
+      "보고",
+      "주세요",
+      "어때",
+      "핥고",
+      "좋아요"
+    ],
+    "mean_risk": 39.97,
+    "max_risk": 54.01,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 61,
+    "start_block": 444,
+    "end_block": 446,
+    "start_time": "01:05:33,570",
+    "end_time": "01:05:48,150",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2,
+      "반말형": 1
+    },
+    "top_words": [
+      "이거",
+      "방해되지",
+      "으음"
+    ],
+    "mean_risk": 27.04,
+    "max_risk": 32.07,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 62,
+    "start_block": 447,
+    "end_block": 453,
+    "start_time": "01:06:02,320",
+    "end_time": "01:06:49,540",
+    "block_count": 7,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 6,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "하아",
+      "맛있었어",
+      "맛있어요",
+      "핥을래",
+      "잠깐만요",
+      "괜찮아요"
+    ],
+    "mean_risk": 33.92,
+    "max_risk": 45.42,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 63,
+    "start_block": 454,
+    "end_block": 454,
+    "start_time": "01:07:48,400",
+    "end_time": "01:07:49,800",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "존댓말형": 1
+    },
+    "top_words": [
+      "먹었습니다"
+    ],
+    "mean_risk": 35.11,
+    "max_risk": 35.11,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 64,
+    "start_block": 455,
+    "end_block": 457,
+    "start_time": "01:08:32,770",
+    "end_time": "01:08:38,790",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 3
+    },
+    "top_words": [
+      "넣고",
+      "안에",
+      "싶어요",
+      "싶어"
+    ],
+    "mean_risk": 40.55,
+    "max_risk": 43.16,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 65,
+    "start_block": 458,
+    "end_block": 460,
+    "start_time": "01:08:51,610",
+    "end_time": "01:09:00,090",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 3
+    },
+    "top_words": [
+      "넣고",
+      "싶어졌어",
+      "아파",
+      "좋아요"
+    ],
+    "mean_risk": 30.97,
+    "max_risk": 39.12,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 66,
+    "start_block": 461,
+    "end_block": 463,
+    "start_time": "01:09:18,300",
+    "end_time": "01:09:29,930",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 3
+    },
+    "top_words": [
+      "넣고",
+      "싶어"
+    ],
+    "mean_risk": 36.59,
+    "max_risk": 43.8,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 67,
+    "start_block": 464,
+    "end_block": 465,
+    "start_time": "01:10:23,980",
+    "end_time": "01:10:25,620",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "기분",
+      "좋아",
+      "좋아요"
+    ],
+    "mean_risk": 36.29,
+    "max_risk": 40.79,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 68,
+    "start_block": 466,
+    "end_block": 475,
+    "start_time": "01:10:40,950",
+    "end_time": "01:11:28,780",
+    "block_count": 10,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 9,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "으음",
+      "하아",
+      "미치겠어요",
+      "너무",
+      "좋아요",
+      "잠깐만요",
+      "어디인지",
+      "알겠어"
+    ],
+    "mean_risk": 34.22,
+    "max_risk": 42.49,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 69,
+    "start_block": 476,
+    "end_block": 477,
+    "start_time": "01:12:58,490",
+    "end_time": "01:13:01,550",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "이런",
+      "좋아하잖아",
+      "미짱"
+    ],
+    "mean_risk": 34.82,
+    "max_risk": 45.8,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 70,
+    "start_block": 478,
+    "end_block": 481,
+    "start_time": "01:13:16,410",
+    "end_time": "01:13:37,240",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 2,
+      "반응형": 2
+    },
+    "top_words": [
+      "보여요",
+      "보여",
+      "들어가",
+      "있어요",
+      "기분",
+      "좋아요"
+    ],
+    "mean_risk": 30.62,
+    "max_risk": 38.56,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 71,
+    "start_block": 482,
+    "end_block": 482,
+    "start_time": "01:13:53,590",
+    "end_time": "01:13:55,210",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "금방",
+      "깊은",
+      "곳까지",
+      "닿아요"
+    ],
+    "mean_risk": 48.8,
+    "max_risk": 48.8,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 72,
+    "start_block": 483,
+    "end_block": 484,
+    "start_time": "01:14:43,960",
+    "end_time": "01:14:47,360",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "잠깐만요",
+      "빠졌어요"
+    ],
+    "mean_risk": 37.87,
+    "max_risk": 42.27,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 73,
+    "start_block": 485,
+    "end_block": 485,
+    "start_time": "01:15:11,760",
+    "end_time": "01:15:12,300",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [],
+    "mean_risk": 20.65,
+    "max_risk": 20.65,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 74,
+    "start_block": 486,
+    "end_block": 501,
+    "start_time": "01:15:33,660",
+    "end_time": "01:16:56,020",
+    "block_count": 16,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 14,
+      "존댓말형": 1,
+      "반말형": 1
+    },
+    "top_words": [
+      "좋아요",
+      "으음",
+      "하아",
+      "여기는",
+      "어때",
+      "끝부분이에요",
+      "기분",
+      "좋아"
+    ],
+    "mean_risk": 31.32,
+    "max_risk": 36.45,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 75,
+    "start_block": 502,
+    "end_block": 504,
+    "start_time": "01:17:26,490",
+    "end_time": "01:17:29,270",
+    "block_count": 3,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 2,
+      "반말형": 1
+    },
+    "top_words": [
+      "엉덩이가",
+      "보여요",
+      "보이네",
+      "훤히",
+      "보여"
+    ],
+    "mean_risk": 52.34,
+    "max_risk": 59.18,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 76,
+    "start_block": 505,
+    "end_block": 505,
+    "start_time": "01:17:59,680",
+    "end_time": "01:18:00,500",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "보여요"
+    ],
+    "mean_risk": 40.76,
+    "max_risk": 40.76,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 77,
+    "start_block": 506,
+    "end_block": 506,
+    "start_time": "01:18:57,440",
+    "end_time": "01:18:59,820",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "잠깐만",
+      "쉬게",
+      "주세요"
+    ],
+    "mean_risk": 56.78,
+    "max_risk": 56.78,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 78,
+    "start_block": 507,
+    "end_block": 507,
+    "start_time": "01:19:24,750",
+    "end_time": "01:19:26,950",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "조금만",
+      "쉬게",
+      "주세요"
+    ],
+    "mean_risk": 52.43,
+    "max_risk": 52.43,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 79,
+    "start_block": 508,
+    "end_block": 508,
+    "start_time": "01:20:03,340",
+    "end_time": "01:20:04,760",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "아직",
+      "끝난",
+      "아니에요"
+    ],
+    "mean_risk": 49.58,
+    "max_risk": 49.58,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 80,
+    "start_block": 509,
+    "end_block": 511,
+    "start_time": "01:20:27,430",
+    "end_time": "01:21:24,300",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "자세로",
+      "잠깐",
+      "멈출게요",
+      "먼저",
+      "천천히",
+      "주세요",
+      "아직",
+      "괜찮아요"
+    ],
+    "mean_risk": 47.03,
+    "max_risk": 49.6,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 81,
+    "start_block": 512,
+    "end_block": 512,
+    "start_time": "01:21:57,670",
+    "end_time": "01:21:57,970",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [],
+    "mean_risk": 21.5,
+    "max_risk": 21.5,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 82,
+    "start_block": 513,
+    "end_block": 520,
+    "start_time": "01:22:21,670",
+    "end_time": "01:23:32,080",
+    "block_count": 8,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 2,
+      "반응형": 4,
+      "존댓말형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "준비한",
+      "가져와야",
+      "해요",
+      "식어",
+      "버렸어요",
+      "미치겠네요",
+      "잠깐만요",
+      "기다려"
+    ],
+    "mean_risk": 40.44,
+    "max_risk": 48.52,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 83,
+    "start_block": 521,
+    "end_block": 530,
+    "start_time": "01:24:19,880",
+    "end_time": "01:24:51,890",
+    "block_count": 10,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 9,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "잠깐만요",
+      "같아",
+      "같아요",
+      "거짓말",
+      "버릴",
+      "참을",
+      "없어",
+      "참겠어요"
+    ],
+    "mean_risk": 36.44,
+    "max_risk": 47.94,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 84,
+    "start_block": 531,
+    "end_block": 538,
+    "start_time": "01:25:19,990",
+    "end_time": "01:25:49,100",
+    "block_count": 8,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반말형": 3,
+      "반응형": 4
+    },
+    "top_words": [
+      "버려도",
+      "돼요",
+      "더는",
+      "참을",
+      "없어요",
+      "죄송해요"
+    ],
+    "mean_risk": 25.28,
+    "max_risk": 37.66,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 85,
+    "start_block": 539,
+    "end_block": 551,
+    "start_time": "01:26:10,110",
+    "end_time": "01:27:00,820",
+    "block_count": 13,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반말형": 4,
+      "반응형": 7,
+      "중립·혼합형": 2
+    },
+    "top_words": [
+      "아직",
+      "나와",
+      "있지",
+      "빨리",
+      "가자",
+      "버렸네요",
+      "뭐가",
+      "나온"
+    ],
+    "mean_risk": 35.75,
+    "max_risk": 44.11,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 86,
+    "start_block": 552,
+    "end_block": 552,
+    "start_time": "01:27:15,580",
+    "end_time": "01:27:16,340",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "들어갔어"
+    ],
+    "mean_risk": 32.93,
+    "max_risk": 32.93,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 87,
+    "start_block": 553,
+    "end_block": 556,
+    "start_time": "01:27:28,340",
+    "end_time": "01:28:27,730",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 4
+    },
+    "top_words": [
+      "으음",
+      "좋아",
+      "이대로",
+      "계속해",
+      "볼게요",
+      "하아"
+    ],
+    "mean_risk": 44.08,
+    "max_risk": 58.98,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 88,
+    "start_block": 557,
+    "end_block": 557,
+    "start_time": "01:28:40,020",
+    "end_time": "01:28:40,480",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [],
+    "mean_risk": 29.44,
+    "max_risk": 29.44,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 89,
+    "start_block": 558,
+    "end_block": 560,
+    "start_time": "01:29:04,530",
+    "end_time": "01:29:44,920",
+    "block_count": 3,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 2,
+      "반응형": 1
+    },
+    "top_words": [
+      "움직여도",
+      "돼요",
+      "으음",
+      "다시",
+      "자세를",
+      "잡을게요"
+    ],
+    "mean_risk": 35.71,
+    "max_risk": 45.34,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 90,
+    "start_block": 561,
+    "end_block": 565,
+    "start_time": "01:30:09,710",
+    "end_time": "01:30:58,580",
+    "block_count": 5,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 5
+    },
+    "top_words": [
+      "좋아요",
+      "아아",
+      "으음",
+      "기분",
+      "나올",
+      "같아"
+    ],
+    "mean_risk": 31.51,
+    "max_risk": 37.31,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 91,
+    "start_block": 566,
+    "end_block": 568,
+    "start_time": "01:31:15,400",
+    "end_time": "01:31:29,650",
+    "block_count": 3,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 2,
+      "존댓말형": 1
+    },
+    "top_words": [
+      "위치를",
+      "바꿔요",
+      "힘을",
+      "주세요"
+    ],
+    "mean_risk": 40.84,
+    "max_risk": 51.12,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 92,
+    "start_block": 569,
+    "end_block": 569,
+    "start_time": "01:44:48,700",
+    "end_time": "01:44:50,100",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "잠깐",
+      "제대로",
+      "쉬어요"
+    ],
+    "mean_risk": 44.42,
+    "max_risk": 44.42,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 93,
+    "start_block": 570,
+    "end_block": 572,
+    "start_time": "01:46:08,310",
+    "end_time": "01:46:19,550",
+    "block_count": 3,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반응형": 1,
+      "존댓말형": 1
+    },
+    "top_words": [
+      "번째",
+      "자세로",
+      "바꿔서",
+      "다시",
+      "움직여요",
+      "이어서",
+      "갈게요",
+      "여섯"
+    ],
+    "mean_risk": 39.29,
+    "max_risk": 47.15,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 94,
+    "start_block": 573,
+    "end_block": 573,
+    "start_time": "01:48:14,320",
+    "end_time": "01:48:15,840",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "침을",
+      "잔뜩",
+      "묻혀",
+      "줘요"
+    ],
+    "mean_risk": 49.23,
+    "max_risk": 49.23,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 95,
+    "start_block": 574,
+    "end_block": 577,
+    "start_time": "01:48:48,300",
+    "end_time": "01:48:51,720",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "존댓말형": 1,
+      "반응형": 2,
+      "반말형": 1
+    },
+    "top_words": [
+      "그렇게",
+      "하면",
+      "너무",
+      "자극적이에요",
+      "그래도",
+      "서로",
+      "원한",
+      "거잖아요"
+    ],
+    "mean_risk": 45.84,
+    "max_risk": 59.7,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 96,
+    "start_block": 578,
+    "end_block": 581,
+    "start_time": "01:49:16,800",
+    "end_time": "01:49:36,890",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2,
+      "중립·혼합형": 1,
+      "반말형": 1
+    },
+    "top_words": [
+      "속옷은",
+      "그대로",
+      "입고",
+      "있어요",
+      "사실",
+      "맛을",
+      "기억하고",
+      "있죠"
+    ],
+    "mean_risk": 45.44,
+    "max_risk": 52.94,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 97,
+    "start_block": 582,
+    "end_block": 585,
+    "start_time": "01:50:12,130",
+    "end_time": "01:51:17,450",
+    "block_count": 4,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2,
+      "중립·혼합형": 1,
+      "반말형": 1
+    },
+    "top_words": [
+      "시트를",
+      "깔아",
+      "둘게요",
+      "이걸",
+      "안에",
+      "넣어요",
+      "허리를",
+      "작게"
+    ],
+    "mean_risk": 50.04,
+    "max_risk": 57.53,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 98,
+    "start_block": 586,
+    "end_block": 587,
+    "start_time": "01:51:29,720",
+    "end_time": "01:51:36,560",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 2
+    },
+    "top_words": [
+      "잠깐",
+      "쉬어요",
+      "잠깐만요"
+    ],
+    "mean_risk": 47.52,
+    "max_risk": 50.47,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 99,
+    "start_block": 588,
+    "end_block": 588,
+    "start_time": "02:01:07,250",
+    "end_time": "02:01:08,270",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "마무리할게요"
+    ],
+    "mean_risk": 48.54,
+    "max_risk": 48.54,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 100,
+    "start_block": 589,
+    "end_block": 590,
+    "start_time": "02:01:32,820",
+    "end_time": "02:01:49,460",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1,
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "이대로라면",
+      "대답할",
+      "있어요",
+      "제대로",
+      "주세요"
+    ],
+    "mean_risk": 41.88,
+    "max_risk": 44.19,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 101,
+    "start_block": 591,
+    "end_block": 591,
+    "start_time": "02:02:40,710",
+    "end_time": "02:02:42,490",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반말형": 1
+    },
+    "top_words": [
+      "많이",
+      "지친",
+      "같네요"
+    ],
+    "mean_risk": 40.63,
+    "max_risk": 40.63,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 102,
+    "start_block": 592,
+    "end_block": 594,
+    "start_time": "02:02:56,690",
+    "end_time": "02:03:02,870",
+    "block_count": 3,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "중립·혼합형": 1,
+      "반응형": 2
+    },
+    "top_words": [
+      "그래도",
+      "아직",
+      "좋아하는",
+      "같아요",
+      "지금까지",
+      "계속",
+      "참고",
+      "있었어요"
+    ],
+    "mean_risk": 38.01,
+    "max_risk": 49.02,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 103,
+    "start_block": 595,
+    "end_block": 595,
+    "start_time": "02:03:29,100",
+    "end_time": "02:03:33,220",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "잠깐만요"
+    ],
+    "mean_risk": 39.87,
+    "max_risk": 39.87,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 104,
+    "start_block": 596,
+    "end_block": 596,
+    "start_time": "02:06:36,590",
+    "end_time": "02:06:41,910",
+    "block_count": 1,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "중립·혼합형": 1
+    },
+    "top_words": [
+      "다리는",
+      "그대로",
+      "두고",
+      "허리를",
+      "움직여요"
+    ],
+    "mean_risk": 54.89,
+    "max_risk": 54.89,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 105,
+    "start_block": 597,
+    "end_block": 597,
+    "start_time": "02:08:08,930",
+    "end_time": "02:08:10,570",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "하고",
+      "싶어요"
+    ],
+    "mean_risk": 41.91,
+    "max_risk": 41.91,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 106,
+    "start_block": 598,
+    "end_block": 598,
+    "start_time": "02:09:03,620",
+    "end_time": "02:09:08,190",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "누워",
+      "있으니까",
+      "그대로",
+      "있어요"
+    ],
+    "mean_risk": 45.78,
+    "max_risk": 45.78,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 107,
+    "start_block": 599,
+    "end_block": 600,
+    "start_time": "02:10:37,140",
+    "end_time": "02:12:27,390",
+    "block_count": 2,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1,
+      "반말형": 1
+    },
+    "top_words": [
+      "자세가",
+      "좋아요",
+      "조심해요"
+    ],
+    "mean_risk": 40.4,
+    "max_risk": 42.6,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 108,
+    "start_block": 601,
+    "end_block": 601,
+    "start_time": "02:13:18,110",
+    "end_time": "02:13:20,880",
+    "block_count": 1,
+    "scene_type": "짧은 반응 중심",
+    "style_counts": {
+      "반응형": 1
+    },
+    "top_words": [
+      "아파요"
+    ],
+    "mean_risk": 33.61,
+    "max_risk": 33.61,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  },
+  {
+    "scene_id": 109,
+    "start_block": 602,
+    "end_block": 604,
+    "start_time": "02:13:35,800",
+    "end_time": "02:14:00,950",
+    "block_count": 3,
+    "scene_type": "혼합 대화",
+    "style_counts": {
+      "반응형": 1,
+      "반말형": 2
+    },
+    "top_words": [
+      "기분",
+      "좋아요",
+      "버린",
+      "같네요",
+      "안쪽에서",
+      "소리가",
+      "나네요"
+    ],
+    "mean_risk": 40.77,
+    "max_risk": 43.36,
+    "t1_blocks": 0,
+    "t2_blocks": 0
+  }
+]

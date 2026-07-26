@@ -1,0 +1,3 @@
+scene_id,model,profile,audio,text,avg_logprob,no_speech_prob,language_probability,error
+S0001,test-model,original_unbiased,clips/S0001.original.wav,質問ですか,-0.2,0.1,0.99,
+S0001,test-model,dialogue_unbiased,clips/S0001.dialogue.wav,質問ですか,-0.3,0.1,0.99,

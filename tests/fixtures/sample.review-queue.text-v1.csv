@@ -1,0 +1,4 @@
+block_number,timecode,review_band,source_japanese,provisional_korean,confidence,uncertain_scope,required_evidence,forensics_risk,priority_action
+1,"00:00:01,000 --> 00:00:03,000",P2,最初です,처음이에요,medium,,원음,60,검토
+2,"00:00:04,000 --> 00:00:06,000",P1,質問ですか,질문인가요?,low,화행,원음,80,교차검토
+3,"00:00:07,000 --> 00:00:10,000",P3,大丈夫です,괜찮아요,high,,문맥,40,검토

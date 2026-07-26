@@ -1,0 +1,44 @@
+{
+  "system_version": "1.0.0",
+  "title": "ABF-337",
+  "stage": "사진 대조 1차 교정본",
+  "source_srt": "/mnt/data/ABF337_ABF328_photo_guided_pass1/ABF-337.photo-guided-pass1-ko.srt",
+  "manifest": "/mnt/data/ABF337_ABF328_photo_guided_pass1/ABF-337.block-frame-manifest.csv",
+  "changes": "/mnt/data/ABF337_ABF328_photo_guided_pass1/ABF-337.photo-guided-pass1-changes.csv",
+  "validation": {
+    "block_count": 328,
+    "sequential_numbering": true,
+    "monotonic_start_times": true,
+    "blank_blocks": [],
+    "japanese_residue_blocks": [],
+    "placeholder_blocks": [],
+    "over_2_line_blocks": [],
+    "over_42_char_blocks": [],
+    "hard_validation_pass": true
+  },
+  "risk_summary": {
+    "mean_risk": 37.0,
+    "median_risk": 36.8,
+    "max_risk": 66.54,
+    "tier_counts": {
+      "T3": 183,
+      "T4": 143,
+      "T2": 2
+    },
+    "absolute_priority_blocks_T1_T2": 2,
+    "review_band_counts": {
+      "P4": 151,
+      "P3": 102,
+      "P2": 67,
+      "P1": 8
+    },
+    "relative_priority_blocks_P1_P2": 75
+  },
+  "scene_count": 96,
+  "known_limitations": [
+    "정지 사진의 의미를 자동으로 새로 판독하지 않았습니다. frame_file은 근거 추적용입니다.",
+    "위험 모델은 ABF-303 한 작품의 검증 변경 이력으로 보정돼 작품 간 일반화 성능은 미확정입니다.",
+    "style-profiles는 실제 화자 식별이 아니라 문장 형식 분류입니다.",
+    "위험 점수는 번역 오류의 확정 판정이 아니라 검수 우선순위입니다."
+  ]
+}

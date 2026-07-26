@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Competing semantic hypotheses v2",
+  "type": "object",
+  "required": ["block_number", "hypothesis_id", "semantic_frame", "supported_by", "contradicted_by", "unsupported_specificity", "status"],
+  "properties": {
+    "block_number": {"type": "integer", "minimum": 1},
+    "hypothesis_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["candidate", "supported", "rejected", "dominant", "unresolved"]},
+    "semantic_frame": {"type": "object"},
+    "supported_by": {"type": "array", "items": {"type": "string"}},
+    "contradicted_by": {"type": "array", "items": {"type": "string"}},
+    "unsupported_specificity": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

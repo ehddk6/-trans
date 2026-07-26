@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["block_number", "timecode", "review_band"],
+  "properties": {
+    "block_number": {"type": "integer", "minimum": 1},
+    "timecode": {"type": "string"},
+    "review_band": {"type": "string", "enum": ["P1", "P2", "P3", "P4"]}
+  },
+  "additionalProperties": true
+}

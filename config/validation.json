@@ -1,0 +1,10 @@
+{
+  "max_lines": 2,
+  "preferred_line_chars": 22,
+  "max_line_chars_warning": 42,
+  "preferred_cps_min": 12,
+  "preferred_cps_max": 16,
+  "placeholder_patterns": ["[불명]", "번역 불가", "알아들을 수 없"],
+  "work_tag_patterns": ["[수정]", "[추정]", "[음성]", "[검토]", "[번역자]"],
+  "broken_char_patterns": ["�", "\uFFFD"]
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["scene_id", "model", "profile", "audio", "text", "avg_logprob", "no_speech_prob", "language_probability", "error"],
+  "properties": {
+    "scene_id": {"type": "string"},
+    "model": {"type": "string"},
+    "profile": {"type": "string", "enum": ["original_unbiased", "dialogue_unbiased", "original_no_vad", "original_prompted"]},
+    "audio": {"type": "string"},
+    "text": {"type": "string"},
+    "avg_logprob": {},
+    "no_speech_prob": {},
+    "language_probability": {},
+    "error": {"type": "string"}
+  },
+  "additionalProperties": false
+}
