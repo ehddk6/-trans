@@ -80,3 +80,17 @@ and baseline-vs-improvement comparisons are not reported.
    ASR-family result.
 4. Generate a blinded review package, run the requested A–F comparisons, and
    only then replace this decision with `improved`, `mixed`, or `regressed`.
+
+## 2026-07-26 translation execution addendum
+
+The user requested all 13 supplied titles be translated. The execution created
+three complete but explicitly unverified external machine-translation drafts
+(SSIS-642, SSIS-652, SSIS-908). Structural validation found zero errors, but
+readability/repetition warnings remain and the two draft variants are identical.
+They are not text-crosschecked or final.
+
+Seven titles were blocked before an SRT could be emitted because of malformed
+source or a non-functional local MT route. Three further titles have only a
+small P2-reviewed subset. Three incomplete drafts containing ellipses for
+untranslated blocks were withdrawn. Exact paths, counts, provider provenance,
+and next actions are recorded in `docs/MACHINE_DRAFT_EXECUTION_2026-07-26.md`.

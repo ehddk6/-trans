@@ -121,3 +121,12 @@ python -m translation_forensics.cli validate-mqm --input .\workspaces\SAMPLE\int
 ```
 
 `init-forensic-records`의 결과는 `unreviewed` 템플릿이며 가설은 비어 있다. 이 명령은 해석·번역·검증 결과를 만들지 않는다. 가설은 실제 증거가 있을 때만 기록하고, critical 슬롯 충돌은 해결 또는 `unresolved` 처리 전에는 최종 상태로 승격하지 않는다. 연구 적용 근거는 `docs/research-findings.md`에, 현재 구현 감사는 `docs/current-system-audit.md`에 있다.
+
+## External machine-translation drafts
+
+`scripts/` contains opt-in utilities used only to create explicitly unverified
+Japanese-to-Korean machine drafts. They require the `machine-draft` extra and
+send source subtitle text to an external Google Translate service. They are
+never part of the default workflow, never produce a final artifact, and must
+not be used with sensitive material unless that transfer is approved. The
+13-title execution record is in `docs/MACHINE_DRAFT_EXECUTION_2026-07-26.md`.

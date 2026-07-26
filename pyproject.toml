@@ -12,6 +12,7 @@ dependencies = []
 [project.optional-dependencies]
 forensics = ["joblib", "numpy", "pandas", "scipy", "scikit-learn"]
 asr = ["faster-whisper"]
+machine-draft = ["deep-translator", "requests"]
 dev = ["pytest"]
 
 [project.scripts]

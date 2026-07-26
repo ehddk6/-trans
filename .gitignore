@@ -14,3 +14,6 @@ workspaces/*/final/*
 # 로컬 검사 임시물
 .source-inspection/
 *.work_audio.zip
+
+# Locally downloaded machine-translation runtimes and model caches.
+.local-tools/
