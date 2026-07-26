@@ -29,6 +29,22 @@ python -m pip install -e ".[dev]"
 python -m translation_forensics.cli doctor --project-root . --json
 ```
 
+## 초보 사용자를 위한 짧은 요청
+
+프로젝트 루트의 `AGENTS.md`가 번역 규칙과 프롬프트를 자동으로 불러오므로 긴 지침을 매번 붙여 넣을 필요가 없다. Codex에서 다음처럼 요청하면 된다.
+
+```text
+프로젝트 규칙에 따라 ADN-622 번역을 시작해. 먼저 자료·근거·누락·충돌을 점검하고, 승인 없이 final을 만들지 마.
+```
+
+13개 작품 전체는 다음처럼 요청한다.
+
+```text
+13개 작품을 프로젝트 규칙에 따라 순차 처리해. 자료 점검→근거 연결→GPT-5.6 의미 번역→검증 순서로 진행하고, 보류 사유와 결과 경로를 기록해.
+```
+
+자동 라우팅되는 상세 템플릿은 [`prompts/batch-adult-srt-translation-run.md`](prompts/batch-adult-srt-translation-run.md)와 [`prompts/terra-semantic-translation-v1.md`](prompts/terra-semantic-translation-v1.md)에 있다.
+
 ASR가 필요하면 프로젝트 루트에서 `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` 후 `.INSTALL_ASR.ps1`을 실행한다. `ffmpeg -version`이 먼저 동작해야 한다. 스크립트가 있는 폴더로 이동하기 어렵다면 `& "C:\경로\translation-forensics\INSTALL_ASR.ps1"`처럼 전체 경로로 실행한다. 현재 PowerShell 프로세스에서만 실행 정책을 바꾼다.
 
 GPU는 `nvidia-smi`가 실제로 확인될 때만 CUDA/float16을 선택한다. 그 외에는 `run-asr --cpu`로 CPU/int8을 사용한다. 모델 파일은 `faster-whisper` 실행 시 내려받아질 수 있으며, 이 저장소에는 모델을 포함하지 않는다.
@@ -55,12 +71,15 @@ SAMPLE.photos.zip             # 선택
 
 ```powershell
 python -m translation_forensics.cli inspect --project-root . --title SAMPLE
+python -m translation_forensics.cli validate-timeline --project-root . --title SAMPLE
 python -m translation_forensics.cli analyze --project-root . --title SAMPLE
 python -m translation_forensics.cli prepare-audio --project-root . --title SAMPLE
 python -m translation_forensics.cli run-asr --project-root . --title SAMPLE --cpu
 python -m translation_forensics.cli ingest-asr --project-root . --title SAMPLE --source .\SAMPLE.work_audio.zip
 python -m translation_forensics.cli build-review-context --project-root . --title SAMPLE
 ```
+
+`validate-timeline`은 구조 SRT의 마지막 종료 시각이 오디오/영상 범위 안에 있는지만 확인한다. 통과 상태 `range-compatible`은 편집본 동일성, 오프셋 또는 드리프트가 해결됐다는 뜻이 아니다. `prepare-audio`는 이 보고서가 없거나 클립 생성을 허용하지 않으면 중단한다. 예외적 과거 작업에서의 `--allow-unvalidated-timeline`은 검증을 생략할 뿐 어떤 검증 상태도 부여하지 않는다.
 
 `analyze`는 원본 학습 입력이 함께 제공된 경우에만 기존 Subtitle Forensics를 실행한다. 그렇지 않으면 `structure_fallback` 큐를 만들고 그 사실을 `forensics-run.json`에 기록한다. 이는 자동 번역이나 오역 확정이 아니다.
 
@@ -103,6 +122,13 @@ python -m translation_forensics.cli package --project-root . --title SAMPLE `
 기존 한국어 자막을 시간 정렬한 `build-korean-draft`는 번역 완료가 아니다. 실제 한국어 번역은 `build-translation-queue`로 만든 블록별 결정 레코드를 `apply-translations --strict`로 적용해야 한다. 이 단계는 일본어 의미, 앞뒤 문맥, ASR, 기존 후보를 분리하고 `source-faithful`과 `viewer-natural`을 별도로 생성한다. 자세한 규격은 `docs/TRANSLATION_DECISIONS.md`를 참조한다.
 
 한국어 의미 번역의 모델은 `gpt-5.6-terra` 하나로 고정된다. [config/translation-model.json](config/translation-model.json)의 선언과 의미 번역 코드가 같은 단일 허용값을 검사한다. 이 정책은 번역 큐·결정 JSONL·적용 보고서에 기록되는 의미 번역에만 적용하며, ASR·Subtitle Forensics·기존 외부 기계번역 초안에는 적용하지 않는다.
+
+반복 번역에는 [prompts/terra-semantic-translation-v1.md](prompts/terra-semantic-translation-v1.md)와 함께 제공하는 버전·해시·시험 사례 계약을 사용한다. 외부 모델 호출은 이 저장소가 수행하지 않으며, 템플릿 계약만 다음처럼 검사한다.
+
+```powershell
+python -m translation_forensics.cli validate-prompt-contract `
+  --manifest .\prompts\terra-semantic-translation-v1.manifest.json
+```
 
 ## 차세대 포렌식 기록과 평가
 

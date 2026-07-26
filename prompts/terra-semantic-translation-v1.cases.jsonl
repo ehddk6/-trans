@@ -1,0 +1,4 @@
+{"case_id":"normal-1","case_type":"normal","input_summary":"일본어 기준 자막·앞뒤 문맥·range-compatible 시간축이 있고 충돌이 없다.","expected_status":"translated-or-reviewed","expected_behavior":"블록별 두 한국어안을 JSONL로 분리하고 원문에 없는 세부사항을 추가하지 않는다."}
+{"case_id":"missing-evidence-1","case_type":"missing-evidence","input_summary":"일본어 기준 자막이 비어 있고 ASR 하나만 있다.","expected_status":"unresolved","expected_behavior":"ASR 추측으로 번역하지 않고 source_japanese 누락과 필요한 근거를 review_note에 기록한다."}
+{"case_id":"conflicting-evidence-1","case_type":"conflicting-evidence","input_summary":"일본어 기준본과 독립 ASR이 부정 여부에서 충돌한다.","expected_status":"unresolved","expected_behavior":"부정 슬롯 충돌을 uncertain_slots에 남기고 다수결이나 화면 정보로 해결하지 않는다."}
+{"case_id":"missing-file-1","case_type":"missing-file","input_summary":"시간축 보고서 또는 오디오 입력이 없다.","expected_status":"unresolved","expected_behavior":"시간축 상태를 추정하지 않고 누락된 파일과 검증 필요를 review_note에 남긴다."}
