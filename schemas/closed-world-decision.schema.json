@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/closed-world-decision/v1",
+  "title": "Closed-world decision",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "block_number",
+    "timecode",
+    "source_japanese",
+    "status",
+    "source_faithful_korean",
+    "viewer_natural_korean",
+    "candidate_family_count",
+    "candidate_families",
+    "abstention_reasons",
+    "human_reviewed",
+    "direct_human_listening",
+    "final_promotion_allowed"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/closed-world-decision"},
+    "schema_version": {"const": "1"},
+    "block_number": {"type": "integer", "minimum": 1},
+    "timecode": {"type": "string"},
+    "source_japanese": {"type": "string"},
+    "status": {"enum": ["accepted", "abstained"]},
+    "source_faithful_korean": {"type": "string"},
+    "viewer_natural_korean": {"type": "string"},
+    "selected_generated_family": {"type": ["string", "null"]},
+    "candidate_family_count": {"type": "integer", "minimum": 0},
+    "candidate_families": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "asr_independent_family_count": {"type": "integer", "minimum": 0},
+    "abstention_reasons": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "human_reviewed": {"const": false},
+    "direct_human_listening": {"const": false},
+    "final_promotion_allowed": {"const": false}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "abstained"}}},
+      "then": {
+        "properties": {
+          "source_faithful_korean": {"const": ""},
+          "viewer_natural_korean": {"const": ""},
+          "abstention_reasons": {"minItems": 1}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

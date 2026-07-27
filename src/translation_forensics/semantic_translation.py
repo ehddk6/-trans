@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .alignment import align_by_overlap
+from .identity import attach_queue_identity, infer_title_id, stable_id
 from .srt import JAPANESE_RE, SubtitleBlock, has_japanese, parse_srt, write_srt
 from .translation_model import DEFAULT_TRANSLATION_MODEL, resolve_translation_model
 
@@ -152,6 +153,7 @@ def build_translation_queue(
     review_queue_path: Path | None = None,
     capture_index_path: Path | None = None,
     translation_model: str = DEFAULT_TRANSLATION_MODEL,
+    title_id: str | None = None,
 ) -> dict[str, Any]:
     translation_model = resolve_translation_model(translation_model)
     structure, _, _ = parse_srt(structure_path)
@@ -164,6 +166,7 @@ def build_translation_queue(
     capture_available = bool(capture_index_path and capture_index_path.exists())
     structure_equals_ja = structure_path.resolve() == ja_path.resolve()
     records: list[dict[str, Any]] = []
+    title_id = title_id or infer_title_id(structure_path)
     unresolved_source = 0
     for index, reference in enumerate(structure):
         ja_match = japanese_map.get(reference.number, {})
@@ -208,6 +211,7 @@ def build_translation_queue(
                 "write_source_faithful_before_viewer_natural",
             ],
         })
+    records = attach_queue_identity(records, title_id=title_id)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="\n") as handle:
         for record in records:
@@ -215,6 +219,7 @@ def build_translation_queue(
     report = {
         "status": "translation-queue-ready",
         "structure": str(structure_path),
+        "title_id": title_id,
         "japanese": str(ja_path),
         "previous_korean": str(previous_ko_path) if previous_ko_path else None,
         "output": str(output_path),
@@ -239,7 +244,12 @@ def initialize_translation_decisions(queue_path: Path, output_path: Path, *, tra
     for item in queue:
         required_model = item.get("translation_model_required", translation_model)
         records.append({
+            "schema_name": "translation-forensics/translation-decision",
+            "schema_version": "2",
             "block_number": item.get("block_number"),
+            "title_id": item.get("title_id", ""),
+            "block_id": item.get("block_id", ""),
+            "decision_id": stable_id("decision", str(item.get("title_id", "")), item.get("block_number")),
             "source_japanese": item.get("source_japanese", ""),
             "previous_korean": item.get("previous_korean", ""),
             "source_faithful_korean": "",

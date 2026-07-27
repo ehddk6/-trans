@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/semantic-lattice/v1",
+  "title": "Closed-world semantic lattice",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "block_number",
+    "slots",
+    "alternatives",
+    "conflicts",
+    "resolution"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/semantic-lattice"},
+    "schema_version": {"const": "1"},
+    "block_number": {"type": "integer", "minimum": 1},
+    "slots": {"type": "object"},
+    "alternatives": {"type": "array", "items": {"type": "string"}},
+    "conflicts": {"type": "array", "items": {"type": "string"}},
+    "resolution": {"enum": ["accepted", "abstained"]}
+  },
+  "additionalProperties": false
+}

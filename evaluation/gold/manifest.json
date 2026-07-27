@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "status": "empty-no-gold-answers",
   "required_scene_fields": [
     "audio_directly_checked",
@@ -15,8 +15,17 @@
   "split_names": [
     "train",
     "development",
-    "locked-test"
+    "release-test",
+    "sealed-test"
   ],
   "locked_test_policy": "locked-test 정답은 모델 학습·프롬프트 개발에 사용하지 않습니다.",
-  "note": "이 파일은 평가 골격이며 정답·평가 완료·품질 개선을 의미하지 않습니다."
+  "note": "이 파일은 평가 골격이며 정답·평가 완료·품질 개선을 의미하지 않습니다.",
+  "sealed_test_policy": "sealed-test 정답은 주요 구조 변경 또는 공식 검증 때만 사용하며, 결과를 본 뒤 같은 버전을 다시 개발하지 않습니다.",
+  "migration_history": [
+    {
+      "from_schema_version": "1.0",
+      "to_schema_version": "2.0",
+      "action": "created split directories without rewriting gold records"
+    }
+  ]
 }

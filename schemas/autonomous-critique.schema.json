@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/autonomous-critique/v1",
+  "title": "Autonomous critique record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_name", "schema_version", "title_id", "block_number", "verdict", "critical_slot_conflicts", "unsupported_additions", "repair_instructions", "reason", "attempt"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/autonomous-critique"},
+    "schema_version": {"const": "1"},
+    "title_id": {"type": "string", "minLength": 1},
+    "block_number": {"type": "integer", "minimum": 1},
+    "verdict": {"enum": ["accept", "repair", "quarantine"]},
+    "critical_slot_conflicts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "unsupported_additions": {"type": "array", "items": {"type": "string"}},
+    "repair_instructions": {"type": "string"},
+    "reason": {"type": "string", "minLength": 1},
+    "attempt": {"type": "integer", "minimum": 0, "maximum": 2}
+  }
+}

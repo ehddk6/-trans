@@ -1,0 +1,34 @@
+{
+  "schema_name": "translation-forensics/autonomous-shadow-audit",
+  "schema_version": "1",
+  "date": "2026-07-27",
+  "status": "pass",
+  "network_used": false,
+  "titles": 13,
+  "total_blocks": 10380,
+  "scene_windows": 63,
+  "machine_aligned_blocks": 60,
+  "audio_evidence_withheld_blocks": 3,
+  "audio_srt_conflict_blocks": 40,
+  "results": [
+    {"title_id": "ADN-622", "blocks": 651, "alignment": "machine-aligned", "mapped_blocks": 2, "scenes": 2, "withheld": 0, "audio_srt_conflicts": 1, "risky": 3},
+    {"title_id": "ADN-746", "blocks": 386, "alignment": "machine-aligned-low-confidence", "mapped_blocks": 0, "scenes": 1, "withheld": 1, "audio_srt_conflicts": 0, "risky": 1},
+    {"title_id": "IPX-998", "blocks": 832, "alignment": "machine-aligned", "mapped_blocks": 1, "scenes": 1, "withheld": 0, "audio_srt_conflicts": 0, "risky": 0},
+    {"title_id": "JUQ-439", "blocks": 890, "alignment": "machine-aligned", "mapped_blocks": 3, "scenes": 3, "withheld": 0, "audio_srt_conflicts": 3, "risky": 3},
+    {"title_id": "JUQ-778", "blocks": 1955, "alignment": "machine-aligned", "mapped_blocks": 2, "scenes": 2, "withheld": 0, "audio_srt_conflicts": 1, "risky": 1},
+    {"title_id": "JUQ-811", "blocks": 827, "alignment": "machine-aligned", "mapped_blocks": 3, "scenes": 3, "withheld": 0, "audio_srt_conflicts": 0, "risky": 0},
+    {"title_id": "MDON-065", "blocks": 533, "alignment": "machine-aligned", "mapped_blocks": 2, "scenes": 2, "withheld": 0, "audio_srt_conflicts": 2, "risky": 2},
+    {"title_id": "SONE-785", "blocks": 858, "alignment": "machine-aligned", "mapped_blocks": 4, "scenes": 4, "withheld": 0, "audio_srt_conflicts": 0, "risky": 1},
+    {"title_id": "SSIS-400", "blocks": 577, "alignment": "machine-aligned", "mapped_blocks": 3, "scenes": 3, "withheld": 0, "audio_srt_conflicts": 0, "risky": 2},
+    {"title_id": "SSIS-575", "blocks": 1628, "alignment": "machine-aligned", "mapped_blocks": 3, "scenes": 3, "withheld": 0, "audio_srt_conflicts": 0, "risky": 3},
+    {"title_id": "SSIS-642", "blocks": 641, "alignment": "machine-aligned", "mapped_blocks": 12, "scenes": 12, "withheld": 0, "audio_srt_conflicts": 8, "risky": 11},
+    {"title_id": "SSIS-652", "blocks": 304, "alignment": "machine-aligned", "mapped_blocks": 1, "scenes": 1, "withheld": 0, "audio_srt_conflicts": 0, "risky": 1},
+    {"title_id": "SSIS-908", "blocks": 298, "alignment": "machine-aligned", "mapped_blocks": 24, "scenes": 26, "withheld": 2, "audio_srt_conflicts": 20, "risky": 25}
+  ],
+  "boundary": {
+    "live_model_execution": "not-run",
+    "reason": "OPENAI_API_KEY and optional OpenAI SDK are absent",
+    "human_reference_equality": "unidentifiable",
+    "human_final_allowed": false
+  }
+}

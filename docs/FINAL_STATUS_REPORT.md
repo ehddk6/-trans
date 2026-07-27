@@ -94,3 +94,35 @@ source or a non-functional local MT route. Three further titles have only a
 small P2-reviewed subset. Three incomplete drafts containing ellipses for
 untranslated blocks were withdrawn. Exact paths, counts, provider provenance,
 and next actions are recorded in `docs/MACHINE_DRAFT_EXECUTION_2026-07-26.md`.
+
+## 2026-07-26 closed-world validation addendum
+
+The repository now also provides a separate `closed-world-validated` track.
+It does not replace human listening, adjudicated gold, blind review, or
+`final`. Across the 13 supplied titles it assigned every one of 10,380 blocks
+to `accepted` or `abstained`: 870 were accepted by the conservative local
+candidate and explicit-slot checks, and 9,510 were abstained. All 13 packages
+passed structure, hash, decision-coverage, claim-boundary, and deterministic
+rerun validation.
+
+Human-reference equality remains `unidentifiable`, `100_percent_equal` remains
+false, and `final_promotion_allowed` remains false for every title. Detailed
+counts and package locations are in
+`docs/CLOSED_WORLD_BATCH_REPORT_2026-07-26.md`.
+
+## 2026-07-27 autonomous-release implementation addendum
+
+The repository now contains an opt-in hybrid autonomous pipeline using
+`gpt-5.6-terra` for structured decisions, `gpt-5.6-sol` for risk-only
+critique/repair, and `gpt-4o-transcribe` for compatible risky audio clips.
+It adds explicit network and cost preflight, local-ASR reuse or offline
+generation, cache replay, checkpoint resume, request/response/environment
+hashes, dual source/viewer SRTs, evidence graphs, uncertainty maps, formal v1
+record schemas, and named regression gates.
+
+All 13 workspaces and 10,380 blocks pass non-mutating input/evidence discovery.
+Live model execution has not run because this environment currently has no
+`OPENAI_API_KEY` and no optional OpenAI SDK; preflight correctly stops before
+creating a release package. `autonomous-release` remains outside the human
+`final` stage list and cannot be promoted through that gate. Operational usage
+and the exact current boundary are documented in `docs/AUTONOMOUS_RELEASE.md`.

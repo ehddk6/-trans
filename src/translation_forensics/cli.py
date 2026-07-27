@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import importlib.util
@@ -9,29 +9,52 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from . import __version__
 from .audio_adapter import detect_device, ingest_asr, prepare_audio, run_asr, write_run_summary, zip_work_audio
+from .audit_sampling import sample_audit, summarize_audit
 from .alignment import align_to_dicts
+from .automatic_draft import build_automatic_draft
+from .autonomous_release import prove_autonomous_claim, run_autonomous_release, validate_autonomous_release
 from .asr_evidence import read_asr_candidates
+from .closed_world import prove_quality_claim, run_closed_world, validate_closed_world_package
 from .discovery import DiscoveryError, inspect_roles, resolve_role
 from .drafts import build_korean_aligned_draft
 from .forensics_adapter import analyze_title
+from .forensic_artifacts import build_slot_conflicts, initialize_phonetic_candidates, initialize_speaker_state
 from .forensic_model import initialize_forensic_records, validate_forensic_records
-from .evaluation import initialize_gold_layout
+from .identity import migrate_jsonl_identity, validate_identity_records
+from .inferred_recovery import apply_inferred_recovery, build_inference_audio_queue, build_inference_context
+from .evaluation import build_blind_review_pack, initialize_gold_layout, initialize_gold_record, migrate_gold_layout, summarize_blind_review, validate_evaluation_summary, validate_gold_record, validate_gold_suite
 from .evidence_artifacts import validate_alignment_evidence, validate_backtranslation_check, validate_speaker_state
+from .evidence_graph import build_evidence_graph
 from .mqm import validate_mqm_csv
 from .manifest import append_history, build_project_manifest, write_json
+from .memory_ledger import initialize_memory_ledger, validate_memory_ledger
+from .machine_final import package_machine_final, repair_machine_final_asr
+from .openai_provider import BudgetTracker, OpenAIProvider, ProviderUnavailableError, BudgetExceededError
 from .outputs import STAGES, package_title_outputs
+from .prompt_contract import validate_prompt_contract
+from .review_pack import build_review_pack, validate_review_decisions
+from .reverse_check import initialize_reverse_check, validate_reverse_check
+from .release_metrics import calculate_review_budget_metrics, validate_release_gate
+from .run_manifest import create_run_manifest
 from .reporting import build_asr_verdicts, build_review_context, build_scene_map, write_csv
 from .semantic_translation import apply_translation_decisions, build_translation_queue, initialize_translation_decisions, merge_translation_decisions
+from .offline_hybrid import build_offline_hybrid
 from .translation_model import ALLOWED_TRANSLATION_MODELS, DEFAULT_TRANSLATION_MODEL
 from .scenes import build_review_scenes, read_review_queue, write_review_scenes
 from .srt import compare_structure, parse_srt
+from .timeline import initialize_timeline_anchor_template, read_timeline_anchors, timeline_is_usable, validate_timeline
+from .sol_review import initialize_sol_review_records, validate_sol_review_records
+from .terminology import initialize_terminology, terminology_conflicts, validate_terminology
+from .targeted_retranslation import apply_targeted_retranslations
 from .validation import validate_pair, write_validation_report
+from .workspace_audit import audit_workspace
 
 
 LOG = logging.getLogger("translation_forensics")
@@ -46,12 +69,24 @@ def _workspace(root: Path, title: str, explicit: str | None = None) -> Path:
 
 
 def _emit(value: Any, args: argparse.Namespace) -> None:
+    text: str
     if args.json:
-        print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+        text = json.dumps(value, ensure_ascii=False, indent=2, default=str)
     elif isinstance(value, str):
-        print(value)
+        text = value
     else:
-        print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+        text = json.dumps(value, ensure_ascii=False, indent=2, default=str)
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        # Windows legacy terminals can still select cp949 even though the
+        # artifacts are UTF-8.  A reporting failure must not turn a completed
+        # ASR run into a failed process or corrupt the source CSV.
+        buffer = getattr(sys.stdout, "buffer", None)
+        if buffer is None:
+            raise
+        buffer.write((text + "\n").encode("utf-8"))
+        buffer.flush()
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -95,6 +130,53 @@ def _resolve_inputs(root: Path, title: str, args: argparse.Namespace) -> dict[st
 
 def _manifest_path(workspace: Path) -> Path:
     return workspace / "metadata" / "project-manifest.json"
+
+
+def _timeline_report_path(workspace: Path, title: str) -> Path:
+    return workspace / "metadata" / f"{title}.timeline-validation-v1.json"
+
+
+def _manifest_role_path(workspace: Path, role: str) -> Path | None:
+    manifest_path = _manifest_path(workspace)
+    if not manifest_path.exists():
+        return None
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    for record in manifest.get("inputs", []):
+        if isinstance(record, dict) and record.get("role") == role:
+            path = Path(str(record.get("path", ""))).expanduser()
+            if path.exists():
+                return path.resolve()
+    return None
+
+
+def _closed_world_structure_from_package(package_dir: Path) -> Path:
+    manifest_path = package_dir / "run-manifest.json"
+    if not manifest_path.exists():
+        raise ValueError(f"폐쇄형 run manifest가 없습니다: {manifest_path}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    for record in manifest.get("inputs", []):
+        if isinstance(record, dict) and record.get("role") == "structure":
+            path = Path(str(record.get("path", "")))
+            if path.exists():
+                return path.resolve()
+    raise ValueError("폐쇄형 run manifest에서 사용 가능한 structure 입력을 찾지 못했습니다.")
+
+
+def _discover_closed_world_candidates(workspace: Path) -> list[Path]:
+    intermediate = workspace / "intermediate"
+    patterns = (
+        "*.gpt56-direct*.source-faithful.srt",
+        "*.gpt56-direct*.viewer-natural.srt",
+        "*.machine-assisted*.srt",
+        "*.ko-aligned-draft*.srt",
+    )
+    paths: set[Path] = set()
+    for pattern in patterns:
+        paths.update(path.resolve() for path in intermediate.glob(pattern) if path.is_file())
+    return sorted(paths, key=lambda path: str(path).lower())
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -183,6 +265,69 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     _emit(result, args); return 0
 
 
+def cmd_validate_timeline(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
+    try:
+        structure = resolve_role(input_root, "structure", args.structure, args.title, required=True)
+        media = resolve_role(input_root, "audio", args.audio, args.title, required=False)
+        if media is None:
+            media = resolve_role(input_root, "video", args.video, args.title, required=False)
+    except DiscoveryError as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    try:
+        anchors = read_timeline_anchors(args.anchors.expanduser().resolve()) if args.anchors else []
+        report = validate_timeline(structure, media, tolerance_seconds=args.tolerance, anchors=anchors, approved_offset_map=args.approved_offset_map.expanduser().resolve() if args.approved_offset_map else None)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    if args.dry_run:
+        _emit({"status": "dry-run", "report": report}, args); return 0
+    output = args.output or _timeline_report_path(workspace, args.title)
+    try:
+        if output.exists():
+            raise FileExistsError(f"기존 시간축 보고서를 덮어쓰지 않습니다: {output}")
+        write_json(output, report)
+        anchor_output = None
+        if anchors:
+            anchor_output = workspace / "metadata" / f"{args.title}.timeline-anchors-v1.csv"
+            if anchor_output.exists():
+                raise FileExistsError(f"기존 timeline anchors를 덮어쓰지 않습니다: {anchor_output}")
+            write_csv(anchor_output, anchors, ["anchor_id", "srt_time_seconds", "media_time_seconds", "source", "offset_seconds"])
+        offset_output = None
+        if args.approved_offset_map:
+            offset_output = workspace / "metadata" / f"{args.title}.approved-offset-map-v1.json"
+            if offset_output.exists():
+                raise FileExistsError(f"기존 approved offset map을 덮어쓰지 않습니다: {offset_output}")
+            write_json(offset_output, report.get("offset_map"))
+        manifest_path = _manifest_path(workspace)
+        if manifest_path.exists():
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["timeline_validation"] = {
+                "status": report["status"],
+                "clip_preparation_allowed": report["clip_preparation_allowed"],
+                "report": str(output),
+                "reason": report["reason"],
+            }
+            write_json(manifest_path, manifest)
+    except (OSError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit({**report, "output": str(output), "anchors_output": str(anchor_output) if anchor_output else None, "approved_offset_map_output": str(offset_output) if offset_output else None}, args)
+    return 0 if timeline_is_usable(report) else 1
+
+
+def cmd_init_timeline_anchors(args: argparse.Namespace) -> int:
+    root = _project_root(args); workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
+    try:
+        structure = resolve_role(input_root, "structure", args.structure, args.title, required=True)
+        output = args.output or workspace / "metadata" / f"{args.title}.timeline-anchors.template-v1.csv"
+        result = initialize_timeline_anchor_template(structure, output)
+    except (OSError, ValueError, FileExistsError, DiscoveryError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
 def _default_queue(workspace: Path, title: str) -> Path:
     base = workspace / "intermediate" / f"{title}.review-queue.structure-fallback-v1.csv"
     if not base.exists():
@@ -234,6 +379,373 @@ def cmd_build_korean_draft(args: argparse.Namespace) -> int:
     _emit(result, args); return 0
 
 
+def cmd_build_automatic_draft(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
+    try:
+        structure = resolve_role(input_root, "structure", args.structure, args.title, required=True)
+    except DiscoveryError as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    output = args.output or workspace / "automatic-draft-v1"
+    paths = {
+        "source_candidate": args.source_candidate,
+        "viewer_candidate": args.viewer_candidate,
+        "single_candidate": args.single_candidate,
+        "fallback": args.fallback,
+        "decision_candidate": args.decision_candidate,
+    }
+    resolved = {name: path.expanduser().resolve() for name, path in paths.items() if path is not None}
+    missing = [name for name, path in resolved.items() if not path.exists()]
+    if missing:
+        _emit({"status": "fail", "error": f"자동 초안 후보 파일이 없습니다: {', '.join(missing)}"}, args); return 2
+    if args.dry_run:
+        _emit({"status": "dry-run", "structure": str(structure), "output": str(output), "candidates": {name: str(path) for name, path in resolved.items()}}, args); return 0
+    try:
+        result = build_automatic_draft(
+            title=args.title,
+            structure_path=structure,
+            output_dir=output,
+            source_candidate_path=resolved.get("source_candidate"),
+            viewer_candidate_path=resolved.get("viewer_candidate"),
+            single_candidate_path=resolved.get("single_candidate"),
+            fallback_path=resolved.get("fallback"),
+            decision_candidate_path=resolved.get("decision_candidate"),
+        )
+    except (FileExistsError, OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "automatic-draft-complete" else 1
+
+
+def cmd_package_machine_final(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
+    try:
+        structure = resolve_role(input_root, "structure", args.structure, args.title, required=True)
+    except DiscoveryError as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    output = args.output or workspace / "machine-final-v1"
+    required = {
+        "source_faithful": args.source_faithful,
+        "viewer_natural": args.viewer_natural,
+        "automatic_report": args.automatic_report,
+        "automatic_ledger": args.automatic_ledger,
+        "asr": args.asr,
+        "timeline_validation": args.timeline_validation,
+        "closed_world_proof": args.closed_world_proof,
+    }
+    missing = [name for name, path in required.items() if path is None]
+    if missing:
+        _emit({"status": "fail", "error": f"machine-final 필수 입력이 없습니다: {', '.join(missing)}"}, args); return 2
+    resolved = {name: path.expanduser().resolve() for name, path in required.items()}
+    absent = [name for name, path in resolved.items() if not path.exists()]
+    if absent:
+        _emit({"status": "fail", "error": f"machine-final 입력 파일이 없습니다: {', '.join(absent)}"}, args); return 2
+    if args.dry_run:
+        _emit({"status": "dry-run", "output": str(output), "inputs": {name: str(path) for name, path in resolved.items()}}, args); return 0
+    try:
+        result = package_machine_final(
+            title=args.title,
+            structure_path=structure,
+            source_path=resolved["source_faithful"],
+            viewer_path=resolved["viewer_natural"],
+            automatic_report_path=resolved["automatic_report"],
+            automatic_ledger_path=resolved["automatic_ledger"],
+            asr_path=resolved["asr"],
+            timeline_path=resolved["timeline_validation"],
+            proof_path=resolved["closed_world_proof"],
+            output_dir=output,
+        )
+    except (FileExistsError, FileNotFoundError, OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_repair_machine_final_asr(args: argparse.Namespace) -> int:
+    if args.dry_run:
+        _emit({"status": "dry-run", "source_asr": str(args.source_asr), "package": str(args.package)}, args); return 0
+    try:
+        result = repair_machine_final_asr(source_asr_path=args.source_asr, package_dir=args.package)
+    except (FileExistsError, FileNotFoundError, OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_apply_targeted_retranslations(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
+    try:
+        structure = resolve_role(input_root, "structure", args.structure, args.title, required=True)
+    except DiscoveryError as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    source = args.source_faithful.expanduser().resolve()
+    viewer = args.viewer_natural.expanduser().resolve()
+    responses = [path.expanduser().resolve() for path in args.response]
+    reviews = [path.expanduser().resolve() for path in (args.review or [])]
+    output = args.output or workspace / "targeted-retranslation-v2"
+    if args.dry_run:
+        _emit({"status": "dry-run", "structure": str(structure), "source": str(source), "viewer": str(viewer), "responses": [str(path) for path in responses], "reviews": [str(path) for path in reviews], "version": args.version, "output": str(output)}, args); return 0
+    try:
+        result = apply_targeted_retranslations(title=args.title, structure_path=structure, source_path=source, viewer_path=viewer, response_paths=responses, output_dir=output, hold_marker=args.hold_marker, review_paths=reviews, version=args.version)
+    except (FileExistsError, FileNotFoundError, OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_prepare_inference_audio(args: argparse.Namespace) -> int:
+    """Cut one local ASR clip per v3 hold marker, without changing subtitles."""
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    try:
+        structure = args.structure.expanduser().resolve() if args.structure else _manifest_role_path(workspace, "structure")
+        audio = args.audio.expanduser().resolve() if args.audio else _manifest_role_path(workspace, "audio")
+        if structure is None or audio is None:
+            raise DiscoveryError("프로젝트 매니페스트에서 structure 또는 audio 입력을 찾지 못했습니다.")
+    except DiscoveryError as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    hold_ledger = args.hold_ledger.expanduser().resolve()
+    output = (args.output or workspace / "inferred-recovery-audio-v4").expanduser().resolve()
+    queue = output.parent / f"{args.title}.inferred-recovery-v4.queue.csv"
+    if args.dry_run:
+        _emit({"status": "dry-run", "structure": str(structure), "audio": str(audio), "hold_ledger": str(hold_ledger), "queue": str(queue), "output": str(output), "padding": args.padding, "merge_gap": args.merge_gap}, args); return 0
+    if output.exists() or queue.exists():
+        _emit({"status": "fail", "error": "기존 추론 복구용 음성 작업물을 덮어쓰지 않습니다.", "queue": str(queue), "output": str(output)}, args); return 2
+    try:
+        queue_result = build_inference_audio_queue(title=args.title, structure_path=structure, hold_ledger_path=hold_ledger, output_path=queue)
+        audio_result = prepare_audio(root, queue, audio, output, bands="P1", padding=args.padding, merge_gap=args.merge_gap, max_scene=args.max_scene, include_audio=True, force=False)
+        if audio_result.get("status") == "failed":
+            _emit({"status": "fail", "queue": queue_result, "audio": audio_result}, args); return 1
+        write_json(output / "inference-audio-preparation.json", {
+            "schema_name": "translation-forensics/inferred-recovery-audio-preparation",
+            "schema_version": "1",
+            "title_id": args.title,
+            "queue": str(queue),
+            "hold_ledger": str(hold_ledger),
+            "padding_seconds": args.padding,
+            "merge_gap_seconds": args.merge_gap,
+            "max_scene_seconds": args.max_scene,
+            "audio_result": audio_result,
+            "human_reviewed": False,
+            "final_promotion_allowed": False,
+        })
+    except (FileExistsError, FileNotFoundError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit({"status": "inference-audio-prepared", "queue": queue_result, "audio": audio_result, "output": str(output), "human_reviewed": False, "final_promotion_allowed": False}, args); return 0
+
+
+def cmd_build_inference_context(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    try:
+        structure = args.structure.expanduser().resolve() if args.structure else _manifest_role_path(workspace, "structure")
+        if structure is None:
+            raise DiscoveryError("프로젝트 매니페스트에서 structure 입력을 찾지 못했습니다.")
+        result = build_inference_context(
+            title=args.title,
+            structure_path=structure,
+            source_path=args.source_faithful.expanduser().resolve(),
+            viewer_path=args.viewer_natural.expanduser().resolve(),
+            hold_ledger_path=args.hold_ledger.expanduser().resolve(),
+            scenes_path=args.scenes.expanduser().resolve(),
+            asr_path=args.asr.expanduser().resolve(),
+            output_path=args.output.expanduser().resolve(),
+        )
+    except (DiscoveryError, FileExistsError, FileNotFoundError, OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_apply_inferred_recovery(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    try:
+        structure = args.structure.expanduser().resolve() if args.structure else _manifest_role_path(workspace, "structure")
+        if structure is None:
+            raise DiscoveryError("프로젝트 매니페스트에서 structure 입력을 찾지 못했습니다.")
+        result = apply_inferred_recovery(
+            title=args.title,
+            structure_path=structure,
+            source_path=args.source_faithful.expanduser().resolve(),
+            viewer_path=args.viewer_natural.expanduser().resolve(),
+            hold_ledger_path=args.hold_ledger.expanduser().resolve(),
+            response_paths=[path.expanduser().resolve() for path in args.response],
+            output_dir=(args.output or workspace / "inferred-recovery-v4").expanduser().resolve(),
+            hold_marker=args.hold_marker,
+            version=args.version,
+        )
+    except (DiscoveryError, FileExistsError, FileNotFoundError, OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def _autonomous_titles(args: argparse.Namespace) -> list[str]:
+    values = [str(value).strip() for value in (args.title or []) if str(value).strip()]
+    if args.titles_file:
+        for line in args.titles_file.expanduser().resolve().read_text(encoding="utf-8-sig").splitlines():
+            value = line.strip()
+            if value and not value.startswith("#"):
+                values.append(value)
+    titles = list(dict.fromkeys(values))
+    if not titles:
+        raise ValueError("--title 또는 --titles-file로 작품을 하나 이상 지정해야 합니다.")
+    return titles
+
+
+def _first_existing(paths: list[Path]) -> Path | None:
+    return next((path.resolve() for path in paths if path.exists()), None)
+
+
+def cmd_run_autonomous_release(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    try:
+        titles = _autonomous_titles(args)
+    except (OSError, ValueError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    explicit_inputs = [args.structure, args.ja, args.previous_ko, args.scenes, args.local_asr]
+    if len(titles) > 1 and any(explicit_inputs):
+        _emit({"status": "fail", "error": "여러 작품 실행에서는 작품별 매니페스트/기본 경로를 사용해야 하므로 단일 입력 경로 옵션을 함께 쓸 수 없습니다."}, args); return 2
+    prompt_root = root / "prompts"
+    schema_root = root / "schemas"
+    dry_plan: list[dict[str, Any]] = []
+
+    def resolve_title(title: str) -> dict[str, Path | None]:
+        workspace = _workspace(root, title, None)
+        structure = args.structure.expanduser().resolve() if args.structure else _manifest_role_path(workspace, "structure")
+        japanese = args.ja.expanduser().resolve() if args.ja else _manifest_role_path(workspace, "ja")
+        previous = args.previous_ko.expanduser().resolve() if args.previous_ko else _manifest_role_path(workspace, "previous_ko")
+        scenes = args.scenes.expanduser().resolve() if args.scenes else _first_existing([
+            workspace / "inferred-recovery-audio-v4" / "review-scenes.csv",
+            workspace / "intermediate" / f"{title}.work_audio" / "review-scenes.csv",
+        ])
+        local_asr = args.local_asr.expanduser().resolve() if args.local_asr else _first_existing([
+            workspace / "inferred-recovery-audio-v4" / "asr-candidates.csv",
+            workspace / "intermediate" / f"{title}.work_audio" / "asr-candidates.csv",
+        ])
+        if structure is None or japanese is None:
+            raise FileNotFoundError(f"{title}: structure 또는 Japanese SRT를 프로젝트 매니페스트에서 찾지 못했습니다.")
+        if len(titles) == 1 and args.output:
+            output = args.output.expanduser().resolve()
+        elif args.output:
+            output = args.output.expanduser().resolve() / title / "autonomous-release-v1"
+        else:
+            output = workspace / "autonomous-release-v1"
+        return {"workspace": workspace, "structure": structure, "japanese": japanese, "previous": previous, "scenes": scenes, "local_asr": local_asr, "output": output}
+
+    try:
+        for title in titles:
+            paths = resolve_title(title)
+            dry_plan.append({"title_id": title, **{key: str(value) if value else None for key, value in paths.items()}})
+    except (OSError, ValueError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    if args.dry_run:
+        _emit({
+            "status": "dry-run",
+            "titles": titles,
+            "runs": dry_plan,
+            "allow_network": args.allow_network,
+            "max_cost_usd": args.max_cost_usd,
+            "max_workers": args.max_workers,
+            "network_preflight_required": True,
+        }, args)
+        return 0
+    if not args.allow_network or args.max_cost_usd is None or args.max_cost_usd <= 0:
+        _emit({"status": "blocked", "error": "실제 autonomous-release에는 --allow-network와 양수 --max-cost-usd가 모두 필요합니다."}, args); return 2
+    budget = BudgetTracker(float(args.max_cost_usd))
+    provider = OpenAIProvider(
+        cache_dir=args.cache_dir or root / ".cache" / "autonomous-release",
+        budget=budget,
+        allow_network=True,
+        max_retries=2,
+    )
+    preflight = provider.preflight()
+    if preflight["status"] != "pass":
+        _emit({"status": "blocked", "preflight": preflight}, args); return 2
+
+    prepared_paths: dict[str, dict[str, Path | None]] = {}
+    try:
+        for title in titles:
+            paths = resolve_title(title)
+            if paths["local_asr"] is None and paths["scenes"] is not None:
+                local_asr = paths["workspace"] / "intermediate" / f"{title}.autonomous-local-asr.csv"  # type: ignore[operator]
+                if not local_asr.exists():
+                    local_asr.parent.mkdir(parents=True, exist_ok=True)
+                    execution = run_asr(
+                        root,
+                        paths["scenes"],  # type: ignore[arg-type]
+                        local_asr,
+                        model=args.local_asr_model,
+                        force_cpu=args.cpu,
+                        offline=not args.allow_local_model_download,
+                    )
+                    if execution.get("status") != "completed" or not local_asr.exists():
+                        raise RuntimeError(f"{title}: local Whisper execution failed: {execution.get('stderr') or execution}")
+                paths["local_asr"] = local_asr
+            prepared_paths[title] = paths
+    except (OSError, RuntimeError, ValueError) as exc:
+        _emit({"status": "blocked", "error": str(exc), "phase": "local-asr"}, args); return 2
+
+    def execute(title: str) -> dict[str, Any]:
+        paths = prepared_paths[title]
+        return run_autonomous_release(
+            title_id=title,
+            structure_path=paths["structure"],  # type: ignore[arg-type]
+            japanese_path=paths["japanese"],  # type: ignore[arg-type]
+            previous_path=paths["previous"],
+            scenes_path=paths["scenes"],
+            local_asr_path=paths["local_asr"],
+            output_dir=paths["output"],  # type: ignore[arg-type]
+            provider=provider,
+            decision_prompt_path=prompt_root / "autonomous-subtitle-decision-v1.md",
+            critic_prompt_path=prompt_root / "autonomous-subtitle-critic-v1.md",
+            decision_schema_path=schema_root / "autonomous-decision-response.schema.json",
+            critique_schema_path=schema_root / "autonomous-critique-response.schema.json",
+            batch_size=args.batch_size,
+            max_repairs=args.max_repairs,
+            resume=args.resume,
+        )
+
+    results: list[dict[str, Any]] = []
+    failures: list[dict[str, str]] = []
+    try:
+        with ThreadPoolExecutor(max_workers=max(1, args.max_workers)) as pool:
+            future_map = {pool.submit(execute, title): title for title in titles}
+            for future in as_completed(future_map):
+                title = future_map[future]
+                try:
+                    results.append(future.result())
+                except Exception as exc:
+                    failures.append({"title_id": title, "error": str(exc)})
+    except (OSError, ValueError, ProviderUnavailableError, BudgetExceededError) as exc:
+        _emit({"status": "fail", "error": str(exc), "results": results}, args); return 2
+    results.sort(key=lambda row: str(row.get("title_id")))
+    failures.sort(key=lambda row: row["title_id"])
+    status = "completed" if not failures else "partial-failure"
+    _emit({"status": status, "results": results, "failures": failures, "spent_usd": round(budget.spent_usd, 6), "max_cost_usd": budget.maximum_usd}, args)
+    return 0 if not failures else 1
+
+
+def cmd_validate_autonomous_release(args: argparse.Namespace) -> int:
+    result = validate_autonomous_release(args.package.expanduser().resolve())
+    if args.output and not args.dry_run:
+        output = args.output.expanduser().resolve()
+        if output.exists():
+            _emit({"status": "fail", "error": f"기존 검증 보고서를 덮어쓰지 않습니다: {output}"}, args); return 2
+        write_json(output, result)
+    _emit(result, args)
+    return 0 if result["status"] == "pass" else 1
+
+
+def cmd_prove_autonomous_claim(args: argparse.Namespace) -> int:
+    try:
+        result = prove_autonomous_claim(args.package, None if args.dry_run else args.output)
+    except (FileExistsError, FileNotFoundError, OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args)
+    return 0 if result["status"] == "pass" else 1
+
+
 def cmd_build_translation_queue(args: argparse.Namespace) -> int:
     root = _project_root(args)
     workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
@@ -255,7 +767,7 @@ def cmd_build_translation_queue(args: argparse.Namespace) -> int:
     if output.exists() or report.exists():
         _emit({"status": "fail", "error": "기존 translation queue를 덮어쓰지 않습니다.", "output": str(output), "report": str(report)}, args); return 2
     try:
-        result = build_translation_queue(structure, ja, previous, output, report, review_context_path=review_context if review_context.exists() else None, review_queue_path=review_queue if review_queue.exists() else None, capture_index_path=capture_index if capture_index and capture_index.exists() else None, translation_model=args.translation_model)
+        result = build_translation_queue(structure, ja, previous, output, report, review_context_path=review_context if review_context.exists() else None, review_queue_path=review_queue if review_queue.exists() else None, capture_index_path=capture_index if capture_index and capture_index.exists() else None, translation_model=args.translation_model, title_id=args.title)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0
@@ -364,6 +876,301 @@ def cmd_init_gold(args: argparse.Namespace) -> int:
     _emit(result, args); return 0
 
 
+def cmd_init_gold_record(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    block_ids = [int(value) for value in args.block_ids.split(",") if value.strip()]
+    if args.dry_run:
+        _emit({"status": "dry-run", "gold_id": args.gold_id, "title_id": args.title_id, "scene_id": args.scene_id, "block_ids": block_ids, "split": args.split}, args); return 0
+    try:
+        result = initialize_gold_record(root, gold_id=args.gold_id, title_id=args.title_id, scene_id=args.scene_id, block_ids=block_ids, split=args.split)
+    except (OSError, ValueError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_validate_gold_record(args: argparse.Namespace) -> int:
+    try:
+        result = validate_gold_record(args.input.expanduser().resolve())
+        if args.output and not args.dry_run:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"기존 보고서를 덮어쓰지 않습니다: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_validate_gold_suite(args: argparse.Namespace) -> int:
+    try:
+        result = validate_gold_suite(_project_root(args))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_migrate_gold_layout(args: argparse.Namespace) -> int:
+    try:
+        result = migrate_gold_layout(_project_root(args))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_build_blind_review_pack(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
+    try:
+        structure = resolve_role(input_root, "structure", args.structure, args.title, required=True)
+        source = args.source_faithful.expanduser().resolve()
+        viewer = args.viewer_natural.expanduser().resolve()
+        if not source.exists() or not viewer.exists():
+            raise ValueError("--source-faithful와 --viewer-natural 파일이 모두 필요합니다.")
+        output = args.output or workspace / "intermediate" / f"{args.title}.blind-review-pack-v1.zip"
+        if args.dry_run:
+            _emit({"status": "dry-run", "structure": str(structure), "source": str(source), "viewer": str(viewer), "output": str(output), "random_seed": args.random_seed}, args); return 0
+        result = build_blind_review_pack(args.title, structure, source, viewer, output, random_seed=args.random_seed)
+    except (OSError, ValueError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_build_review_pack(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    context = args.context or workspace / "intermediate" / "review-context.jsonl"
+    output = args.output or workspace / "intermediate" / f"{args.title}.review-pack-v1"
+    audio_root = args.audio_root or workspace / "intermediate" / f"{args.title}.work_audio"
+    if args.dry_run:
+        _emit({"status": "dry-run", "context": str(context), "output": str(output), "audio_root": str(audio_root)}, args); return 0
+    try:
+        result = build_review_pack(args.title, context, output, audio_root=audio_root)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_validate_review_decisions(args: argparse.Namespace) -> int:
+    try:
+        result = validate_review_decisions(args.context.expanduser().resolve(), args.input.expanduser().resolve())
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_sample_audit(args: argparse.Namespace) -> int:
+    root = _project_root(args); workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    queue = args.queue or workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl"
+    output = args.output or workspace / "intermediate" / f"{args.title}.audit-sample-v1.csv"
+    bands = {value.strip() for value in args.bands.split(",") if value.strip()}
+    if args.dry_run:
+        _emit({"status": "dry-run", "queue": str(queue), "output": str(output), "rate": args.rate, "bands": sorted(bands), "seed": args.seed}, args); return 0
+    try:
+        result = sample_audit(queue, output, title=args.title, seed=args.seed, rate=args.rate, bands=bands)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_summarize_audit(args: argparse.Namespace) -> int:
+    try:
+        result = summarize_audit(args.input.expanduser().resolve(), args.output.expanduser().resolve())
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_init_terminology(args: argparse.Namespace) -> int:
+    try:
+        result = initialize_terminology(args.output.expanduser().resolve()) if not args.dry_run else {"status": "dry-run", "output": str(args.output)}
+    except (OSError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_validate_terminology(args: argparse.Namespace) -> int:
+    try:
+        result = validate_terminology(args.input.expanduser().resolve())
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_terminology_conflicts(args: argparse.Namespace) -> int:
+    try:
+        result = terminology_conflicts(args.input.expanduser().resolve(), args.output.expanduser().resolve())
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_build_evidence_graph(args: argparse.Namespace) -> int:
+    root = _project_root(args); workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    queue = args.queue or workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl"
+    output = args.output or workspace / "intermediate" / f"{args.title}.evidence-graph-v1.jsonl"
+    if args.dry_run:
+        _emit({"status": "dry-run", "queue": str(queue), "output": str(output)}, args); return 0
+    try:
+        result = build_evidence_graph(args.title, queue, output, decisions_path=args.decisions, frames_path=args.frames, hypotheses_path=args.hypotheses, evaluation_path=args.evaluation)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_summarize_blind_review(args: argparse.Namespace) -> int:
+    try:
+        result = summarize_blind_review(args.pack.expanduser().resolve(), args.reviewed.expanduser().resolve(), args.key.expanduser().resolve(), args.output.expanduser().resolve())
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["evaluation_status"] == "human-reviewed" else 1
+
+
+def cmd_validate_evaluation_summary(args: argparse.Namespace) -> int:
+    try:
+        result = validate_evaluation_summary(args.input.expanduser().resolve())
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_create_run_manifest(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    try:
+        result = create_run_manifest(root, args.output.expanduser().resolve(), title=args.title, stage=args.stage, inputs=[path.expanduser().resolve() for path in args.inputs], artifacts=[path.expanduser().resolve() for path in args.artifacts], prompt_manifest=args.prompt_manifest.expanduser().resolve() if args.prompt_manifest else None, parent_run_id=args.parent_run_id, run_id=args.run_id)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_init_reverse_check(args: argparse.Namespace) -> int:
+    try:
+        result = initialize_reverse_check(args.decisions.expanduser().resolve(), args.output.expanduser().resolve())
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_validate_reverse_check(args: argparse.Namespace) -> int:
+    try:
+        result = validate_reverse_check(args.decisions.expanduser().resolve(), args.input.expanduser().resolve())
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_migrate_identity(args: argparse.Namespace) -> int:
+    try:
+        result = migrate_jsonl_identity(args.input.expanduser().resolve(), args.output.expanduser().resolve(), title_id=args.title, kind=args.kind)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_validate_identity(args: argparse.Namespace) -> int:
+    try:
+        from .forensic_model import read_jsonl
+        result = validate_identity_records(read_jsonl(args.input.expanduser().resolve()), title_id=args.title)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_init_memory_ledger(args: argparse.Namespace) -> int:
+    try:
+        result = initialize_memory_ledger(args.output.expanduser().resolve(), kind=args.kind)
+    except (OSError, ValueError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_validate_memory_ledger(args: argparse.Namespace) -> int:
+    try:
+        result = validate_memory_ledger(args.input.expanduser().resolve(), kind=args.kind)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_init_speaker_state(args: argparse.Namespace) -> int:
+    try:
+        result = initialize_speaker_state(args.scenes.expanduser().resolve(), args.output.expanduser().resolve())
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_init_phonetic_candidates(args: argparse.Namespace) -> int:
+    try:
+        result = initialize_phonetic_candidates(args.queue.expanduser().resolve(), args.output.expanduser().resolve())
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_analyze_slot_conflicts(args: argparse.Namespace) -> int:
+    try:
+        result = build_slot_conflicts(args.hypotheses.expanduser().resolve(), args.output.expanduser().resolve())
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_evaluate_review_budget(args: argparse.Namespace) -> int:
+    try:
+        from .forensic_model import read_jsonl
+        result = calculate_review_budget_metrics(read_jsonl(args.input.expanduser().resolve()), gold_positive_count=args.gold_positive_count, budgets=tuple(args.budgets))
+        output = args.output.expanduser().resolve()
+        if output.exists():
+            raise FileExistsError(f"기존 review budget metrics를 덮어쓰지 않습니다: {output}")
+        write_json(output, result)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["metrics_status"] == "demonstrated" else 1
+
+
+def _load_json_evidence(path: Path | None) -> dict[str, Any] | None:
+    return json.loads(path.expanduser().resolve().read_text(encoding="utf-8")) if path else None
+
+
+def cmd_validate_release_gate(args: argparse.Namespace) -> int:
+    try:
+        evidence = {"gold_suite": _load_json_evidence(args.gold_suite), "blind_review": _load_json_evidence(args.blind_review), "audit_summary": _load_json_evidence(args.audit_summary), "review_metrics": _load_json_evidence(args.review_metrics), "release_approval": _load_json_evidence(args.release_approval), "sol_experiment": _load_json_evidence(args.sol_experiment)}
+        result = validate_release_gate(evidence, require_human_approval=not args.no_human_approval_required, require_sol_experiment=args.require_sol_experiment)
+        if args.output:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"기존 release gate 보고서를 덮어쓰지 않습니다: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_init_sol_review(args: argparse.Namespace) -> int:
+    try:
+        result = initialize_sol_review_records(args.queue.expanduser().resolve(), args.output.expanduser().resolve(), title_id=args.title)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_validate_sol_review(args: argparse.Namespace) -> int:
+    result = validate_sol_review_records(args.input.expanduser().resolve())
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_audit_current(args: argparse.Namespace) -> int:
+    root = _project_root(args); workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    result = audit_workspace(root, args.title, workspace)
+    if args.output and not args.dry_run:
+        output = args.output.expanduser().resolve()
+        if output.exists():
+            _emit({"status": "fail", "error": f"기존 audit 보고서를 덮어쓰지 않습니다: {output}"}, args); return 2
+        write_json(output, result)
+    _emit(result, args); return 0 if result["status"] == "ready-for-final-audit" else 1
+
+
 def cmd_validate_mqm(args: argparse.Namespace) -> int:
     try:
         result = validate_mqm_csv(args.input.expanduser().resolve())
@@ -396,6 +1203,19 @@ def cmd_validate_evidence_artifact(args: argparse.Namespace) -> int:
     _emit(result, args); return 0 if result["status"] == "pass" else 1
 
 
+def cmd_validate_prompt_contract(args: argparse.Namespace) -> int:
+    try:
+        result = validate_prompt_contract(args.manifest.expanduser().resolve())
+        if args.output and not args.dry_run:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"기존 보고서를 덮어쓰지 않습니다: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
 def cmd_prepare_audio(args: argparse.Namespace) -> int:
     root = _project_root(args); workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None); input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
     try:
@@ -403,6 +1223,16 @@ def cmd_prepare_audio(args: argparse.Namespace) -> int:
         audio = resolve_role(input_root, "audio", args.audio, args.title, required=True)
     except DiscoveryError as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
+    timeline_path = args.timeline_report or _timeline_report_path(workspace, args.title)
+    if not args.allow_unvalidated_timeline:
+        if not timeline_path.exists():
+            _emit({"status": "blocked", "error": "prepare-audio 전에 validate-timeline을 실행해야 합니다.", "timeline_report": str(timeline_path)}, args); return 2
+        try:
+            timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            _emit({"status": "blocked", "error": f"시간축 보고서를 읽을 수 없습니다: {exc}", "timeline_report": str(timeline_path)}, args); return 2
+        if not timeline_is_usable(timeline):
+            _emit({"status": "blocked", "error": "시간축 검증이 클립 생성을 허용하지 않습니다.", "timeline_status": timeline.get("status"), "timeline_report": str(timeline_path)}, args); return 2
     out_dir = args.output or workspace / "intermediate" / f"{args.title}.work_audio"
     try:
         result = prepare_audio(root, queue, audio, out_dir, bands=args.bands, padding=args.padding, merge_gap=args.merge_gap, max_scene=args.max_scene, include_audio=not args.no_audio, dry_run=args.dry_run, force=args.force)
@@ -416,7 +1246,7 @@ def cmd_run_asr(args: argparse.Namespace) -> int:
     scenes = args.scenes or work / "review-scenes.csv"; out = args.output or work / "asr-candidates.csv"
     prompt = args.prompt or root / "vendor" / "subtitle_audio_forensics_runner_v1" / "asr_prompt_ja.txt"
     try:
-        result = run_asr(root, scenes, out, model=args.model, force_cpu=args.cpu, prompt=prompt if prompt.exists() else None, threshold=args.threshold, max_scenes=args.max_scenes, dry_run=args.dry_run)
+        result = run_asr(root, scenes, out, model=args.model, force_cpu=args.cpu, prompt=prompt if prompt.exists() else None, threshold=args.threshold, max_scenes=args.max_scenes, dry_run=args.dry_run, offline=args.offline)
     except RuntimeError as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0 if result.get("status") != "failed" else 1
@@ -493,6 +1323,135 @@ def cmd_validate(args: argparse.Namespace) -> int:
     _emit(report, args); return 0 if report.get("status") != "fail" else 1
 
 
+def cmd_run_closed_world(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    structure = args.structure.expanduser().resolve() if args.structure else _manifest_role_path(workspace, "structure")
+    japanese = args.ja.expanduser().resolve() if args.ja else _manifest_role_path(workspace, "ja")
+    previous = args.previous_ko.expanduser().resolve() if args.previous_ko else _manifest_role_path(workspace, "previous_ko")
+    if not structure or not japanese:
+        _emit({"status": "fail", "error": "structure와 ja 입력을 명시하거나 project-manifest에 기록해야 합니다."}, args)
+        return 2
+    candidates = [path.expanduser().resolve() for path in (args.candidate_srt or [])]
+    if not candidates:
+        candidates = _discover_closed_world_candidates(workspace)
+    review_context = args.review_context or workspace / "intermediate" / "review-context.jsonl"
+    asr = args.asr or workspace / "intermediate" / f"{args.title}.work_audio" / "asr-candidates.csv"
+    scenes = workspace / "intermediate" / f"{args.title}.work_audio" / "review-scenes.csv"
+    timeline = args.timeline_validation or _timeline_report_path(workspace, args.title)
+    default_output = (
+        workspace / "network-enabled" / "closed-world-validated-v1"
+        if args.allow_model_download
+        else workspace / "closed-world" / "closed-world-validated-v1"
+    )
+    output = args.output or default_output
+    if args.dry_run:
+        _emit({
+            "status": "dry-run",
+            "title": args.title,
+            "structure": str(structure),
+            "japanese": str(japanese),
+            "previous_korean_candidate": str(previous) if previous else None,
+            "candidate_srts": [str(path) for path in candidates],
+            "review_context": str(review_context),
+            "asr": str(asr),
+            "will_run_local_asr": not asr.exists() and scenes.exists(),
+            "model_download_permission": args.allow_model_download,
+            "timeline_validation": str(timeline),
+            "output": str(output),
+            "network_model_download_permitted": args.allow_model_download,
+            "human_labels_used": False,
+        }, args)
+        return 0
+    asr_execution: dict[str, Any] = {
+        "status": "reused" if asr.exists() else "not-available",
+        "offline": not args.allow_model_download,
+        "model_download_permitted": args.allow_model_download,
+    }
+    if not asr.exists() and scenes.exists():
+        prompt = root / "vendor" / "subtitle_audio_forensics_runner_v1" / "asr_prompt_ja.txt"
+        try:
+            asr_execution = run_asr(
+                root,
+                scenes,
+                asr,
+                model=args.asr_model,
+                force_cpu=args.cpu,
+                prompt=prompt if prompt.exists() else None,
+                max_scenes=args.max_scenes,
+                offline=not args.allow_model_download,
+            )
+        except RuntimeError as exc:
+            asr_execution = {
+                "status": "failed",
+                "offline": not args.allow_model_download,
+                "model_download_permitted": args.allow_model_download,
+                "error": str(exc),
+            }
+    asr_usable = False
+    if asr.exists():
+        try:
+            read_asr_candidates(asr)
+            asr_usable = True
+        except (OSError, ValueError):
+            asr_execution = {**asr_execution, "status": "failed", "error": "생성된 ASR CSV가 규격 검증을 통과하지 못했습니다."}
+    try:
+        result = run_closed_world(
+            title=args.title,
+            project_root=root,
+            structure_path=structure,
+            japanese_path=japanese,
+            output_dir=output,
+            candidate_paths=candidates,
+            previous_path=previous,
+            review_context_path=review_context if review_context.exists() else None,
+            asr_path=asr if asr_usable else None,
+            timeline_validation_path=timeline if timeline.exists() else None,
+            network_model_download_permitted=args.allow_model_download,
+        )
+    except (OSError, ValueError, RuntimeError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    result["asr_execution"] = asr_execution
+    _emit(result, args)
+    return 0
+
+
+def cmd_validate_closed_world(args: argparse.Namespace) -> int:
+    package_dir = args.package.expanduser().resolve()
+    try:
+        structure = args.structure.expanduser().resolve() if args.structure else _closed_world_structure_from_package(package_dir)
+        result = validate_closed_world_package(structure, package_dir)
+        if args.output and not args.dry_run:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"기존 검증 보고서를 덮어쓰지 않습니다: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0 if result["status"] == "pass" else 1
+
+
+def cmd_prove_quality_claim(args: argparse.Namespace) -> int:
+    package_dir = args.package.expanduser().resolve()
+    try:
+        structure = args.structure.expanduser().resolve() if args.structure else _closed_world_structure_from_package(package_dir)
+        human_reference = args.human_reference.expanduser().resolve() if args.human_reference else None
+        result = prove_quality_claim(structure, package_dir, human_reference_path=human_reference)
+        if args.output and not args.dry_run:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"기존 품질 증명 보고서를 덮어쓰지 않습니다: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0 if result["status"] == "pass" else 1
+
+
 def cmd_package(args: argparse.Namespace) -> int:
     root = _project_root(args); workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None); input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
     try:
@@ -503,7 +1462,7 @@ def cmd_package(args: argparse.Namespace) -> int:
     if args.dry_run:
         _emit({"status": "dry-run", "output": str(output), "stage": args.stage}, args); return 0
     try:
-        result = package_title_outputs(args.title, reference, args.source_faithful.expanduser().resolve(), args.viewer_natural.expanduser().resolve(), output, stage=args.stage, version=args.version, japanese_path=args.ja, previous_path=args.previous_ko, photos_path=args.photos, scenes_path=args.scenes, asr_path=args.asr, translation_decisions_path=args.decisions, semantic_frames_path=args.semantic_frames, hypothesis_ledger_path=args.hypothesis_ledger, speaker_state_path=args.speaker_state, alignment_evidence_path=args.alignment_evidence, mqm_errors_path=args.mqm_errors, backtranslation_check_path=args.backtranslation_check, evaluation_summary_path=args.evaluation_summary, blind_review_pack_path=args.blind_review_pack, project_root=root, all_blocks_reviewed=args.all_blocks_reviewed, direct_human_listening=args.direct_human_listening, evidence_complete=args.evidence_complete)
+        result = package_title_outputs(args.title, reference, args.source_faithful.expanduser().resolve(), args.viewer_natural.expanduser().resolve(), output, stage=args.stage, version=args.version, japanese_path=args.ja, previous_path=args.previous_ko, photos_path=args.photos, scenes_path=args.scenes, asr_path=args.asr, translation_decisions_path=args.decisions, semantic_frames_path=args.semantic_frames, hypothesis_ledger_path=args.hypothesis_ledger, speaker_state_path=args.speaker_state, alignment_evidence_path=args.alignment_evidence, mqm_errors_path=args.mqm_errors, backtranslation_check_path=args.backtranslation_check, evaluation_summary_path=args.evaluation_summary, blind_review_pack_path=args.blind_review_pack, release_gate_path=args.release_gate, timeline_validation_path=args.timeline_validation, project_root=root, all_blocks_reviewed=args.all_blocks_reviewed, direct_human_listening=args.direct_human_listening, evidence_complete=args.evidence_complete)
     except (RuntimeError, ValueError, FileExistsError, OSError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0
@@ -525,6 +1484,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     return analyze_status
 
 
+def cmd_build_offline_hybrid(args: argparse.Namespace) -> int:
+    build_offline_hybrid(args.titles_file, args.workspace_root, args.output)
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="translation-forensics", description="일본어 자막 복원·번역·검증 통합 CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -532,8 +1495,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("doctor", help="공용 자료와 실행 환경 검사"); _add_common(p); p.set_defaults(func=cmd_doctor)
     p = sub.add_parser("init-title", help="작품별 작업 디렉터리 생성"); _add_common(p); _add_title(p); p.set_defaults(func=cmd_init_title)
     p = sub.add_parser("inspect", help="입력 역할과 SRT 구조 검사"); _add_common(p); _add_title(p); _input_args(p); p.set_defaults(func=cmd_inspect)
+    p = sub.add_parser("validate-timeline", help="구조 SRT와 미디어의 초·중·후반 시간축 앵커 검증"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--audio", type=Path); p.add_argument("--video", type=Path); p.add_argument("--anchors", type=Path, help="anchor_id,srt_time_seconds,media_time_seconds,source CSV"); p.add_argument("--approved-offset-map", type=Path); p.add_argument("--tolerance", type=float, default=0.25); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_timeline)
+    p = sub.add_parser("init-timeline-anchors", help="사람 확인용 초·중·후반 시간축 앵커 템플릿 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_init_timeline_anchors)
     p = sub.add_parser("analyze", help="Subtitle Forensics 실행 또는 구조 기반 검토 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--output", type=Path); p.add_argument("--vendor-root", type=Path); p.set_defaults(func=cmd_analyze)
     p = sub.add_parser("build-korean-draft", help="일본어 구조에 맞춘 한국어 번역 초안 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--output", type=Path); p.add_argument("--report", type=Path); p.set_defaults(func=cmd_build_korean_draft)
+    p = sub.add_parser("build-automatic-draft", help="기존 자동 후보와 정렬 fallback으로 전 블록 재생용 초안 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-candidate", type=Path); p.add_argument("--viewer-candidate", type=Path); p.add_argument("--single-candidate", type=Path); p.add_argument("--fallback", type=Path); p.add_argument("--decision-candidate", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_build_automatic_draft)
     p = sub.add_parser("build-translation-queue", help="블록별 의미 번역 결정 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--photos", type=Path); p.add_argument("--review-context", type=Path); p.add_argument("--review-queue", type=Path); p.add_argument("--capture-index", type=Path); p.add_argument("--output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_build_translation_queue)
     p = sub.add_parser("apply-translations", help="번역 결정 JSONL을 구조 고정 SRT 두 종으로 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--decisions", required=True, type=Path); p.add_argument("--source-output", type=Path); p.add_argument("--viewer-output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--strict", action="store_true", default=False); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_apply_translations)
     p = sub.add_parser("init-translation-decisions", help="번역 결정 템플릿 생성"); _add_common(p); _add_title(p); p.add_argument("--queue", type=Path); p.add_argument("--output", type=Path); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_init_translation_decisions)
@@ -541,16 +1507,66 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("init-forensic-records", help="의미 프레임·가설 원장을 명시적 미검수 상태로 초기화"); _add_common(p); _add_title(p); p.add_argument("--queue", type=Path); p.add_argument("--frames", type=Path); p.add_argument("--hypotheses", type=Path); p.set_defaults(func=cmd_init_forensic_records)
     p = sub.add_parser("validate-forensic-records", help="의미 프레임·가설 원장과 critical conflict escalation 검사"); _add_common(p); p.add_argument("--frames", required=True, type=Path); p.add_argument("--hypotheses", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_forensic_records)
     p = sub.add_parser("init-gold", help="정답을 만들지 않는 gold evaluation 디렉터리 골격 생성"); _add_common(p); p.set_defaults(func=cmd_init_gold)
+    p = sub.add_parser("init-gold-record", help="사람 청취용 미완성 gold 레코드 템플릿 생성"); _add_common(p); p.add_argument("--gold-id", required=True); p.add_argument("--title-id", required=True); p.add_argument("--scene-id", required=True); p.add_argument("--block-ids", required=True, help="쉼표로 구분한 구조 블록 번호"); p.add_argument("--split", required=True, choices=("train", "development", "locked-test")); p.set_defaults(func=cmd_init_gold_record)
+    p = sub.add_parser("validate-gold-record", help="사람 작성 gold 레코드의 직접 청취·분할 계약 검증"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_gold_record)
+    p = sub.add_parser("validate-gold-suite", help="작품 단위 gold split 누출과 골드 레코드 계약 검증"); _add_common(p); p.set_defaults(func=cmd_validate_gold_suite)
+    p = sub.add_parser("migrate-gold-layout", help="기존 gold 골격을 release/sealed split 구조로 비파괴 마이그레이션"); _add_common(p); p.set_defaults(func=cmd_migrate_gold_layout)
+    p = sub.add_parser("build-blind-review-pack", help="출처를 숨긴 로컬 A/B 검수 패킷 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--output", type=Path); p.add_argument("--random-seed", type=int, required=True); p.set_defaults(func=cmd_build_blind_review_pack)
+    p = sub.add_parser("summarize-blind-review", help="완료된 사람 A/B 판정을 내부 키로 해제·요약"); _add_common(p); p.add_argument("--pack", required=True, type=Path); p.add_argument("--reviewed", required=True, type=Path); p.add_argument("--key", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_summarize_blind_review)
+    p = sub.add_parser("validate-evaluation-summary", help="사람 검수 완료 평가 요약의 승격 계약 검증"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.set_defaults(func=cmd_validate_evaluation_summary)
+    p = sub.add_parser("create-run-manifest", help="입력·프롬프트·산출물 해시를 묶은 재현 실행 기록 생성"); _add_common(p); p.add_argument("--title", required=True); p.add_argument("--stage", required=True); p.add_argument("--inputs", required=True, nargs="+", type=Path); p.add_argument("--artifacts", nargs="*", default=[], type=Path); p.add_argument("--prompt-manifest", type=Path); p.add_argument("--parent-run-id"); p.add_argument("--run-id"); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_create_run_manifest)
+    p = sub.add_parser("init-reverse-check", help="두 한국어안의 사람 작성 역의미 검증 템플릿 생성"); _add_common(p); p.add_argument("--decisions", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_init_reverse_check)
+    p = sub.add_parser("validate-reverse-check", help="역의미 검증의 누락·의미 반전·추가를 차단"); _add_common(p); p.add_argument("--decisions", required=True, type=Path); p.add_argument("--input", required=True, type=Path); p.set_defaults(func=cmd_validate_reverse_check)
+    p = sub.add_parser("migrate-identity", help="기존 JSONL을 안정 ID·스키마 v2 산출물로 비파괴 마이그레이션"); _add_common(p); p.add_argument("--title", required=True); p.add_argument("--kind", required=True, choices=("queue", "decision", "semantic-frame", "hypothesis")); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_migrate_identity)
+    p = sub.add_parser("validate-identity", help="JSONL의 title/block 안정 ID와 참조 일관성 검사"); _add_common(p); p.add_argument("--title"); p.add_argument("--input", required=True, type=Path); p.set_defaults(func=cmd_validate_identity)
+    p = sub.add_parser("init-memory-ledger", help="자동 적용을 하지 않는 장면·번역·오류·표현 정책 메모리 생성"); _add_common(p); p.add_argument("--kind", required=True, choices=("scene", "translation", "error", "style-policy")); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_init_memory_ledger)
+    p = sub.add_parser("validate-memory-ledger", help="메모리 범위·승인·근거 및 자동 적용 금지 검증"); _add_common(p); p.add_argument("--kind", required=True, choices=("scene", "translation", "error", "style-policy")); p.add_argument("--input", required=True, type=Path); p.set_defaults(func=cmd_validate_memory_ledger)
+    p = sub.add_parser("init-speaker-state", help="검수자 작성 화자·행동 상태 템플릿 생성"); _add_common(p); p.add_argument("--scenes", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_init_speaker_state)
+    p = sub.add_parser("init-phonetic-candidates", help="근거 없는 음가 추정을 만들지 않는 후보 원장 템플릿 생성"); _add_common(p); p.add_argument("--queue", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_init_phonetic_candidates)
+    p = sub.add_parser("analyze-slot-conflicts", help="경쟁 가설의 명시적 의미 슬롯 충돌 보고서 생성"); _add_common(p); p.add_argument("--hypotheses", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_analyze_slot_conflicts)
+    p = sub.add_parser("evaluate-review-budget", help="완전한 사람 라벨·골드 분모가 있을 때만 검수 예산별 recall/precision 계산"); _add_common(p); p.add_argument("--input", required=True, type=Path, help="record_id/rank/reviewer_label JSONL"); p.add_argument("--gold-positive-count", required=True, type=int); p.add_argument("--budgets", nargs="+", type=int, default=[5, 10, 20]); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_evaluate_review_budget)
+    p = sub.add_parser("validate-release-gate", help="골드·블라인드 검수·감사·지표·책임자 기반 릴리스 게이트 검증"); _add_common(p); p.add_argument("--gold-suite", type=Path); p.add_argument("--blind-review", type=Path); p.add_argument("--audit-summary", type=Path); p.add_argument("--review-metrics", type=Path); p.add_argument("--release-approval", type=Path); p.add_argument("--sol-experiment", type=Path); p.add_argument("--require-sol-experiment", action="store_true"); p.add_argument("--no-human-approval-required", action="store_true"); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_release_gate)
+    p = sub.add_parser("init-sol-review", help="외부 호출 없이 선택적 Sol 반증 검토 원장 템플릿 생성"); _add_common(p); p.add_argument("--title", required=True); p.add_argument("--queue", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_init_sol_review)
+    p = sub.add_parser("validate-sol-review", help="Sol 반증 기록의 승인·비용·사람 판정·자동 최종판정 금지 검증"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.set_defaults(func=cmd_validate_sol_review)
+    p = sub.add_parser("audit-current", help="작품별 입력·시간축·결정·골드·최종 산출물 완료 요건 감사"); _add_common(p); _add_title(p); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_audit_current)
     p = sub.add_parser("validate-mqm", help="subtitle MQM 오류 원장 형식과 critical 잔존 여부 검사"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_mqm)
     p = sub.add_parser("validate-evidence-artifact", help="reviewer-authored evidence artifact schema validation"); _add_common(p); p.add_argument("--kind", required=True, choices=("speaker-state", "alignment-evidence", "backtranslation-check")); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_evidence_artifact)
-    p = sub.add_parser("prepare-audio", help="P1/P2 장면과 음성 클립 준비"); _add_common(p); _add_title(p); p.add_argument("--review-queue", type=Path); p.add_argument("--audio", type=Path); p.add_argument("--output", type=Path); p.add_argument("--bands", default="P1,P2"); p.add_argument("--padding", type=float, default=2.5); p.add_argument("--merge-gap", type=float, default=1.5); p.add_argument("--max-scene", type=float, default=45.0); p.add_argument("--no-audio", action="store_true"); p.add_argument("--force", action="store_true"); p.set_defaults(func=cmd_prepare_audio)
-    p = sub.add_parser("run-asr", help="적응형 다중 ASR 실행"); _add_common(p); _add_title(p); p.add_argument("--scenes", type=Path); p.add_argument("--output", type=Path); p.add_argument("--prompt", type=Path); p.add_argument("--model", default="large-v3"); p.add_argument("--cpu", action="store_true"); p.add_argument("--threshold", type=float, default=0.82); p.add_argument("--max-scenes", type=int, default=0); p.set_defaults(func=cmd_run_asr)
+    p = sub.add_parser("validate-prompt-contract", help="Terra 번역 프롬프트 템플릿 계약·시험 사례 검증"); _add_common(p); p.add_argument("--manifest", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_prompt_contract)
+    p = sub.add_parser("prepare-audio", help="P1/P2 장면과 음성 클립 준비"); _add_common(p); _add_title(p); p.add_argument("--review-queue", type=Path); p.add_argument("--audio", type=Path); p.add_argument("--output", type=Path); p.add_argument("--bands", default="P1,P2"); p.add_argument("--padding", type=float, default=2.5); p.add_argument("--merge-gap", type=float, default=1.5); p.add_argument("--max-scene", type=float, default=45.0); p.add_argument("--no-audio", action="store_true"); p.add_argument("--timeline-report", type=Path); p.add_argument("--allow-unvalidated-timeline", action="store_true", help="예외적인 기존 작업의 명시적 우회; 결과를 시간축 검증됨으로 표기하지 않음"); p.add_argument("--force", action="store_true"); p.set_defaults(func=cmd_prepare_audio)
+    p = sub.add_parser("run-asr", help="적응형 다중 ASR 실행"); _add_common(p); _add_title(p); p.add_argument("--scenes", type=Path); p.add_argument("--output", type=Path); p.add_argument("--prompt", type=Path); p.add_argument("--model", default="large-v3"); p.add_argument("--cpu", action="store_true"); p.add_argument("--offline", action="store_true", help="캐시된 ASR 모델만 사용하고 네트워크 다운로드를 차단"); p.add_argument("--threshold", type=float, default=0.82); p.add_argument("--max-scenes", type=int, default=0); p.set_defaults(func=cmd_run_asr)
     p = sub.add_parser("ingest-asr", help="ASR CSV/ZIP 검사 및 연결"); _add_common(p); _add_title(p); p.add_argument("--source", required=True, type=Path); p.add_argument("--output", type=Path); p.add_argument("--force", action="store_true"); p.set_defaults(func=cmd_ingest_asr)
     p = sub.add_parser("package-audio", help="완료된 음성 검토 작업을 work_audio ZIP으로 패키징"); _add_common(p); _add_title(p); p.add_argument("--work-dir", type=Path); p.add_argument("--output", type=Path); p.add_argument("--model", default="large-v3"); p.add_argument("--no-clips", action="store_true"); p.set_defaults(func=cmd_package_audio)
     p = sub.add_parser("build-review-context", help="장면 검토 패킷 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_build_review_context)
+    p = sub.add_parser("build-review-pack", help="한 화면의 로컬 검수 HTML·결정 템플릿 생성"); _add_common(p); _add_title(p); p.add_argument("--context", type=Path); p.add_argument("--audio-root", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_build_review_pack)
+    p = sub.add_parser("validate-review-decisions", help="검수 결정의 블록 커버리지·근거 연결·상태 검증"); _add_common(p); p.add_argument("--context", required=True, type=Path); p.add_argument("--input", required=True, type=Path); p.set_defaults(func=cmd_validate_review_decisions)
+    p = sub.add_parser("sample-audit", help="P3/P4 등의 시드 고정 무작위 감사 표본 생성"); _add_common(p); _add_title(p); p.add_argument("--queue", type=Path); p.add_argument("--output", type=Path); p.add_argument("--rate", required=True, type=float); p.add_argument("--bands", default="P3,P4"); p.add_argument("--seed", required=True, type=int); p.set_defaults(func=cmd_sample_audit)
+    p = sub.add_parser("summarize-audit", help="사람이 채운 무작위 감사 표본의 기술 요약 생성"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_summarize_audit)
+    p = sub.add_parser("init-terminology", help="자동 치환을 하지 않는 승인형 용어집 생성"); _add_common(p); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_init_terminology)
+    p = sub.add_parser("validate-terminology", help="승인형 용어집의 범위·근거 계약 검증"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.set_defaults(func=cmd_validate_terminology)
+    p = sub.add_parser("terminology-conflicts", help="같은 범위의 승인 용어 충돌 보고서 생성"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_terminology_conflicts)
+    p = sub.add_parser("build-evidence-graph", help="블록·근거·결정·가설·평가의 역추적 그래프 생성"); _add_common(p); _add_title(p); p.add_argument("--queue", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--frames", type=Path); p.add_argument("--hypotheses", type=Path); p.add_argument("--evaluation", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_build_evidence_graph)
     p = sub.add_parser("validate", help="최종 SRT 구조·문자·가독성·회귀 검사"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", type=Path); p.add_argument("--viewer-natural", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate)
-    p = sub.add_parser("package", help="새 버전으로 최종 산출물 패키징"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path, required=True); p.add_argument("--photos", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--semantic-frames", type=Path); p.add_argument("--hypothesis-ledger", type=Path); p.add_argument("--speaker-state", type=Path); p.add_argument("--alignment-evidence", type=Path); p.add_argument("--mqm-errors", type=Path); p.add_argument("--backtranslation-check", type=Path); p.add_argument("--evaluation-summary", type=Path); p.add_argument("--blind-review-pack", type=Path); p.add_argument("--output", type=Path); p.add_argument("--stage", choices=STAGES, default="text-crosschecked"); p.add_argument("--version", type=int); p.add_argument("--all-blocks-reviewed", action="store_true"); p.add_argument("--direct-human-listening", action="store_true"); p.add_argument("--evidence-complete", action="store_true"); p.set_defaults(func=cmd_package)
+    p = sub.add_parser("run-closed-world", help="모든 블록을 accepted/abstained로 판정하고 별도 패키징"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--candidate-srt", action="append", type=Path, help="검증할 로컬 한국어 후보 SRT. 여러 번 지정할 수 있습니다."); p.add_argument("--review-context", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--asr-model", default="large-v3", help="faster-whisper 모델 이름"); p.add_argument("--allow-model-download", action="store_true", help="ASR CSV가 없을 때 모델 다운로드를 명시적으로 허용하고 network-enabled 패키지에 기록"); p.add_argument("--cpu", action="store_true"); p.add_argument("--max-scenes", type=int, default=0); p.add_argument("--timeline-validation", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_run_closed_world)
+    p = sub.add_parser("validate-closed-world", help="폐쇄형 패키지의 결정 커버리지·구조·해시·승격 차단 검증"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--structure", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_closed_world)
+    p = sub.add_parser("prove-quality-claim", help="폐쇄형 자동 검증의 보장 범위와 사람 정답 동일성 비식별 상태 보고"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--structure", type=Path); p.add_argument("--human-reference", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_prove_quality_claim)
+    p = sub.add_parser("package-machine-final", help="사람 final과 분리된 machine-final 패키지 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", type=Path); p.add_argument("--viewer-natural", type=Path); p.add_argument("--automatic-report", type=Path); p.add_argument("--automatic-ledger", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--timeline-validation", type=Path); p.add_argument("--closed-world-proof", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_package_machine_final)
+    p = sub.add_parser("repair-machine-final-asr", help="손상된 canonical ASR 복구 및 Excel UTF-8 BOM 보기용 CSV 생성"); _add_common(p); p.add_argument("--source-asr", required=True, type=Path); p.add_argument("--package", required=True, type=Path); p.set_defaults(func=cmd_repair_machine_final_asr)
+    p = sub.add_parser("apply-targeted-retranslations", help="구조화된 자동 재번역 후보를 v2 자막에 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--response", required=True, type=Path, action="append"); p.add_argument("--review", type=Path, action="append"); p.add_argument("--output", type=Path); p.add_argument("--version", default="v2"); p.add_argument("--hold-marker", default="…"); p.set_defaults(func=cmd_apply_targeted_retranslations)
+    p = sub.add_parser("prepare-inference-audio", help="v3 보류 블록을 블록별 로컬 ASR 음성으로 추출"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--audio", type=Path); p.add_argument("--hold-ledger", required=True, type=Path); p.add_argument("--output", type=Path); p.add_argument("--padding", type=float, default=0.25); p.add_argument("--merge-gap", type=float, default=-10.0); p.add_argument("--max-scene", type=float, default=60.0); p.set_defaults(func=cmd_prepare_inference_audio)
+    p = sub.add_parser("build-inference-context", help="블록별 ASR·문맥을 추론 복구 모델 입력으로 고정"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--hold-ledger", required=True, type=Path); p.add_argument("--scenes", required=True, type=Path); p.add_argument("--asr", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_build_inference_context)
+    p = sub.add_parser("apply-inferred-recovery", help="사용자 승인 음성 추론 복구본을 v4 SRT에 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--hold-ledger", required=True, type=Path); p.add_argument("--response", required=True, type=Path, action="append"); p.add_argument("--output", type=Path); p.add_argument("--version", default="v4"); p.add_argument("--hold-marker", default="…"); p.set_defaults(func=cmd_apply_inferred_recovery)
+    p = sub.add_parser("run-autonomous-release", help="사람 final과 분리된 하이브리드 무인 번역·반증·패키징 실행"); _add_common(p); p.add_argument("--title", action="append"); p.add_argument("--titles-file", type=Path); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--local-asr", type=Path); p.add_argument("--local-asr-model", default="large-v3"); p.add_argument("--cpu", action="store_true"); p.add_argument("--allow-local-model-download", action="store_true"); p.add_argument("--output", type=Path); p.add_argument("--allow-network", action="store_true"); p.add_argument("--max-cost-usd", type=float); p.add_argument("--cache-dir", type=Path); p.add_argument("--resume", action="store_true"); p.add_argument("--max-workers", type=int, default=2); p.add_argument("--batch-size", type=int, default=20); p.add_argument("--max-repairs", type=int, default=2); p.set_defaults(func=cmd_run_autonomous_release)
+    p = sub.add_parser("validate-autonomous-release", help="autonomous-release 구조·커버리지·해시·사람 final 경계 검증"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_autonomous_release)
+    p = sub.add_parser("prove-autonomous-claim", help="autonomous-release가 보장하는 속성과 식별 불가능한 사람 정답 주장을 분리"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_prove_autonomous_claim)
+    p = sub.add_parser("package", help="새 버전으로 최종 산출물 패키징"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path, required=True); p.add_argument("--photos", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--semantic-frames", type=Path); p.add_argument("--hypothesis-ledger", type=Path); p.add_argument("--speaker-state", type=Path); p.add_argument("--alignment-evidence", type=Path); p.add_argument("--mqm-errors", type=Path); p.add_argument("--backtranslation-check", type=Path); p.add_argument("--evaluation-summary", type=Path); p.add_argument("--blind-review-pack", type=Path); p.add_argument("--release-gate", type=Path); p.add_argument("--timeline-validation", type=Path); p.add_argument("--output", type=Path); p.add_argument("--stage", choices=STAGES, default="text-crosschecked"); p.add_argument("--version", type=int); p.add_argument("--all-blocks-reviewed", action="store_true"); p.add_argument("--direct-human-listening", action="store_true"); p.add_argument("--evidence-complete", action="store_true"); p.set_defaults(func=cmd_package)
     p = sub.add_parser("run", help="결정적 단계만 수행하고 의미 판정 전 중단"); _add_common(p); _add_title(p); _input_args(p); p.set_defaults(func=cmd_run)
+    p = sub.add_parser("build-offline-hybrid", help="API 호출 없이 로컬 결과물을 병합하여 완전 자동 완성본 생성")
+    _add_common(p)
+    p.add_argument("--titles-file", type=Path, required=True, help="작품 목록 텍스트 파일 경로")
+    p.add_argument("--workspace-root", type=Path, default=Path("workspaces"), help="워크스페이스 루트 경로")
+    p.add_argument("--output", type=Path, required=True, help="출력 디렉터리 경로")
+    p.set_defaults(func=cmd_build_offline_hybrid)
+
     return parser
 
 
@@ -570,3 +1586,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/autonomous-decision/v1",
+  "title": "Autonomous decision ledger record v1",
+  "type": "object",
+  "required": ["schema_name", "schema_version", "title_id", "block_number", "source_faithful_korean", "viewer_natural_korean", "source_status", "viewer_status", "confidence", "evidence_refs", "semantic_slots", "inferred_slots", "competing_interpretations", "risk_codes", "reason", "source_srt_text", "human_reviewed", "human_final_allowed", "final_promotion_allowed"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/autonomous-decision"},
+    "schema_version": {"const": "1"},
+    "title_id": {"type": "string", "minLength": 1},
+    "block_number": {"type": "integer", "minimum": 1},
+    "source_faithful_korean": {"type": "string"},
+    "viewer_natural_korean": {"type": "string", "minLength": 1},
+    "source_status": {"enum": ["accepted", "abstained"]},
+    "viewer_status": {"enum": ["supported", "best_effort", "unrecoverable"]},
+    "confidence": {"enum": ["high", "medium", "low"]},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "semantic_slots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "polarity", "refusal_permission", "command_strength", "speaker", "actor", "action", "target", "location", "tense_aspect", "direction", "intensity"],
+      "properties": {
+        "question": {"type": ["boolean", "null"]},
+        "polarity": {"type": ["string", "null"]},
+        "refusal_permission": {"type": ["string", "null"]},
+        "command_strength": {"type": ["string", "null"]},
+        "speaker": {"type": ["string", "null"]},
+        "actor": {"type": ["string", "null"]},
+        "action": {"type": ["string", "null"]},
+        "target": {"type": ["string", "null"]},
+        "location": {"type": ["string", "null"]},
+        "tense_aspect": {"type": ["string", "null"]},
+        "direction": {"type": ["string", "null"]},
+        "intensity": {"type": ["string", "null"]}
+      }
+    },
+    "inferred_slots": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "competing_interpretations": {"type": "array", "items": {"type": "string"}},
+    "risk_codes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "reason": {"type": "string", "minLength": 1},
+    "source_srt_text": {"type": "string", "minLength": 1},
+    "human_reviewed": {"const": false},
+    "human_final_allowed": {"const": false},
+    "final_promotion_allowed": {"const": false}
+  }
+}

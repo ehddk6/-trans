@@ -12,12 +12,15 @@ from .semantic_translation import validate_translation_decisions
 from .forensic_model import validate_forensic_records
 from .mqm import validate_mqm_csv
 from .evidence_artifacts import validate_alignment_evidence, validate_backtranslation_check, validate_speaker_state
+from .evaluation import validate_evaluation_summary
+from .run_manifest import create_run_manifest
+from .timeline import timeline_is_usable
 from .srt import parse_srt
 from .validation import validate_pair, write_validation_report
 
 
-STAGES = ("structure-validated", "text-crosschecked", "audio-asr-crosschecked", "audio-human-verified", "evaluation-validated", "final")
-ARTIFACT_KINDS = ("source-faithful-ko", "viewer-natural-ko", "change-log", "evidence-ledger", "uncertainty-map", "asr-scene-verdicts", "scene-map", "regression-check", "qa-report", "semantic-frames", "hypothesis-ledger", "speaker-state", "alignment-evidence", "mqm-errors", "backtranslation-check", "evaluation-summary", "blind-review-pack")
+STAGES = ("structure-validated", "text-crosschecked", "audio-asr-crosschecked", "closed-world-validated", "audio-human-verified", "evaluation-validated", "final")
+ARTIFACT_KINDS = ("source-faithful-ko", "viewer-natural-ko", "change-log", "evidence-ledger", "uncertainty-map", "asr-scene-verdicts", "scene-map", "regression-check", "qa-report", "semantic-frames", "hypothesis-ledger", "speaker-state", "alignment-evidence", "mqm-errors", "backtranslation-check", "evaluation-summary", "blind-review-pack", "release-gate", "run-manifest")
 
 
 def next_version(output_dir: Path, title: str, stage: str) -> int:
@@ -38,9 +41,11 @@ def _copy_new(source: Path, destination: Path) -> None:
     shutil.copy2(source, destination)
 
 
-def package_title_outputs(title: str, reference_path: Path, source_path: Path, viewer_path: Path, output_dir: Path, *, stage: str = "text-crosschecked", version: int | None = None, japanese_path: Path | None = None, previous_path: Path | None = None, photos_path: Path | None = None, scenes_path: Path | None = None, asr_path: Path | None = None, translation_decisions_path: Path | None = None, semantic_frames_path: Path | None = None, hypothesis_ledger_path: Path | None = None, speaker_state_path: Path | None = None, alignment_evidence_path: Path | None = None, mqm_errors_path: Path | None = None, backtranslation_check_path: Path | None = None, evaluation_summary_path: Path | None = None, blind_review_pack_path: Path | None = None, project_root: Path | None = None, notes: list[str] | None = None, all_blocks_reviewed: bool = False, direct_human_listening: bool = False, evidence_complete: bool = False) -> dict[str, Any]:
+def package_title_outputs(title: str, reference_path: Path, source_path: Path, viewer_path: Path, output_dir: Path, *, stage: str = "text-crosschecked", version: int | None = None, japanese_path: Path | None = None, previous_path: Path | None = None, photos_path: Path | None = None, scenes_path: Path | None = None, asr_path: Path | None = None, translation_decisions_path: Path | None = None, semantic_frames_path: Path | None = None, hypothesis_ledger_path: Path | None = None, speaker_state_path: Path | None = None, alignment_evidence_path: Path | None = None, mqm_errors_path: Path | None = None, backtranslation_check_path: Path | None = None, evaluation_summary_path: Path | None = None, blind_review_pack_path: Path | None = None, release_gate_path: Path | None = None, timeline_validation_path: Path | None = None, project_root: Path | None = None, notes: list[str] | None = None, all_blocks_reviewed: bool = False, direct_human_listening: bool = False, evidence_complete: bool = False) -> dict[str, Any]:
     if stage not in STAGES:
         raise ValueError(f"검증 단계가 잘못되었습니다: {stage}")
+    if stage == "closed-world-validated":
+        raise RuntimeError("closed-world-validated는 사람 검증 패키지와 분리됩니다. run-closed-world 명령을 사용하세요.")
     reference_blocks, _, _ = parse_srt(reference_path)
     validation = validate_pair(reference_path, source_path, viewer_path, project_root=project_root)
     if validation.get("status") == "fail":
@@ -49,14 +54,30 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
         raise RuntimeError("text-crosschecked에는 일본어 기준본 경로가 필요합니다.")
     if stage in {"audio-asr-crosschecked", "audio-human-verified", "evaluation-validated", "final"} and (not asr_path or not asr_path.exists()):
         raise RuntimeError(f"{stage}에는 ASR 결과 경로가 필요합니다.")
+    if stage in {"audio-asr-crosschecked", "audio-human-verified", "evaluation-validated", "final"}:
+        if not timeline_validation_path or not timeline_validation_path.exists():
+            raise RuntimeError(f"{stage}에는 통과한 timeline-validation 보고서가 필요합니다.")
+        timeline = json.loads(timeline_validation_path.read_text(encoding="utf-8"))
+        if not timeline_is_usable(timeline):
+            raise RuntimeError("timeline-validation이 클립·승격을 허용하지 않습니다.")
     if asr_path and asr_path.exists():
         read_asr_candidates(asr_path)
     if stage == "audio-human-verified" and not direct_human_listening:
         raise RuntimeError("audio-human-verified에는 직접 원음 청취 확인이 필요합니다.")
-    if stage in {"evaluation-validated", "final"} and not (evaluation_summary_path and evaluation_summary_path.exists() and (blind_review_pack_path or (project_root and (project_root / "evaluation" / "gold" / "manifest.json").exists()))):
-        raise RuntimeError(f"{stage}에는 gold 또는 blind-review 근거와 evaluation-summary가 필요합니다.")
+    if stage in {"evaluation-validated", "final"}:
+        if not (evaluation_summary_path and evaluation_summary_path.exists() and blind_review_pack_path and blind_review_pack_path.exists()):
+            raise RuntimeError(f"{stage}에는 완료된 blind-review-pack과 evaluation-summary가 필요합니다.")
+        evaluation_report = validate_evaluation_summary(evaluation_summary_path)
+        if evaluation_report["status"] != "pass":
+            raise RuntimeError("사람 검수가 완료되지 않은 evaluation-summary로는 평가 검증 상태에 올릴 수 없습니다.")
     if stage == "final" and not (all_blocks_reviewed and direct_human_listening and evidence_complete):
         raise RuntimeError("final에는 전체 블록 검수, 직접 청취 확인, 증거·QA 완료 확인이 모두 필요합니다.")
+    if stage == "final":
+        if not release_gate_path or not release_gate_path.exists():
+            raise RuntimeError("final에는 통과한 release-gate 보고서가 필요합니다.")
+        release_gate = json.loads(release_gate_path.read_text(encoding="utf-8"))
+        if release_gate.get("status") != "pass" or release_gate.get("release_allowed") is not True:
+            raise RuntimeError("release-gate가 통과하지 않아 final 패키지를 만들 수 없습니다.")
     if stage == "final" and not translation_decisions_path:
         raise RuntimeError("final에는 의미 번역 결정 JSONL이 필요합니다.")
     if translation_decisions_path:
@@ -102,6 +123,7 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
         "scene_map": output_dir / f"{prefix}scene-map.{stage}-v{version}.json",
         "regression": output_dir / f"{prefix}regression-check.{stage}-v{version}.json",
         "qa": output_dir / f"{prefix}qa-report.{stage}-v{version}.md",
+        "run_manifest": output_dir / f"{prefix}run-manifest.{stage}-v{version}.json",
     }
     optional_artifacts = {
         "semantic_frames": semantic_frames_path,
@@ -112,9 +134,11 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
         "backtranslation_check": backtranslation_check_path,
         "evaluation_summary": evaluation_summary_path,
         "blind_review_pack": blind_review_pack_path,
+        "release_gate": release_gate_path,
+        "timeline_validation": timeline_validation_path,
     }
-    suffixes = {"semantic_frames": ".jsonl", "hypothesis_ledger": ".jsonl", "speaker_state": ".json", "alignment_evidence": ".csv", "mqm_errors": ".csv", "backtranslation_check": ".csv", "evaluation_summary": ".json", "blind_review_pack": ".zip"}
-    labels = {"semantic_frames": "semantic-frames", "hypothesis_ledger": "hypothesis-ledger", "speaker_state": "speaker-state", "alignment_evidence": "alignment-evidence", "mqm_errors": "mqm-errors", "backtranslation_check": "backtranslation-check", "evaluation_summary": "evaluation-summary", "blind_review_pack": "blind-review-pack"}
+    suffixes = {"semantic_frames": ".jsonl", "hypothesis_ledger": ".jsonl", "speaker_state": ".json", "alignment_evidence": ".csv", "mqm_errors": ".csv", "backtranslation_check": ".csv", "evaluation_summary": ".json", "blind_review_pack": ".zip", "release_gate": ".json", "timeline_validation": ".json"}
+    labels = {"semantic_frames": "semantic-frames", "hypothesis_ledger": "hypothesis-ledger", "speaker_state": "speaker-state", "alignment_evidence": "alignment-evidence", "mqm_errors": "mqm-errors", "backtranslation_check": "backtranslation-check", "evaluation_summary": "evaluation-summary", "blind_review_pack": "blind-review-pack", "release_gate": "release-gate", "timeline_validation": "timeline-validation"}
     for key, input_path in optional_artifacts.items():
         if input_path and input_path.exists():
             paths[key] = output_dir / f"{prefix}{labels[key]}.{stage}-v{version}{suffixes[key]}"
@@ -140,4 +164,9 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
     validation_path = paths["regression"]
     write_validation_report(validation_path, validation)
     write_qa_markdown(paths["qa"], validation, title=title, stage=stage, status=stage, notes=notes or ["의미 판정·직접 청취·전체 블록 검수 여부는 코드가 자동 확정하지 않습니다.", "필요한 증거가 없으면 final 상태로 올리지 않습니다."])
+    manifest_inputs = [reference_path, source_path, viewer_path]
+    if translation_decisions_path and translation_decisions_path.exists():
+        manifest_inputs.append(translation_decisions_path)
+    manifest_artifacts = [path for key, path in paths.items() if key != "run_manifest" and path.exists()]
+    create_run_manifest(project_root or reference_path.parent, paths["run_manifest"], title=title, stage=stage, inputs=manifest_inputs, artifacts=manifest_artifacts)
     return {"status": "packaged", "title": title, "stage": stage, "version": version, "output_dir": str(output_dir), "files": {key: str(value) for key, value in paths.items()}, "validation": validation}

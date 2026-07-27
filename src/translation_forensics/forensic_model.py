@@ -11,6 +11,8 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
+from .identity import stable_id
+
 
 FRAME_SLOTS = (
     "speaker", "addressee", "speech_act", "polarity", "interrogative",
@@ -31,11 +33,13 @@ CRITICAL_SLOTS = {
 }
 
 
-def empty_semantic_frame(block_number: int) -> dict[str, Any]:
+def empty_semantic_frame(block_number: int, *, title_id: str | None = None) -> dict[str, Any]:
     """Return an explicitly incomplete frame; it is not a semantic decision."""
     frame: dict[str, Any] = {"block_number": block_number}
     frame.update({slot: {"value": None, "state": "null", "evidence_refs": []} for slot in FRAME_SLOTS})
     frame.update({"confirmed_slots": [], "uncertain_slots": [], "unsupported_slots": [], "review_status": "unreviewed"})
+    if title_id:
+        frame.update({"schema_name": "translation-forensics/semantic-frame", "schema_version": "2", "title_id": title_id, "block_id": stable_id("block", title_id, block_number), "semantic_frame_id": stable_id("semantic-frame", title_id, block_number)})
     return frame
 
 
@@ -160,15 +164,18 @@ def initialize_forensic_records(queue_path: Path, frame_path: Path, hypothesis_p
     """
     queue = read_jsonl(queue_path)
     numbers: list[int] = []
+    titles: dict[int, str] = {}
     for row in queue:
         try:
             number = int(row["block_number"])
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError("translation queue의 block_number가 잘못되었습니다.") from exc
         numbers.append(number)
+        if row.get("title_id"):
+            titles[number] = str(row["title_id"])
     if len(numbers) != len(set(numbers)):
         raise ValueError("translation queue의 block_number가 중복됩니다.")
-    write_jsonl(frame_path, (empty_semantic_frame(number) for number in numbers))
+    write_jsonl(frame_path, (empty_semantic_frame(number, title_id=titles.get(number)) for number in numbers))
     write_jsonl(hypothesis_path, [])
     return {
         "status": "forensic-record-template",

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Autonomous subtitle critique response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["reviews"],
+  "properties": {
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title_id", "block_number", "verdict", "critical_slot_conflicts", "unsupported_additions", "repair_instructions", "reason"],
+        "properties": {
+          "title_id": {"type": "string", "minLength": 1},
+          "block_number": {"type": "integer", "minimum": 1},
+          "verdict": {"type": "string", "enum": ["accept", "repair", "quarantine"]},
+          "critical_slot_conflicts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "unsupported_additions": {"type": "array", "items": {"type": "string"}},
+          "repair_instructions": {"type": "string"},
+          "reason": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

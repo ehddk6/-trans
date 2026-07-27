@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inferred audio recovery response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["results"],
+  "properties": {
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "block_number", "decision", "source_faithful_korean", "viewer_natural_korean", "confidence", "basis", "reason"],
+        "properties": {
+          "title": {"type": "string", "minLength": 1},
+          "block_number": {"type": "integer", "minimum": 1},
+          "decision": {"type": "string", "enum": ["infer-replace", "infer-hold"]},
+          "source_faithful_korean": {"type": "string"},
+          "viewer_natural_korean": {"type": "string"},
+          "confidence": {"type": "string", "enum": ["medium", "low"]},
+          "basis": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["japanese_srt", "neighbor_context", "asr_same_family"]}
+          },
+          "reason": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

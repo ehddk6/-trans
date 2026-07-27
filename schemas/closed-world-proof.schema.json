@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/closed-world-proof/v1",
+  "title": "Closed-world proof",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "status",
+    "stage",
+    "human_reference_equality",
+    "100_percent_equal",
+    "guarantees",
+    "not_guaranteed",
+    "final_promotion_allowed"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/closed-world-proof"},
+    "schema_version": {"const": "1"},
+    "status": {"enum": ["pass", "fail"]},
+    "stage": {"const": "closed-world-validated"},
+    "human_reference_equality": {"enum": ["unidentifiable", "measured-not-proven"]},
+    "100_percent_equal": {"const": false},
+    "guarantees": {"type": "object"},
+    "not_guaranteed": {"type": "array", "items": {"type": "string"}},
+    "validation": {"type": "object"},
+    "human_reference_comparison": {"type": ["object", "null"]},
+    "network_model_download_permitted": {"const": true},
+    "final_promotion_allowed": {"const": false}
+  },
+  "additionalProperties": false
+}

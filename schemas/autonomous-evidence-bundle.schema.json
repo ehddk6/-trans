@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/autonomous-evidence-bundle/v1",
+  "title": "Autonomous evidence bundle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_name", "schema_version", "title_id", "block_number", "timecode", "japanese", "local_asr", "cloud_asr", "previous_korean_candidate", "local_context", "scene_id", "timeline_status", "timeline_compatible", "risk_codes", "untrusted_input"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/autonomous-evidence-bundle"},
+    "schema_version": {"const": "1"},
+    "title_id": {"type": "string", "minLength": 1},
+    "block_number": {"type": "integer", "minimum": 1},
+    "timecode": {"type": "string", "minLength": 1},
+    "japanese": {"type": "object"},
+    "local_asr": {"type": "array", "items": {"type": "object"}},
+    "cloud_asr": {"type": "array", "items": {"type": "object"}},
+    "previous_korean_candidate": {"type": ["object", "null"]},
+    "local_context": {"type": "array", "items": {"type": "object"}},
+    "scene_id": {"type": ["string", "null"]},
+    "timeline_status": {"type": "string", "minLength": 1},
+    "timeline_compatible": {"type": "boolean"},
+    "risk_codes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "untrusted_input": {"const": true}
+  }
+}

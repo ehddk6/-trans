@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/closed-world-observations/v1",
+  "title": "Closed-world observations",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "block_number",
+    "timecode",
+    "source_japanese",
+    "candidate_translations",
+    "asr",
+    "human_evidence_present"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/closed-world-observations"},
+    "schema_version": {"const": "1"},
+    "block_number": {"type": "integer", "minimum": 1},
+    "timecode": {"type": "string"},
+    "source_japanese": {"type": "string"},
+    "candidate_translations": {"type": "array", "items": {"type": "object"}},
+    "asr": {"type": "object"},
+    "human_evidence_present": {"const": false}
+  },
+  "additionalProperties": false
+}

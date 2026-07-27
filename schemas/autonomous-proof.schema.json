@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/autonomous-proof/v1",
+  "title": "Autonomous proof v1",
+  "type": "object",
+  "required": ["schema_name", "schema_version", "title_id", "release_kind", "structure_preserved", "viewer_block_coverage", "source_decision_coverage", "source_acceptance_rate", "source_abstention_rate", "critical_conflicts_in_accepted", "cache_replay_byte_deterministic", "live_model_byte_deterministic", "human_reference_equality", "100_percent_equal", "human_final_allowed", "final_promotion_allowed"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/autonomous-proof"},
+    "schema_version": {"const": "1"},
+    "title_id": {"type": "string", "minLength": 1},
+    "release_kind": {"const": "autonomous-release"},
+    "structure_preserved": {"type": "boolean"},
+    "viewer_block_coverage": {"type": "number", "minimum": 0, "maximum": 1},
+    "source_decision_coverage": {"type": "number", "minimum": 0, "maximum": 1},
+    "source_acceptance_rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "source_abstention_rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "critical_conflicts_in_accepted": {"type": "integer", "minimum": 0},
+    "cache_replay_byte_deterministic": {"const": true},
+    "live_model_byte_deterministic": {"const": false},
+    "human_reference_equality": {"const": "unidentifiable"},
+    "100_percent_equal": {"const": false},
+    "human_final_allowed": {"const": false},
+    "final_promotion_allowed": {"const": false}
+  }
+}

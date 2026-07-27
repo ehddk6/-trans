@@ -46,7 +46,7 @@ def prepare_audio(project_root: Path, queue: Path, audio: Path, out_dir: Path, *
     return result
 
 
-def run_asr(project_root: Path, scenes: Path, out_csv: Path, *, model: str = "large-v3", force_cpu: bool = False, prompt: Path | None = None, threshold: float = 0.82, max_scenes: int = 0, dry_run: bool = False) -> dict[str, Any]:
+def run_asr(project_root: Path, scenes: Path, out_csv: Path, *, model: str = "large-v3", force_cpu: bool = False, prompt: Path | None = None, threshold: float = 0.82, max_scenes: int = 0, dry_run: bool = False, offline: bool = False) -> dict[str, Any]:
     scenes = scenes.expanduser().resolve()
     out_csv = out_csv.expanduser().resolve()
     if prompt:
@@ -60,12 +60,15 @@ def run_asr(project_root: Path, scenes: Path, out_csv: Path, *, model: str = "la
         command.extend(["--prompt", str(prompt)])
     if max_scenes:
         command.extend(["--max-scenes", str(max_scenes)])
-    result: dict[str, Any] = {"command": command, "device": device, "compute_type": compute_type, "status": "dry-run" if dry_run else "ready"}
+    result: dict[str, Any] = {"command": command, "device": device, "compute_type": compute_type, "offline": offline, "status": "dry-run" if dry_run else "ready"}
     if dry_run:
         return result
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
+    if offline:
+        env["HF_HUB_OFFLINE"] = "1"
+        env["TRANSFORMERS_OFFLINE"] = "1"
     completed = subprocess.run(command, cwd=str(script.parent), capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, check=False)
     result.update({"returncode": completed.returncode, "stdout": completed.stdout[-4000:], "stderr": completed.stderr[-4000:], "status": "completed" if completed.returncode == 0 else "failed"})
     return result

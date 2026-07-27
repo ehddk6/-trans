@@ -1,18 +1,16 @@
-__pycache__/
+﻿__pycache__/
 *.py[cod]
 .pytest_cache/
 *.egg-info/
 .venv/
 
-# 작품 원본·중간 산출물은 저장소에 넣지 않는다.
-workspaces/*/inputs/*
-workspaces/*/intermediate/*
-workspaces/*/audio/*
-workspaces/*/final/*
+# 모든 생성 산출물 (workspaces 내 전부 제외)
+workspaces/
 !workspaces/.gitkeep
 
-# 로컬 검사 임시물
-.source-inspection/
+# AI 추론 원본 데이터
+retranslation-runs/
+
 *.work_audio.zip
 
 # Locally downloaded machine-translation runtimes and model caches.

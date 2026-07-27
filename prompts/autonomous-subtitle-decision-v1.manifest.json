@@ -1,0 +1,24 @@
+{
+  "schema_name": "translation-forensics/prompt-manifest",
+  "schema_version": "2",
+  "contract_type": "autonomous-subtitle-decision",
+  "prompt_id": "autonomous-subtitle-decision",
+  "prompt_version": "1",
+  "prompt_file": "autonomous-subtitle-decision-v1.md",
+  "prompt_sha256": "95bdd3fd30cc3a1c88f7c4aa25977186752e531bd996ed54bbd0f020e96cd6a2",
+  "critic_prompt_file": "autonomous-subtitle-critic-v1.md",
+  "critic_prompt_sha256": "0e2503d0fc447f3a554298cde3dfc418487320664e2bdaf4b8189849f5afd072",
+  "decision_schema_file": "../schemas/autonomous-decision-response.schema.json",
+  "decision_schema_sha256": "36ab0b1c93aae57fbf159a432f007d5572e8a3e07c83b0829992acaa95ea0563",
+  "critique_schema_file": "../schemas/autonomous-critique-response.schema.json",
+  "critique_schema_sha256": "41fdb37bf07952174e31edb5b7d5b0c45076a11dca8d72b5a614d3fa2c442d66",
+  "translation_model": "gpt-5.6-terra",
+  "critic_model": "gpt-5.6-sol",
+  "scope": "autonomous-release candidate generation only; no human-final promotion",
+  "required_output_fields": [
+    "title_id", "block_number", "source_faithful_korean", "viewer_natural_korean",
+    "source_status", "viewer_status", "confidence", "evidence_refs", "semantic_slots",
+    "inferred_slots", "competing_interpretations", "risk_codes", "reason"
+  ],
+  "test_cases_file": "autonomous-subtitle-decision-v1.cases.jsonl"
+}

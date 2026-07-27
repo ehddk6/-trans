@@ -1,0 +1,42 @@
+{
+  "schema_name": "translation-forensics/autonomous-regression-suite",
+  "schema_version": "1",
+  "cases": [
+    {
+      "case_id": "ipx-998-831-recovery",
+      "title_id": "IPX-998",
+      "blocks": [831],
+      "requirements": ["source-accepted", "viewer-recovered", "critic-reviewed-if-risky"]
+    },
+    {
+      "case_id": "juq-778-978-context-conflict",
+      "title_id": "JUQ-778",
+      "blocks": [978],
+      "requirements": ["source-abstained", "critic-reviewed"]
+    },
+    {
+      "case_id": "mdon-065-254-recovery",
+      "title_id": "MDON-065",
+      "blocks": [254],
+      "requirements": ["source-accepted", "viewer-recovered", "critic-reviewed-if-risky"]
+    },
+    {
+      "case_id": "ssis-642-161-173-hallucination-guard",
+      "title_id": "SSIS-642",
+      "blocks": [161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173],
+      "requirements": ["critic-reviewed", "no-accepted-critical-conflict"]
+    },
+    {
+      "case_id": "ssis-908-85-polarity-conflict",
+      "title_id": "SSIS-908",
+      "blocks": [85],
+      "requirements": ["source-abstained", "critic-reviewed"]
+    },
+    {
+      "case_id": "ssis-908-96-100-dialogue-recovery",
+      "title_id": "SSIS-908",
+      "blocks": [96, 97, 98, 99, 100],
+      "requirements": ["viewer-recovered", "critic-reviewed-if-risky"]
+    }
+  ]
+}
