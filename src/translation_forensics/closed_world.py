@@ -113,23 +113,64 @@ def _korean_similarity(left: str, right: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
 
 
-def _candidate_family(path: Path, *, previous_path: Path | None) -> str:
+def _candidate_provenance(path: Path, content_sha256: str) -> tuple[dict[str, Any] | None, Path | None]:
+    sidecars = [
+        path.with_suffix(path.suffix + ".provenance.json"),
+        path.with_suffix(".provenance.json"),
+        path.parent / "candidate-provenance.json",
+    ]
+    for sidecar in sidecars:
+        if not sidecar.exists():
+            continue
+        try:
+            payload = json.loads(sidecar.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        candidates = payload.get("candidates", []) if isinstance(payload, dict) and isinstance(payload.get("candidates"), list) else [payload]
+        for record in candidates:
+            if not isinstance(record, dict) or str(record.get("sha256") or "") != content_sha256:
+                continue
+            raw_path = str(record.get("path") or "")
+            if raw_path:
+                candidate_path = Path(raw_path)
+                if candidate_path.name != path.name:
+                    try:
+                        if candidate_path.expanduser().resolve() != path.resolve():
+                            continue
+                    except OSError:
+                        continue
+            return dict(record), sidecar.resolve()
+    return None, None
+
+
+def _candidate_family(
+    path: Path,
+    *,
+    previous_path: Path | None,
+    provenance: dict[str, Any] | None = None,
+) -> str:
     if previous_path and path.resolve() == previous_path.resolve():
         return "previous-korean"
-    name = path.stem.lower()
-    if "ko-aligned-draft" in name or "previous" in name:
-        return "previous-korean"
-    for suffix in (
-        ".source-faithful",
-        ".viewer-natural",
-        ".source-faithful-ko",
-        ".viewer-natural-ko",
-        "-source-faithful",
-        "-viewer-natural",
-    ):
-        name = name.replace(suffix, "")
-    name = re.sub(r"\.(?:srt|preview)$", "", name)
-    return re.sub(r"[^a-z0-9._-]+", "-", name).strip("-") or "local-candidate"
+    if provenance:
+        explicit = str(provenance.get("source_family") or "").strip()
+        if explicit:
+            return f"provenance:{explicit}"
+        basis = {
+            "model": provenance.get("model"),
+            "run_id": provenance.get("run_id"),
+            "parent_sha256": provenance.get("parent_sha256"),
+            "prompt_sha256": provenance.get("prompt_sha256"),
+        }
+        if any(value not in {None, ""} for value in basis.values()):
+            digest = sha256_file_bytes(_canonical_json(basis).encode("utf-8"))
+            return f"provenance-derived:{digest[:24]}"
+    return "unprovenanced-korean-candidates"
+
+
+def sha256_file_bytes(value: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha256(value).hexdigest()
 
 
 def _candidate_role(path: Path) -> str:
@@ -357,25 +398,34 @@ def _candidate_inventory(
             continue
         seen_paths.add(path)
         blocks, encoding, newline = parse_srt(path)
-        family = _candidate_family(path, previous_path=previous_path)
+        content_sha256 = sha256_file(path)
+        provenance, provenance_path = _candidate_provenance(path, content_sha256)
+        family = _candidate_family(path, previous_path=previous_path, provenance=provenance)
         role = _candidate_role(path)
         aligned = _aligned_text_map(reference, blocks)
         inventory.append({
             "path": str(path),
-            "sha256": sha256_file(path),
+            "sha256": content_sha256,
             "family": family,
             "role": role,
             "encoding": encoding,
             "newline": newline,
             "blocks": len(blocks),
+            "provenance_status": "verified" if provenance else "missing-or-invalid",
+            "provenance_path": str(provenance_path) if provenance_path else None,
+            "model": provenance.get("model") if provenance else None,
+            "run_id": provenance.get("run_id") if provenance else None,
+            "parent_sha256": provenance.get("parent_sha256") if provenance else None,
+            "prompt_sha256": provenance.get("prompt_sha256") if provenance else None,
         })
-        for number, (text, confidence) in aligned.items():
+        for number, (candidate_text, confidence) in aligned.items():
             by_block[number].append({
                 "path": str(path),
                 "family": family,
                 "role": role,
-                "text": text,
+                "text": candidate_text,
                 "alignment_confidence": confidence,
+                "provenance_status": "verified" if provenance else "missing-or-invalid",
             })
     return inventory, dict(by_block)
 
@@ -408,11 +458,14 @@ def _decide_block(
     for family, rows in valid_by_family.items():
         ordered = sorted(rows, key=lambda row: (row["role"] != "source-faithful", row["role"] == "previous", row["path"]))
         representatives[family] = ordered[0]
-    generated_families = sorted(family for family in representatives if family != "previous-korean")
+    generated_families = sorted(
+        family for family in representatives
+        if family not in {"previous-korean", "unprovenanced-korean-candidates"}
+    )
     if not generated_families:
         reasons.append("no-generated-korean-candidate")
-    if len(representatives) < 2:
-        reasons.append("insufficient-candidate-families")
+    if len(generated_families) < 2:
+        reasons.append("insufficient-generated-candidate-families")
 
     representative_rows = [representatives[family] for family in sorted(representatives)]
     pair_similarities: list[float] = []
@@ -846,6 +899,11 @@ def run_closed_world(
         manifest_inputs.append(("timeline-validation", timeline_validation_path))
     for path in sorted({value.resolve() for value in candidate_paths if value.exists()}, key=lambda value: str(value).lower()):
         manifest_inputs.append(("korean-candidate", path))
+    for provenance_path in sorted(
+        {Path(str(item["provenance_path"])).resolve() for item in inventory if item.get("provenance_path")},
+        key=lambda value: str(value).lower(),
+    ):
+        manifest_inputs.append(("candidate-provenance", provenance_path))
     manifest_artifacts = [
         paths["observations"], paths["semantic_lattice"], paths["decisions"], paths["source_preview"],
         paths["viewer_preview"], paths["unresolved"], paths["machine_timeline"],

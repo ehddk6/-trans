@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from .alignment import align_by_overlap
 from .asr_evidence import classify_scene
@@ -28,67 +28,193 @@ def _by_number(blocks: list[SubtitleBlock]) -> dict[int, SubtitleBlock]:
     return {block.number: block for block in blocks}
 
 
+def _decision_map(decisions: list[dict[str, Any]] | None) -> dict[int, dict[str, Any]]:
+    result: dict[int, dict[str, Any]] = {}
+    for decision in decisions or []:
+        try:
+            result[int(decision.get("block_number"))] = decision
+        except (TypeError, ValueError):
+            continue
+    return result
+
+
 def _aligned_texts(source: list[SubtitleBlock], candidate: list[SubtitleBlock]) -> dict[int, str]:
     by_number = _by_number(candidate)
-    return {alignment.source_number: by_number[alignment.candidate_number].text for alignment in align_by_overlap(source, candidate) if alignment.candidate_number in by_number}
+    return {
+        alignment.source_number: by_number[alignment.candidate_number].text
+        for alignment in align_by_overlap(source, candidate)
+        if alignment.candidate_number in by_number
+    }
 
 
-def build_change_log(reference: list[SubtitleBlock], previous: list[SubtitleBlock] | None, source: list[SubtitleBlock], viewer: list[SubtitleBlock], *, status: str, japanese: list[SubtitleBlock] | None = None) -> list[dict[str, object]]:
-    previous_map = _by_number(previous or [])
+def _list_text(value: Any) -> str:
+    if isinstance(value, list):
+        return "; ".join(str(item) for item in value if str(item).strip())
+    return str(value or "").strip()
+
+
+def build_change_log(
+    reference: list[SubtitleBlock],
+    previous: list[SubtitleBlock] | None,
+    source: list[SubtitleBlock],
+    viewer: list[SubtitleBlock],
+    *,
+    status: str,
+    japanese: list[SubtitleBlock] | None = None,
+    decisions: list[dict[str, Any]] | None = None,
+) -> list[dict[str, object]]:
     source_map = _by_number(source)
     viewer_map = _by_number(viewer)
     japanese_map = _by_number(japanese or [])
     previous_aligned = _aligned_texts(reference, previous or [])
+    decisions_by_number = _decision_map(decisions)
     rows = []
     for block in reference:
         source_text = source_map.get(block.number, block).text
         viewer_text = viewer_map.get(block.number, block).text
         previous_text = previous_aligned.get(block.number, "")
+        decision = decisions_by_number.get(block.number, {})
         change_type = "unchanged" if source_text == previous_text and viewer_text == source_text else "reconstructed_or_naturalized"
+        issue_parts = [
+            _list_text(decision.get("risk_codes")),
+            _list_text(decision.get("uncertain_slots")),
+            _list_text(decision.get("abstention_reasons")),
+        ]
+        main_issue = "; ".join(part for part in issue_parts if part)
+        evidence_summary = _list_text(decision.get("evidence_refs"))
+        confidence = str(decision.get("confidence") or "unverified")
+        review_note = str(decision.get("review_note") or decision.get("reason") or f"verification_status={status}")
         rows.append({
-            "block_number": block.number, "start_time": block.start, "end_time": block.end,
-            "source_japanese": japanese_map.get(block.number).text if block.number in japanese_map else "", "previous_korean": previous_text,
-            "source_faithful_korean": source_text, "viewer_natural_korean": viewer_text,
-            "change_type": change_type, "main_issue": "", "evidence_summary": "",
-            "confidence": "low", "review_note": f"verification_status={status}",
+            "block_number": block.number,
+            "start_time": block.start,
+            "end_time": block.end,
+            "source_japanese": japanese_map.get(block.number).text if block.number in japanese_map else str(decision.get("source_japanese") or ""),
+            "previous_korean": previous_text,
+            "source_faithful_korean": source_text,
+            "viewer_natural_korean": viewer_text,
+            "change_type": change_type,
+            "main_issue": main_issue,
+            "evidence_summary": evidence_summary,
+            "confidence": confidence,
+            "review_note": review_note,
         })
     return rows
 
 
-def build_evidence_ledger(reference: list[SubtitleBlock], *, status: str, asr_rows: list[dict[str, str]] | None = None, japanese_available: bool = False, previous_available: bool = False, photos_available: bool = False, screen_available: bool = False) -> list[dict[str, object]]:
-    asr_by_scene: dict[str, list[dict[str, str]]] = {}
+def _scene_blocks(scenes_path: Path | None) -> dict[int, list[str]]:
+    result: dict[int, list[str]] = {}
+    if not scenes_path or not scenes_path.exists():
+        return result
+    for scene in scenes_from_csv(scenes_path):
+        scene_id = str(scene.get("scene_id", ""))
+        for raw in str(scene.get("block_numbers", "")).split(","):
+            if raw.strip().isdigit():
+                result.setdefault(int(raw), []).append(scene_id)
+    return result
+
+
+def _asr_by_scene(asr_rows: list[dict[str, str]] | None) -> dict[str, list[dict[str, str]]]:
+    result: dict[str, list[dict[str, str]]] = {}
     for row in asr_rows or []:
-        asr_by_scene.setdefault(row.get("scene_id", ""), []).append(row)
-    return [{
-        "block_number": block.number,
-        "timecode": f"{block.start} --> {block.end}",
-        "japanese_reference": "available" if japanese_available else "not_provided",
-        "alternative_japanese_asr": "available" if asr_rows else "not_provided",
-        "original_unbiased_asr": "not_mapped",
-        "dialogue_unbiased_asr": "not_mapped",
-        "original_no_vad_asr": "not_mapped",
-        "original_prompted_asr": "not_mapped",
-        "photos": "available_as_path_only" if photos_available else "not_provided",
-        "screen": "available_as_path_only" if screen_available else "not_provided",
-        "neighboring_context": "review_required",
-        "previous_korean": "available" if previous_available else "not_provided",
-        "error_memory": "not_auto_applied",
-        "verification_status": status,
-        "evidence_independence_note": "동일 Whisper 모델 패스는 독립 증거로 세지 않음",
-    } for block in reference]
+        result.setdefault(str(row.get("scene_id", "")), []).append(row)
+    return result
 
 
-def build_uncertainty_map(reference: list[SubtitleBlock], *, status: str) -> list[dict[str, object]]:
-    return [{
-        "block_number": block.number,
-        "uncertain_block": "yes",
-        "uncertain_slots": "meaning decision not supplied by code",
-        "possible_meaning_range": "not automatically inferred",
-        "adopted_broad_expression": "",
-        "additional_evidence_needed": "원음·문맥·일본어 검토",
-        "current_verification_status": status,
-        "impact": "미확정 세부사항을 창작으로 채우지 않음",
-    } for block in reference]
+def _profile_text(rows: list[dict[str, str]], profile: str) -> str:
+    values = [str(row.get("text") or "").strip() for row in rows if str(row.get("profile") or "") == profile and str(row.get("text") or "").strip()]
+    return " | ".join(dict.fromkeys(values)) if values else "not_mapped"
+
+
+def build_evidence_ledger(
+    reference: list[SubtitleBlock],
+    *,
+    status: str,
+    asr_rows: list[dict[str, str]] | None = None,
+    scenes_path: Path | None = None,
+    decisions: list[dict[str, Any]] | None = None,
+    japanese: list[SubtitleBlock] | None = None,
+    previous: list[SubtitleBlock] | None = None,
+    japanese_available: bool = False,
+    previous_available: bool = False,
+    photos_available: bool = False,
+    screen_available: bool = False,
+) -> list[dict[str, object]]:
+    scene_ids_by_block = _scene_blocks(scenes_path)
+    asr_by_scene = _asr_by_scene(asr_rows)
+    decisions_by_number = _decision_map(decisions)
+    japanese_map = _by_number(japanese or [])
+    previous_map = _aligned_texts(reference, previous or [])
+    result: list[dict[str, object]] = []
+    for index, block in enumerate(reference):
+        scene_ids = scene_ids_by_block.get(block.number, [])
+        block_asr = [row for scene_id in scene_ids for row in asr_by_scene.get(scene_id, [])]
+        decision = decisions_by_number.get(block.number, {})
+        neighbors = [
+            japanese_map[reference[neighbor].number].text
+            for neighbor in (index - 1, index + 1)
+            if 0 <= neighbor < len(reference) and reference[neighbor].number in japanese_map
+        ]
+        result.append({
+            "block_number": block.number,
+            "timecode": f"{block.start} --> {block.end}",
+            "japanese_reference": japanese_map.get(block.number).text if block.number in japanese_map else ("available" if japanese_available else "not_provided"),
+            "alternative_japanese_asr": " | ".join(dict.fromkeys(str(row.get("text") or "").strip() for row in block_asr if str(row.get("text") or "").strip())) or "not_mapped",
+            "original_unbiased_asr": _profile_text(block_asr, "original_unbiased"),
+            "dialogue_unbiased_asr": _profile_text(block_asr, "dialogue_unbiased"),
+            "original_no_vad_asr": _profile_text(block_asr, "original_no_vad"),
+            "original_prompted_asr": _profile_text(block_asr, "original_prompted"),
+            "photos": "available_as_path_only" if photos_available else "not_provided",
+            "screen": "available_as_path_only" if screen_available else "not_provided",
+            "neighboring_context": " | ".join(neighbors) or "not_mapped",
+            "previous_korean": previous_map.get(block.number, "available" if previous_available else "not_provided"),
+            "decision_status": str(decision.get("status") or decision.get("source_status") or "not_provided"),
+            "decision_evidence_refs": _list_text(decision.get("evidence_refs")),
+            "error_memory": "not_auto_applied",
+            "verification_status": status,
+            "evidence_independence_note": "동일 Whisper 모델 패스는 독립 증거로 세지 않음",
+        })
+    return result
+
+
+def build_uncertainty_map(
+    reference: list[SubtitleBlock],
+    *,
+    status: str,
+    decisions: list[dict[str, Any]] | None = None,
+) -> list[dict[str, object]]:
+    decisions_by_number = _decision_map(decisions)
+    rows: list[dict[str, object]] = []
+    for block in reference:
+        decision = decisions_by_number.get(block.number)
+        if decision is None:
+            rows.append({
+                "block_number": block.number,
+                "uncertain_block": "yes",
+                "uncertain_slots": "meaning decision not supplied by code",
+                "possible_meaning_range": "not automatically inferred",
+                "adopted_broad_expression": "",
+                "additional_evidence_needed": "원음·문맥·일본어 검토",
+                "current_verification_status": status,
+                "impact": "미확정 세부사항을 창작으로 채우지 않음",
+            })
+            continue
+        decision_status = str(decision.get("status") or decision.get("source_status") or "")
+        confidence = str(decision.get("confidence") or "")
+        uncertain_slots = _list_text(decision.get("uncertain_slots") or decision.get("inferred_slots"))
+        competing = _list_text(decision.get("competing_interpretations"))
+        risks = _list_text(decision.get("risk_codes") or decision.get("abstention_reasons"))
+        uncertain = decision_status in {"abstained", "untranslated", "hold"} or confidence == "low" or bool(uncertain_slots or competing or risks)
+        rows.append({
+            "block_number": block.number,
+            "uncertain_block": "yes" if uncertain else "no",
+            "uncertain_slots": uncertain_slots,
+            "possible_meaning_range": competing,
+            "adopted_broad_expression": str(decision.get("viewer_natural_korean") or decision.get("viewer_text") or ""),
+            "additional_evidence_needed": risks if uncertain else "",
+            "current_verification_status": decision_status or status,
+            "impact": str(decision.get("review_note") or decision.get("reason") or ("미확정 세부사항을 창작으로 채우지 않음" if uncertain else "")),
+        })
+    return rows
 
 
 def build_asr_verdicts(scenes_path: Path, asr_path: Path | None) -> list[dict[str, object]]:

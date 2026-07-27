@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -34,13 +35,31 @@ def _inputs(tmp_path: Path) -> dict[str, Path]:
     ]
     japanese = ["私は学校へ行きます。", "待ってるね。", "あなたは来ますか?"]
     source = ["나는 학교에 갑니다.", "기다릴게.", "당신은 와요?"]
-    viewer = ["난 학교에 가요.", "기다리고 있을게.", "당신 올 거야?"]
+    viewer = ["나는 학교에 갑니다.", "기다릴게.", "당신은 와요?"]
     previous = ["나는 학교에 갑니다.", "기다릴게.", "당신은 와요?"]
     structure = _write(tmp_path / "sample.structure.srt", _srt(list(zip(times, japanese))))
     ja = _write(tmp_path / "sample.ja.srt", _srt(list(zip(times, japanese))))
     source_path = _write(tmp_path / "model-a.source-faithful.srt", _srt(list(zip(times, source))))
     viewer_path = _write(tmp_path / "model-a.viewer-natural.srt", _srt(list(zip(times, viewer))))
     previous_path = _write(tmp_path / "sample.previous.srt", _srt(list(zip(times, previous))))
+
+    for cand_path, family_name in [(source_path, "model-a/run-1"), (viewer_path, "model-b/run-2")]:
+        sha = hashlib.sha256(cand_path.read_bytes()).hexdigest()
+        _write(
+            tmp_path / (cand_path.name + ".provenance.json"),
+            json.dumps({
+                "candidates": [{
+                    "path": cand_path.name,
+                    "sha256": sha,
+                    "source_family": family_name,
+                    "model": family_name.split("/")[0],
+                    "run_id": family_name.split("/")[1],
+                    "parent_sha256": "0" * 64,
+                    "prompt_sha256": "0" * 64,
+                }]
+            }) + "\n",
+        )
+
     context = {
         "scene_id": "S0001",
         "context_japanese": japanese[0],

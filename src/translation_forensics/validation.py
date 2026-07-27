@@ -4,7 +4,6 @@ import json
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable
 
 from .srt import JAPANESE_RE, SRTError, SubtitleBlock, compare_structure, parse_srt
 
@@ -73,7 +72,17 @@ def _normalized(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _block_structure_issues(blocks: list[SubtitleBlock]) -> list[ValidationIssue]:
+def _overlap_blocks(blocks: list[SubtitleBlock]) -> set[int]:
+    result: set[int] = set()
+    previous_end = -1.0
+    for block in blocks:
+        if block.start_seconds < previous_end:
+            result.add(block.number)
+        previous_end = max(previous_end, block.end_seconds)
+    return result
+
+
+def _block_structure_issues(blocks: list[SubtitleBlock], *, baseline_overlap_blocks: set[int]) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     numbers = [block.number for block in blocks]
     if len(numbers) != len(set(numbers)):
@@ -86,14 +95,17 @@ def _block_structure_issues(blocks: list[SubtitleBlock]) -> list[ValidationIssue
         if block.end_seconds < block.start_seconds:
             issues.append(_issue("reversed_time", "error", "종료 시각이 시작 시각보다 빠릅니다.", block.number))
         if block.start_seconds < previous_end:
-            issues.append(_issue("time_order", "error", "블록 시간 구간이 이전 블록과 역전·겹칩니다.", block.number))
+            if block.number in baseline_overlap_blocks:
+                issues.append(_issue("baseline_overlap", "warning", "구조 기준본에 이미 존재하는 시간 겹침입니다.", block.number))
+            else:
+                issues.append(_issue("time_order", "error", "구조 기준본에 없던 시간 겹침 또는 역전이 생겼습니다.", block.number))
         previous_end = max(previous_end, block.end_seconds)
     return issues
 
 
 def validate_srt_file(path: Path, *, reference: list[SubtitleBlock] | None = None, project_root: Path | None = None) -> ValidationReport:
     issues: list[ValidationIssue] = []
-    checked = ["SRT 파싱", "블록 번호·타임코드 구조", "UTF-8", "LF", "빈 자막", "일본어 잔존", "작업용 태그", "가독성", "연속 중복", "회귀 후보"]
+    checked = ["SRT 파싱", "블록 번호·타임코드 구조", "기준본 겹침 구분", "UTF-8", "LF", "빈 자막", "일본어 잔존", "작업용 태그", "가독성", "연속 중복", "회귀 후보"]
     unverified: list[str] = []
     config = load_config(project_root)
     try:
@@ -104,7 +116,8 @@ def validate_srt_file(path: Path, *, reference: list[SubtitleBlock] | None = Non
         issues.append(_issue("encoding", "error", f"UTF-8이 아닙니다: {encoding}"))
     if newline != "LF":
         issues.append(_issue("newline", "error", "LF 줄바꿈이 아닙니다."))
-    issues.extend(_block_structure_issues(blocks))
+    baseline_overlaps = _overlap_blocks(reference) if reference is not None else _overlap_blocks(blocks)
+    issues.extend(_block_structure_issues(blocks, baseline_overlap_blocks=baseline_overlaps))
     if reference is not None:
         diff = compare_structure(reference, blocks)
         if not diff["pass"]:
@@ -158,26 +171,37 @@ def validate_srt_file(path: Path, *, reference: list[SubtitleBlock] | None = Non
     return ValidationReport(str(path), status, issues, checked, unverified)
 
 
+def _safe_parse(path: Path) -> list[SubtitleBlock] | None:
+    try:
+        blocks, _, _ = parse_srt(path)
+        return blocks
+    except (OSError, SRTError):
+        return None
+
+
 def validate_pair(reference_path: Path, source_faithful: Path, viewer_natural: Path, *, project_root: Path | None = None) -> dict[str, object]:
     try:
         reference, _, _ = parse_srt(reference_path)
     except (OSError, SRTError) as exc:
-        return {"status": "fail", "reference_error": str(exc), "source_faithful": None, "viewer_natural": None}
+        return {"status": "fail", "reference_error": str(exc), "source_faithful": None, "viewer_natural": None, "structure_same": False}
     source_report = validate_srt_file(source_faithful, reference=reference, project_root=project_root)
     viewer_report = validate_srt_file(viewer_natural, reference=reference, project_root=project_root)
     status = "fail" if "fail" in {source_report.status, viewer_report.status} else "warning" if "warning" in {source_report.status, viewer_report.status} else "pass"
+    source_blocks = _safe_parse(source_faithful)
+    viewer_blocks = _safe_parse(viewer_natural)
+    structure_same = bool(
+        source_blocks is not None
+        and viewer_blocks is not None
+        and compare_structure(reference, source_blocks)["pass"]
+        and compare_structure(reference, viewer_blocks)["pass"]
+    )
     return {
         "status": status,
         "reference": str(reference_path),
         "source_faithful": source_report.as_dict(),
         "viewer_natural": viewer_report.as_dict(),
-        "structure_same": compare_structure(_safe_parse(reference_path), _safe_parse(source_faithful))["pass"] and compare_structure(_safe_parse(reference_path), _safe_parse(viewer_natural))["pass"],
+        "structure_same": structure_same,
     }
-
-
-def _safe_parse(path: Path) -> list[SubtitleBlock]:
-    blocks, _, _ = parse_srt(path)
-    return blocks
 
 
 def write_validation_report(path: Path, report: dict[str, object]) -> None:

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/candidate-provenance.schema.json",
+  "title": "Korean candidate provenance",
+  "type": "object",
+  "required": ["schema_name", "schema_version", "candidates"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/candidate-provenance"},
+    "schema_version": {"const": "1"},
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256", "source_family"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "source_family": {"type": "string", "minLength": 1},
+          "model": {"type": ["string", "null"]},
+          "run_id": {"type": ["string", "null"]},
+          "parent_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+          "prompt_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+          "derived_from": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
