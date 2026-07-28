@@ -27,6 +27,10 @@
     "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
     "uncertain_slots": {"type": "array", "items": {"type": "string"}},
     "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "consistency_refs": {"type": "array", "items": {"type": "string"}},
+    "consistency_conflicts": {"type": "array", "items": {"type": "string"}},
+    "preserved_meaning": {"type": "array", "items": {"type": "string"}},
+    "review_required_reasons": {"type": "array", "items": {"type": "string"}},
     "review_note": {"type": "string"}
   },
   "additionalProperties": true

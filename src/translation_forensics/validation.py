@@ -112,8 +112,8 @@ def validate_srt_file(path: Path, *, reference: list[SubtitleBlock] | None = Non
         blocks, encoding, newline = parse_srt(path)
     except (OSError, SRTError) as exc:
         return ValidationReport(str(path), "fail", [_issue("parse", "error", str(exc))], checked, unverified)
-    if encoding not in {"utf-8", "utf-8-sig"}:
-        issues.append(_issue("encoding", "error", f"UTF-8이 아닙니다: {encoding}"))
+    if encoding != "utf-8":
+        issues.append(_issue("encoding", "error", "UTF-8 무 BOM 형식이 아닙니다.", encoding=encoding))
     if newline != "LF":
         issues.append(_issue("newline", "error", "LF 줄바꿈이 아닙니다."))
     baseline_overlaps = _overlap_blocks(reference) if reference is not None else _overlap_blocks(blocks)

@@ -9,7 +9,8 @@ from typing import Any
 REQUIRED_OUTPUT_FIELDS = {
     "block_number", "source_faithful_korean", "viewer_natural_korean",
     "translation_method", "translation_model", "status", "confidence",
-    "evidence_refs", "uncertain_slots", "review_note",
+    "evidence_refs", "consistency_refs", "consistency_conflicts",
+    "preserved_meaning", "review_required_reasons", "uncertain_slots", "review_note",
 }
 
 AUTONOMOUS_REQUIRED_OUTPUT_FIELDS = {
@@ -87,6 +88,8 @@ def validate_prompt_contract(manifest_path: Path, *, root: Path | None = None) -
         required = {"normal", "missing-evidence", "conflicting-evidence", "missing-file"}
         if contract_type == "autonomous-subtitle-decision":
             required.update({"utf8-corruption", "prompt-injection"})
+        else:
+            required.update({"consistency-context", "ambiguous-subject"})
         if required - kinds:
             errors.append(f"필수 프롬프트 시험 유형 누락: {', '.join(sorted(required - kinds))}")
         for case in cases:

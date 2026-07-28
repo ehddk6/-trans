@@ -100,6 +100,27 @@ python -m translation_forensics.cli package --project-root . --title SAMPLE `
 
 패키징은 기존 결과를 덮어쓰지 않고 다음 `vN`을 사용한다. 자동 검사는 의미 판정을 대체하지 않으며, `final` 상태는 전체 블록 검수·필요한 증거·QA 통과를 사람이 확인한 뒤에만 사용한다.
 
+번역 결정을 채우기 전 또는 부분 검수 뒤에는, 전체 자막을 처음부터 다시 보지 않고 근거가 약하거나 미확정·가독성 위험이 있는 블록부터 확인할 수 있다.
+
+```powershell
+python -m translation_forensics.cli init-translation-decisions --project-root . --title SAMPLE
+python -m translation_forensics.cli build-uncertainty-review-queue --project-root . --title SAMPLE
+```
+
+이 큐는 숨은 단일 점수가 아니라 `decision-status`, `uncertain-slots`, 기존 P1/P2 위험, 자동 QA 경고, 근거 참조 누락처럼 검토가 필요한 이유를 각 행에 표시한다. `apply-translations --strict`는 기본 translation queue와 결정의 `evidence_refs`를 대조하므로, 큐 없이 만든 근거 참조나 임의의 ID를 통과시키지 않는다.
+
+장편에서 확정된 말투·호칭·고유명사·전문 용어는 자동 치환 규칙이 아닌 사람 검수형 consistency ledger로 관리한다. confirmed 항목만 관련 블록의 translation queue에 선택적으로 들어가며, 서로 충돌하거나 미확정인 항목은 자동 사실이 아니라 검수 사유로 남는다.
+
+```powershell
+python -m translation_forensics.cli init-consistency-ledger --project-root . --title SAMPLE
+python -m translation_forensics.cli validate-consistency-ledger --input .\workspaces\SAMPLE\intermediate\SAMPLE.translation-consistency-v1.jsonl
+python -m translation_forensics.cli build-translation-queue --project-root . --title SAMPLE `
+  --consistency-ledger .\workspaces\SAMPLE\intermediate\SAMPLE.translation-consistency-v1.jsonl `
+  --terminology .\workspaces\SAMPLE\intermediate\SAMPLE.terminology-v1.jsonl
+```
+
+기존 승인 용어집은 별도 복사본을 만들지 않고 `--terminology` 어댑터로 같은 queue 문맥에 연결한다. 동일 용어를 consistency ledger에 다시 입력할 필요가 없다.
+
 ## 산출물과 검증 상태
 
 최종 폴더에는 원문 충실본, 감상용 자연본, change log, evidence ledger, uncertainty map, ASR 장면 판정, scene map, regression check, QA 보고서와 실제 검토가 완료된 경우의 의미 프레임·가설 원장·화자 상태·정렬 근거·MQM·역번역·평가 산출물을 새 버전으로 복사한다. 상태는 `structure-validated`, `text-crosschecked`, `audio-asr-crosschecked`, `audio-human-verified`, `evaluation-validated`, `final`을 사용한다. 다중 ASR만으로 `audio-human-verified`를 부여하지 않는다.
@@ -119,9 +140,16 @@ python -m translation_forensics.cli package --project-root . --title SAMPLE `
 
 ## 의미 번역 단계
 
-기존 한국어 자막을 시간 정렬한 `build-korean-draft`는 번역 완료가 아니다. 실제 한국어 번역은 `build-translation-queue`로 만든 블록별 결정 레코드를 `apply-translations --strict`로 적용해야 한다. 이 단계는 일본어 의미, 앞뒤 문맥, ASR, 기존 후보를 분리하고 `source-faithful`과 `viewer-natural`을 별도로 생성한다. 자세한 규격은 `docs/TRANSLATION_DECISIONS.md`를 참조한다.
+기존 한국어 자막을 시간 정렬한 `build-korean-draft`는 번역 완료가 아니다. 실제 한국어 번역은 `build-translation-queue`로 만든 블록별 결정 레코드를 `apply-translations --strict`로 적용해야 한다. 이 단계는 일본어 의미, 앞뒤 문맥, ASR, 기존 후보를 분리하고 `source-faithful`과 `viewer-natural`을 별도로 생성한다. strict 적용은 결정의 `evidence_refs`가 원본 translation queue에 선언된 근거인지도 확인한다. 자세한 규격은 `docs/TRANSLATION_DECISIONS.md`를 참조한다.
 
 한국어 의미 번역의 모델은 `gpt-5.6-terra` 하나로 고정된다. [config/translation-model.json](config/translation-model.json)의 선언과 의미 번역 코드가 같은 단일 허용값을 검사한다. 이 정책은 번역 큐·결정 JSONL·적용 보고서에 기록되는 의미 번역에만 적용하며, ASR·Subtitle Forensics·기존 외부 기계번역 초안에는 적용하지 않는다.
+
+합성 품질 회귀 제약은 다음처럼 검증할 수 있다. 이 검사는 실제 작품의 번역 품질 점수가 아니라, 말투·호칭·용어·생략·불확실성·가독성 회귀를 잡는 테스트 묶음이다.
+
+```powershell
+python -m translation_forensics.cli validate-quality-regressions `
+  --input .\tests\fixtures\translation-quality-regressions.json
+```
 
 반복 번역에는 [prompts/terra-semantic-translation-v1.md](prompts/terra-semantic-translation-v1.md)와 함께 제공하는 버전·해시·시험 사례 계약을 사용한다. 외부 모델 호출은 이 저장소가 수행하지 않으며, 템플릿 계약만 다음처럼 검사한다.
 

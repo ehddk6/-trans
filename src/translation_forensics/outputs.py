@@ -55,7 +55,7 @@ def _read_jsonl(path: Path | None) -> list[dict[str, Any]]:
     return rows
 
 
-def package_title_outputs(title: str, reference_path: Path, source_path: Path, viewer_path: Path, output_dir: Path, *, stage: str = "text-crosschecked", version: int | None = None, japanese_path: Path | None = None, previous_path: Path | None = None, photos_path: Path | None = None, scenes_path: Path | None = None, asr_path: Path | None = None, translation_decisions_path: Path | None = None, semantic_frames_path: Path | None = None, hypothesis_ledger_path: Path | None = None, speaker_state_path: Path | None = None, alignment_evidence_path: Path | None = None, mqm_errors_path: Path | None = None, backtranslation_check_path: Path | None = None, evaluation_summary_path: Path | None = None, blind_review_pack_path: Path | None = None, release_gate_path: Path | None = None, timeline_validation_path: Path | None = None, project_root: Path | None = None, notes: list[str] | None = None, all_blocks_reviewed: bool = False, direct_human_listening: bool = False, evidence_complete: bool = False) -> dict[str, Any]:
+def package_title_outputs(title: str, reference_path: Path, source_path: Path, viewer_path: Path, output_dir: Path, *, stage: str = "text-crosschecked", version: int | None = None, japanese_path: Path | None = None, previous_path: Path | None = None, photos_path: Path | None = None, scenes_path: Path | None = None, asr_path: Path | None = None, translation_decisions_path: Path | None = None, translation_queue_path: Path | None = None, semantic_frames_path: Path | None = None, hypothesis_ledger_path: Path | None = None, speaker_state_path: Path | None = None, alignment_evidence_path: Path | None = None, mqm_errors_path: Path | None = None, backtranslation_check_path: Path | None = None, evaluation_summary_path: Path | None = None, blind_review_pack_path: Path | None = None, release_gate_path: Path | None = None, timeline_validation_path: Path | None = None, project_root: Path | None = None, notes: list[str] | None = None, all_blocks_reviewed: bool = False, direct_human_listening: bool = False, evidence_complete: bool = False) -> dict[str, Any]:
     if stage not in STAGES:
         raise ValueError(f"검증 단계가 잘못되었습니다: {stage}")
     if stage == "closed-world-validated":
@@ -94,7 +94,9 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
     if stage == "final" and not translation_decisions_path:
         raise RuntimeError("final에는 의미 번역 결정 JSONL이 필요합니다.")
     if translation_decisions_path:
-        decision_report = validate_translation_decisions(reference_path, translation_decisions_path, strict=True)
+        if not translation_queue_path or not translation_queue_path.exists():
+            raise RuntimeError("번역 결정이 있는 패키징에는 evidence_refs를 대조할 translation queue가 필요합니다.")
+        decision_report = validate_translation_decisions(reference_path, translation_decisions_path, strict=True, translation_queue_path=translation_queue_path)
         if decision_report.get("status") != "pass":
             raise RuntimeError("의미 번역 결정 검증이 실패했습니다. apply-translations --strict 결과를 먼저 확인하세요.")
     forensic_paths = (semantic_frames_path, hypothesis_ledger_path)
@@ -205,6 +207,8 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
     manifest_inputs = [reference_path, source_path, viewer_path]
     if translation_decisions_path and translation_decisions_path.exists():
         manifest_inputs.append(translation_decisions_path)
+    if translation_queue_path and translation_queue_path.exists():
+        manifest_inputs.append(translation_queue_path)
     if asr_path and asr_path.exists():
         manifest_inputs.append(asr_path)
     if scenes_path and scenes_path.exists():

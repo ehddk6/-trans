@@ -1,0 +1,155 @@
+{
+  "suite_name": "synthetic-ja-ko-translation-quality-regressions-v1",
+  "synthetic": true,
+  "default_input": {
+    "source_japanese": "合成の日本語台詞です",
+    "before_context": "앞 대사",
+    "after_context": "뒤 대사",
+    "speaker_id": "A",
+    "addressee_id": "B",
+    "relationship": "colleagues",
+    "existing_register": "polite",
+    "address_terms": [],
+    "terminology": [],
+    "asr_candidates": [],
+    "uncertainty": [],
+    "duration_seconds": 2.0
+  },
+  "cases": [
+    {
+      "case_id": "register-formal-to-casual",
+      "input": {"source_japanese": "分かりました"},
+      "checks": {"required_register": {"viewer": "polite"}},
+      "passing_candidate": {"viewer_natural_korean": "알겠습니다."},
+      "regression_candidate": {"viewer_natural_korean": "알았어."},
+      "expected_regression_codes": ["register_mismatch"],
+      "human_review_required": ["상황상 존대 전환의 적절성"]
+    },
+    {
+      "case_id": "speaker-register-drift",
+      "input": {"before_context": "A는 앞 장면에서 존댓말을 유지했다."},
+      "checks": {"required_register": {"viewer": "polite"}, "required_consistency_refs": ["C-SPEAKER-A"]},
+      "passing_candidate": {"viewer_natural_korean": "네, 그렇게 하겠습니다.", "consistency_refs": ["C-SPEAKER-A"]},
+      "regression_candidate": {"viewer_natural_korean": "응, 그렇게 할게.", "consistency_refs": []},
+      "expected_regression_codes": ["register_mismatch", "consistency_ref_missing"],
+      "human_review_required": ["장면 전환에 따른 말투 변화"]
+    },
+    {
+      "case_id": "address-term-by-addressee",
+      "input": {"address_terms": ["선생님"]},
+      "checks": {"required_text": {"viewer": ["선생님"]}, "forbidden_text": {"viewer": ["오빠"]}},
+      "passing_candidate": {"viewer_natural_korean": "선생님, 잠깐만요."},
+      "regression_candidate": {"viewer_natural_korean": "오빠, 잠깐만."},
+      "expected_regression_codes": ["required_text_missing", "forbidden_text_present"],
+      "human_review_required": ["관계어의 문화적 대응"]
+    },
+    {
+      "case_id": "omitted-subject-must-not-be-invented",
+      "input": {"source_japanese": "そう思う", "uncertainty": ["actor"]},
+      "checks": {"must_abstain": true, "forbidden_inferred_slots": ["actor"]},
+      "passing_candidate": {"status": "unresolved", "source_faithful_korean": "", "viewer_natural_korean": "", "inferred_slots": []},
+      "regression_candidate": {"status": "approved", "source_faithful_korean": "내가 그렇게 생각해.", "viewer_natural_korean": "내 생각이야.", "inferred_slots": ["actor"]},
+      "expected_regression_codes": ["abstention_required", "unsupported_inference"],
+      "human_review_required": ["원음으로 화자 확인"]
+    },
+    {
+      "case_id": "contextual-idiom-not-literal",
+      "input": {"source_japanese": "そういうことじゃない"},
+      "checks": {"required_text": {"viewer": ["그런 뜻이 아니야"]}, "forbidden_text": {"viewer": ["그런 일이 아니야"]}},
+      "passing_candidate": {"viewer_natural_korean": "그런 뜻이 아니야."},
+      "regression_candidate": {"viewer_natural_korean": "그런 일이 아니야."},
+      "expected_regression_codes": ["required_text_missing", "forbidden_text_present"],
+      "human_review_required": ["문맥 의존 관용 표현의 자연스러움"]
+    },
+    {
+      "case_id": "trailing-off-preserved",
+      "input": {"source_japanese": "言おうとしたけど…"},
+      "checks": {"required_text": {"viewer": ["말하려고 했는데…"]}},
+      "passing_candidate": {"viewer_natural_korean": "말하려고 했는데…"},
+      "regression_candidate": {"viewer_natural_korean": "말하려고 했어."},
+      "expected_regression_codes": ["required_text_missing"],
+      "human_review_required": ["말끝 흐림의 연기적 의미"]
+    },
+    {
+      "case_id": "interjection-preserved-without-expansion",
+      "input": {"source_japanese": "あ、そう"},
+      "checks": {"required_text": {"viewer": ["아"]}},
+      "passing_candidate": {"viewer_natural_korean": "아, 그래."},
+      "regression_candidate": {"viewer_natural_korean": "그래."},
+      "expected_regression_codes": ["required_text_missing"],
+      "human_review_required": ["추임새 강도의 자연스러움"]
+    },
+    {
+      "case_id": "aggressive-register-intensity",
+      "input": {"source_japanese": "消えろ"},
+      "checks": {"required_text": {"viewer": ["꺼져"]}},
+      "passing_candidate": {"viewer_natural_korean": "꺼져."},
+      "regression_candidate": {"viewer_natural_korean": "그만해."},
+      "expected_regression_codes": ["required_text_missing"],
+      "human_review_required": ["욕설 수위의 문화적 등가"]
+    },
+    {
+      "case_id": "proper-noun-consistency",
+      "input": {"source_japanese": "ミサキ", "terminology": ["ミサキ=미사키"]},
+      "checks": {"required_text": {"viewer": ["미사키"]}, "required_consistency_refs": ["C-NAME-MISAKI"]},
+      "passing_candidate": {"viewer_natural_korean": "미사키가 왔어.", "consistency_refs": ["C-NAME-MISAKI"]},
+      "regression_candidate": {"viewer_natural_korean": "미사가 왔어.", "consistency_refs": []},
+      "expected_regression_codes": ["required_text_missing", "consistency_ref_missing"],
+      "human_review_required": ["이름 표기의 공식성"]
+    },
+    {
+      "case_id": "technical-term-consistency",
+      "input": {"source_japanese": "体温", "terminology": ["体温=체온"]},
+      "checks": {"required_text": {"source": ["체온"]}, "required_consistency_refs": ["C-TERM-BODYTEMP"]},
+      "passing_candidate": {"source_faithful_korean": "체온을 재자.", "consistency_refs": ["C-TERM-BODYTEMP"]},
+      "regression_candidate": {"source_faithful_korean": "온도를 재자.", "consistency_refs": []},
+      "expected_regression_codes": ["required_text_missing", "consistency_ref_missing"],
+      "human_review_required": ["전문 용어의 작품별 선호"]
+    },
+    {
+      "case_id": "same-family-consensus-not-independent",
+      "input": {"source_japanese": "行かない"},
+      "checks": {"minimum_independent_families": 2},
+      "passing_candidate": {"source_families": ["model-a/run-1", "model-b/run-2"]},
+      "regression_candidate": {"source_families": ["whisper-family"]},
+      "expected_regression_codes": ["insufficient_independent_families"],
+      "human_review_required": ["후보의 실제 의미적 독립성"]
+    },
+    {
+      "case_id": "insufficient-evidence-abstain",
+      "input": {"source_japanese": "", "asr_candidates": ["불완전"], "uncertainty": ["location"]},
+      "checks": {"must_abstain": true, "forbidden_inferred_slots": ["location"]},
+      "passing_candidate": {"status": "hold", "source_faithful_korean": "", "viewer_natural_korean": "", "inferred_slots": []},
+      "regression_candidate": {"status": "translated", "source_faithful_korean": "안으로 들어가.", "viewer_natural_korean": "안으로 가.", "inferred_slots": ["location"]},
+      "expected_regression_codes": ["abstention_required", "unsupported_inference"],
+      "human_review_required": ["직접 청취"]
+    },
+    {
+      "case_id": "long-context-register-conflict",
+      "input": {"relationship": "customer-service", "existing_register": "polite"},
+      "checks": {"required_register": {"viewer": "polite"}, "required_consistency_refs": ["C-REL-SERVICE"]},
+      "passing_candidate": {"viewer_natural_korean": "바로 확인해 보겠습니다.", "consistency_refs": ["C-REL-SERVICE"]},
+      "regression_candidate": {"viewer_natural_korean": "바로 볼게.", "consistency_refs": []},
+      "expected_regression_codes": ["register_mismatch", "consistency_ref_missing"],
+      "human_review_required": ["관계 변화의 서사적 근거"]
+    },
+    {
+      "case_id": "naturalization-must-not-omit-time",
+      "input": {"source_japanese": "明日また来る"},
+      "checks": {"required_text": {"source": ["내일"]}},
+      "passing_candidate": {"source_faithful_korean": "내일 또 올게."},
+      "regression_candidate": {"source_faithful_korean": "또 올게."},
+      "expected_regression_codes": ["required_text_missing"],
+      "human_review_required": ["자연화와 정보량의 균형"]
+    },
+    {
+      "case_id": "subtitle-readability-cps",
+      "input": {"duration_seconds": 1.0},
+      "checks": {"max_cps": {"viewer": 16}},
+      "passing_candidate": {"viewer_natural_korean": "지금 가."},
+      "regression_candidate": {"viewer_natural_korean": "지금 바로 그곳으로 서둘러 가야 한다고 말하고 있습니다."},
+      "expected_regression_codes": ["readability_cps_exceeded"],
+      "human_review_required": ["표시 시간과 실제 장면 리듬"]
+    }
+  ]
+}

@@ -38,13 +38,16 @@ python -m translation_forensics.cli build-translation-queue `
 python -m translation_forensics.cli apply-translations `
   --project-root . --title SAMPLE `
   --structure .\workspaces\SAMPLE\inputs\SAMPLE.structure.srt `
+  --translation-queue .\workspaces\SAMPLE\intermediate\SAMPLE.translation-queue-v1.jsonl `
   --decisions .\workspaces\SAMPLE\intermediate\SAMPLE.translation-decisions.jsonl `
   --source-output .\workspaces\SAMPLE\intermediate\SAMPLE.source-faithful-ko.text-crosschecked-v1.srt `
   --viewer-output .\workspaces\SAMPLE\intermediate\SAMPLE.viewer-natural-ko.text-crosschecked-v1.srt `
   --strict
 ```
 
-`--strict`는 모든 구조 블록의 결정, 한국어 문장, 의미 번역 방법, 승인 상태, 확신도, 일본어 잔존·작업 표식 부재를 검사한다. 하나라도 부족하면 두 SRT를 생성하지 않는다.
+`--strict`는 모든 구조 블록의 결정, 한국어 문장, 의미 번역 방법, 승인 상태, 확신도, 일본어 잔존·작업 표식 부재를 검사한다. 추가로 각 결정의 `evidence_refs`가 같은 블록의 원본 translation queue에 실제로 선언되어 있는지 대조한다. 하나라도 부족하거나 임의의 근거 ID가 있으면 두 SRT를 생성하지 않는다.
+
+translation queue에 `consistency_context.conflicts`가 있으면 결정은 해당 consistency ID를 `consistency_conflicts`에 기록해야 한다. 이는 충돌을 해결했다는 뜻이 아니라, 충돌을 숨기지 않고 검수 흐름으로 보냈다는 뜻이다. confirmed consistency 항목을 실제로 적용한 경우에만 `consistency_refs`에 해당 ID를 기록한다.
 
 적용 보고서에도 사용 모델이 기록된다. 과거의 외부 기계번역 초안은 이 정책의 산출물이 아니며, 검증 또는 최종 승격 대상이 아니다.
 
@@ -58,6 +61,17 @@ python -m translation_forensics.cli merge-translation-decisions `
 ```
 
 병합 결과에 미검수 블록이 하나라도 있으면 `apply-translations --strict`가 실패한다.
+
+## 3-1. 불확실성 중심 검수 순서
+
+```powershell
+python -m translation_forensics.cli build-uncertainty-review-queue `
+  --project-root . --title SAMPLE `
+  --decisions .\workspaces\SAMPLE\intermediate\SAMPLE.translation-decisions-progress-v1.jsonl `
+  --translation-queue .\workspaces\SAMPLE\intermediate\SAMPLE.translation-queue-v1.jsonl
+```
+
+출력 큐는 미확정·보류 상태, low evidence strength, 불확실 슬롯, 근거 참조 누락·불일치, consistency ledger 충돌·미확정 항목, 기존 P1/P2·낮은 포렌식 근거, source/viewer 자동 QA 문제를 이유별로 보여 준다. 단일 점수만으로 의미 위험을 숨기지 않으며, `critical → high → medium`과 블록 번호 순으로 정렬한다.
 
 ## 4. 최종 패키징 게이트
 

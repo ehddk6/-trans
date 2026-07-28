@@ -100,6 +100,7 @@ init-title → inspect → validate-timeline → analyze
 - `source_faithful_korean`, `viewer_natural_korean`
 - source/viewer 상태와 confidence
 - 실제 존재하는 `evidence_refs`
+- 적용한 장편 원장 항목의 `consistency_refs`, 원장 충돌의 `consistency_conflicts`
 - 질문·극성·거절/허용·명령 강도·화자·주체·행동·대상·위치·시제·방향·강도 슬롯
 - 추론 슬롯, 경쟁 해석, 위험 코드, 구체적 이유
 

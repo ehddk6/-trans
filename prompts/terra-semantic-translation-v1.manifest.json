@@ -2,9 +2,9 @@
   "schema_name": "translation-forensics/prompt-manifest",
   "schema_version": "1",
   "prompt_id": "terra-semantic-translation",
-  "prompt_version": "1",
+  "prompt_version": "2",
   "prompt_file": "terra-semantic-translation-v1.md",
-  "prompt_sha256": "b1c3b7b85c1f16476cc5058ce201f2fc62f1c6444473622aaa9920a881878722",
+  "prompt_sha256": "6e637b9e52a60e0ea751a9aa1de6a3566165197cf639addcaadfeef7f973ef0f",
   "translation_model": "gpt-5.6-terra",
   "scope": "semantic translation candidate generation only; no automatic final promotion",
   "required_output_fields": [
@@ -16,6 +16,10 @@
     "status",
     "confidence",
     "evidence_refs",
+    "consistency_refs",
+    "consistency_conflicts",
+    "preserved_meaning",
+    "review_required_reasons",
     "uncertain_slots",
     "review_note"
   ],

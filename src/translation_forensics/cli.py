@@ -22,6 +22,7 @@ from .automatic_draft import build_automatic_draft
 from .autonomous_release import prove_autonomous_claim, run_autonomous_release, validate_autonomous_release
 from .asr_evidence import read_asr_candidates
 from .closed_world import prove_quality_claim, run_closed_world, validate_closed_world_package
+from .consistency import initialize_consistency_ledger, validate_consistency_ledger
 from .discovery import DiscoveryError, inspect_roles, resolve_role
 from .drafts import build_korean_aligned_draft
 from .forensics_adapter import analyze_title
@@ -44,9 +45,11 @@ from .reverse_check import initialize_reverse_check, validate_reverse_check
 from .release_metrics import calculate_review_budget_metrics, validate_release_gate
 from .run_manifest import create_run_manifest
 from .reporting import build_asr_verdicts, build_review_context, build_scene_map, write_csv
+from .review_prioritization import build_uncertainty_review_queue
 from .semantic_translation import apply_translation_decisions, build_translation_queue, initialize_translation_decisions, merge_translation_decisions
 from .offline_hybrid import build_offline_hybrid
 from .translation_model import ALLOWED_TRANSLATION_MODELS, DEFAULT_TRANSLATION_MODEL
+from .translation_quality import validate_quality_regression_suite
 from .scenes import build_review_scenes, read_review_queue, write_review_scenes
 from .srt import compare_structure, parse_srt
 from .timeline import initialize_timeline_anchor_template, read_timeline_anchors, timeline_is_usable, validate_timeline
@@ -760,14 +763,20 @@ def cmd_build_translation_queue(args: argparse.Namespace) -> int:
     review_context = args.review_context or workspace / "intermediate" / "review-context.jsonl"
     review_queue = args.review_queue or workspace / "intermediate" / f"{args.title}.review-queue.structure-fallback-v4.csv"
     capture_index = args.capture_index
+    consistency_ledger = args.consistency_ledger or workspace / "intermediate" / f"{args.title}.translation-consistency-v1.jsonl"
+    terminology = args.terminology
+    speaker_state = args.speaker_state or workspace / "intermediate" / f"{args.title}.speaker-state-v1.json"
+    for label, explicit in (("consistency_ledger", args.consistency_ledger), ("terminology", terminology), ("speaker_state", args.speaker_state)):
+        if explicit and not explicit.expanduser().exists():
+            _emit({"status": "fail", "error": f"{label} 파일이 없습니다: {explicit}"}, args); return 2
     output = args.output or workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl"
     report = args.report or workspace / "intermediate" / f"{args.title}.translation-queue-v1.report.json"
     if args.dry_run:
-        _emit({"status": "dry-run", "structure": str(structure), "ja": str(ja), "previous_ko": str(previous) if previous else None, "photos": str(photos) if photos else None, "output": str(output), "report": str(report), "translation_model": args.translation_model}, args); return 0
+        _emit({"status": "dry-run", "structure": str(structure), "ja": str(ja), "previous_ko": str(previous) if previous else None, "photos": str(photos) if photos else None, "consistency_ledger": str(consistency_ledger), "terminology": str(terminology) if terminology else None, "speaker_state": str(speaker_state), "output": str(output), "report": str(report), "translation_model": args.translation_model}, args); return 0
     if output.exists() or report.exists():
         _emit({"status": "fail", "error": "기존 translation queue를 덮어쓰지 않습니다.", "output": str(output), "report": str(report)}, args); return 2
     try:
-        result = build_translation_queue(structure, ja, previous, output, report, review_context_path=review_context if review_context.exists() else None, review_queue_path=review_queue if review_queue.exists() else None, capture_index_path=capture_index if capture_index and capture_index.exists() else None, translation_model=args.translation_model, title_id=args.title)
+        result = build_translation_queue(structure, ja, previous, output, report, review_context_path=review_context if review_context.exists() else None, review_queue_path=review_queue if review_queue.exists() else None, capture_index_path=capture_index if capture_index and capture_index.exists() else None, consistency_ledger_path=consistency_ledger if consistency_ledger.exists() else None, terminology_path=terminology.expanduser().resolve() if terminology and terminology.exists() else None, speaker_state_path=speaker_state if speaker_state.exists() else None, translation_model=args.translation_model, title_id=args.title)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0
@@ -782,17 +791,20 @@ def cmd_apply_translations(args: argparse.Namespace) -> int:
     except DiscoveryError as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     decisions = args.decisions.expanduser().resolve()
+    translation_queue = args.translation_queue or workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl"
     source_output = args.source_output or workspace / "intermediate" / f"{args.title}.source-faithful-ko.text-crosschecked-v1.srt"
     viewer_output = args.viewer_output or workspace / "intermediate" / f"{args.title}.viewer-natural-ko.text-crosschecked-v1.srt"
     report = args.report or workspace / "intermediate" / f"{args.title}.translation-application-v1.report.json"
     if args.dry_run:
-        _emit({"status": "dry-run", "structure": str(structure), "decisions": str(decisions), "source_output": str(source_output), "viewer_output": str(viewer_output), "strict": args.strict, "translation_model": args.translation_model}, args); return 0
+        _emit({"status": "dry-run", "structure": str(structure), "decisions": str(decisions), "translation_queue": str(translation_queue), "source_output": str(source_output), "viewer_output": str(viewer_output), "strict": args.strict, "translation_model": args.translation_model}, args); return 0
     if not decisions.exists():
         _emit({"status": "fail", "error": f"번역 결정 파일이 없습니다: {decisions}"}, args); return 2
+    if args.strict and not translation_queue.exists():
+        _emit({"status": "fail", "error": "--strict 적용에는 결정의 evidence_refs를 검증할 translation queue가 필요합니다.", "translation_queue": str(translation_queue)}, args); return 2
     if source_output.exists() or viewer_output.exists() or report.exists():
         _emit({"status": "fail", "error": "기존 번역 적용 결과를 덮어쓰지 않습니다.", "source_output": str(source_output), "viewer_output": str(viewer_output), "report": str(report)}, args); return 2
     try:
-        result = apply_translation_decisions(structure, decisions, source_output, viewer_output, report, strict=args.strict, translation_model=args.translation_model)
+        result = apply_translation_decisions(structure, decisions, source_output, viewer_output, report, strict=args.strict, translation_model=args.translation_model, translation_queue_path=translation_queue if args.strict else None)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0 if result.get("status") != "fail" else 1
@@ -812,6 +824,77 @@ def cmd_init_translation_decisions(args: argparse.Namespace) -> int:
     try:
         result = initialize_translation_decisions(queue, output, translation_model=args.translation_model)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_init_consistency_ledger(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    output = args.output or workspace / "intermediate" / f"{args.title}.translation-consistency-v1.jsonl"
+    if args.dry_run:
+        _emit({"status": "dry-run", "output": str(output)}, args); return 0
+    try:
+        result = initialize_consistency_ledger(output)
+    except (OSError, ValueError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_validate_consistency_ledger(args: argparse.Namespace) -> int:
+    try:
+        result = validate_consistency_ledger(args.input.expanduser().resolve())
+        if args.output and not args.dry_run:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"기존 consistency ledger 보고서를 덮어쓰지 않습니다: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_validate_quality_regressions(args: argparse.Namespace) -> int:
+    try:
+        result = validate_quality_regression_suite(args.input.expanduser().resolve())
+        if args.output and not args.dry_run:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"기존 quality regression 보고서를 덮어쓰지 않습니다: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_build_uncertainty_review_queue(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
+    try:
+        structure = resolve_role(input_root, "structure", args.structure, args.title, required=True)
+    except DiscoveryError as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    decisions = args.decisions or workspace / "intermediate" / f"{args.title}.translation-decisions-template-v1.jsonl"
+    translation_queue = args.translation_queue or workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl"
+    forensics_queue = args.forensics_queue or workspace / "intermediate" / f"{args.title}.review-queue.structure-fallback-v4.csv"
+    output = args.output or workspace / "intermediate" / f"{args.title}.review-queue.uncertainty-v1.csv"
+    source = args.source_faithful.expanduser().resolve() if args.source_faithful else None
+    viewer = args.viewer_natural.expanduser().resolve() if args.viewer_natural else None
+    if args.dry_run:
+        _emit({"status": "dry-run", "structure": str(structure), "decisions": str(decisions), "translation_queue": str(translation_queue), "forensics_queue": str(forensics_queue), "source_faithful": str(source) if source else None, "viewer_natural": str(viewer) if viewer else None, "output": str(output)}, args); return 0
+    try:
+        result = build_uncertainty_review_queue(
+            structure,
+            output,
+            decisions_path=decisions if decisions.exists() else None,
+            translation_queue_path=translation_queue if translation_queue.exists() else None,
+            forensics_queue_path=forensics_queue if forensics_queue.exists() else None,
+            source_path=source,
+            viewer_path=viewer,
+            project_root=root,
+        )
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0
 
@@ -1459,10 +1542,11 @@ def cmd_package(args: argparse.Namespace) -> int:
     except DiscoveryError as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     output = args.output or workspace / "final"
+    translation_queue = args.translation_queue or (workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl" if args.decisions else None)
     if args.dry_run:
-        _emit({"status": "dry-run", "output": str(output), "stage": args.stage}, args); return 0
+        _emit({"status": "dry-run", "output": str(output), "stage": args.stage, "translation_queue": str(translation_queue) if translation_queue else None}, args); return 0
     try:
-        result = package_title_outputs(args.title, reference, args.source_faithful.expanduser().resolve(), args.viewer_natural.expanduser().resolve(), output, stage=args.stage, version=args.version, japanese_path=args.ja, previous_path=args.previous_ko, photos_path=args.photos, scenes_path=args.scenes, asr_path=args.asr, translation_decisions_path=args.decisions, semantic_frames_path=args.semantic_frames, hypothesis_ledger_path=args.hypothesis_ledger, speaker_state_path=args.speaker_state, alignment_evidence_path=args.alignment_evidence, mqm_errors_path=args.mqm_errors, backtranslation_check_path=args.backtranslation_check, evaluation_summary_path=args.evaluation_summary, blind_review_pack_path=args.blind_review_pack, release_gate_path=args.release_gate, timeline_validation_path=args.timeline_validation, project_root=root, all_blocks_reviewed=args.all_blocks_reviewed, direct_human_listening=args.direct_human_listening, evidence_complete=args.evidence_complete)
+        result = package_title_outputs(args.title, reference, args.source_faithful.expanduser().resolve(), args.viewer_natural.expanduser().resolve(), output, stage=args.stage, version=args.version, japanese_path=args.ja, previous_path=args.previous_ko, photos_path=args.photos, scenes_path=args.scenes, asr_path=args.asr, translation_decisions_path=args.decisions, translation_queue_path=translation_queue, semantic_frames_path=args.semantic_frames, hypothesis_ledger_path=args.hypothesis_ledger, speaker_state_path=args.speaker_state, alignment_evidence_path=args.alignment_evidence, mqm_errors_path=args.mqm_errors, backtranslation_check_path=args.backtranslation_check, evaluation_summary_path=args.evaluation_summary, blind_review_pack_path=args.blind_review_pack, release_gate_path=args.release_gate, timeline_validation_path=args.timeline_validation, project_root=root, all_blocks_reviewed=args.all_blocks_reviewed, direct_human_listening=args.direct_human_listening, evidence_complete=args.evidence_complete)
     except (RuntimeError, ValueError, FileExistsError, OSError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0
@@ -1500,9 +1584,13 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("analyze", help="Subtitle Forensics 실행 또는 구조 기반 검토 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--output", type=Path); p.add_argument("--vendor-root", type=Path); p.set_defaults(func=cmd_analyze)
     p = sub.add_parser("build-korean-draft", help="일본어 구조에 맞춘 한국어 번역 초안 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--output", type=Path); p.add_argument("--report", type=Path); p.set_defaults(func=cmd_build_korean_draft)
     p = sub.add_parser("build-automatic-draft", help="기존 자동 후보와 정렬 fallback으로 전 블록 재생용 초안 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-candidate", type=Path); p.add_argument("--viewer-candidate", type=Path); p.add_argument("--single-candidate", type=Path); p.add_argument("--fallback", type=Path); p.add_argument("--decision-candidate", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_build_automatic_draft)
-    p = sub.add_parser("build-translation-queue", help="블록별 의미 번역 결정 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--photos", type=Path); p.add_argument("--review-context", type=Path); p.add_argument("--review-queue", type=Path); p.add_argument("--capture-index", type=Path); p.add_argument("--output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_build_translation_queue)
-    p = sub.add_parser("apply-translations", help="번역 결정 JSONL을 구조 고정 SRT 두 종으로 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--decisions", required=True, type=Path); p.add_argument("--source-output", type=Path); p.add_argument("--viewer-output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--strict", action="store_true", default=False); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_apply_translations)
+    p = sub.add_parser("build-translation-queue", help="블록별 의미 번역 결정 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--photos", type=Path); p.add_argument("--review-context", type=Path); p.add_argument("--review-queue", type=Path); p.add_argument("--capture-index", type=Path); p.add_argument("--consistency-ledger", type=Path, help="confirmed 장편 말투·호칭·이전 선택 문맥 원장"); p.add_argument("--terminology", type=Path, help="기존 승인 용어집; 파일 복사 없이 queue 문맥으로 어댑터 연결"); p.add_argument("--speaker-state", type=Path, help="scene별 검수된 화자·상대 문맥"); p.add_argument("--output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_build_translation_queue)
+    p = sub.add_parser("apply-translations", help="번역 결정 JSONL을 구조 고정 SRT 두 종으로 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--decisions", required=True, type=Path); p.add_argument("--translation-queue", type=Path, help="--strict에서 decision evidence_refs를 대조할 원본 번역 큐"); p.add_argument("--source-output", type=Path); p.add_argument("--viewer-output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--strict", action="store_true", default=False); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_apply_translations)
     p = sub.add_parser("init-translation-decisions", help="번역 결정 템플릿 생성"); _add_common(p); _add_title(p); p.add_argument("--queue", type=Path); p.add_argument("--output", type=Path); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_init_translation_decisions)
+    p = sub.add_parser("init-consistency-ledger", help="사람 검수형 장편 말투·호칭·용어 원장 생성"); _add_common(p); _add_title(p); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_init_consistency_ledger)
+    p = sub.add_parser("validate-consistency-ledger", help="장편 일관성 원장의 형식·충돌 보고 검증"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_consistency_ledger)
+    p = sub.add_parser("validate-quality-regressions", help="합성 일본어→한국어 품질 회귀 제약 묶음 검증"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_quality_regressions)
+    p = sub.add_parser("build-uncertainty-review-queue", help="결정·포렌식·자동 QA 이유를 묶은 투명한 검수 우선순위 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--translation-queue", type=Path); p.add_argument("--forensics-queue", type=Path); p.add_argument("--source-faithful", type=Path); p.add_argument("--viewer-natural", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_build_uncertainty_review_queue)
     p = sub.add_parser("merge-translation-decisions", help="검수 완료 블록을 결정 템플릿에 병합"); _add_common(p); p.add_argument("--base", required=True, type=Path); p.add_argument("--reviewed", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_merge_translation_decisions)
     p = sub.add_parser("init-forensic-records", help="의미 프레임·가설 원장을 명시적 미검수 상태로 초기화"); _add_common(p); _add_title(p); p.add_argument("--queue", type=Path); p.add_argument("--frames", type=Path); p.add_argument("--hypotheses", type=Path); p.set_defaults(func=cmd_init_forensic_records)
     p = sub.add_parser("validate-forensic-records", help="의미 프레임·가설 원장과 critical conflict escalation 검사"); _add_common(p); p.add_argument("--frames", required=True, type=Path); p.add_argument("--hypotheses", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_forensic_records)
@@ -1558,9 +1646,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("run-autonomous-release", help="사람 final과 분리된 하이브리드 무인 번역·반증·패키징 실행"); _add_common(p); p.add_argument("--title", action="append"); p.add_argument("--titles-file", type=Path); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--local-asr", type=Path); p.add_argument("--local-asr-model", default="large-v3"); p.add_argument("--cpu", action="store_true"); p.add_argument("--allow-local-model-download", action="store_true"); p.add_argument("--output", type=Path); p.add_argument("--allow-network", action="store_true"); p.add_argument("--max-cost-usd", type=float); p.add_argument("--cache-dir", type=Path); p.add_argument("--resume", action="store_true"); p.add_argument("--max-workers", type=int, default=2); p.add_argument("--batch-size", type=int, default=20); p.add_argument("--max-repairs", type=int, default=2); p.set_defaults(func=cmd_run_autonomous_release)
     p = sub.add_parser("validate-autonomous-release", help="autonomous-release 구조·커버리지·해시·사람 final 경계 검증"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_autonomous_release)
     p = sub.add_parser("prove-autonomous-claim", help="autonomous-release가 보장하는 속성과 식별 불가능한 사람 정답 주장을 분리"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_prove_autonomous_claim)
-    p = sub.add_parser("package", help="새 버전으로 최종 산출물 패키징"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path, required=True); p.add_argument("--photos", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--semantic-frames", type=Path); p.add_argument("--hypothesis-ledger", type=Path); p.add_argument("--speaker-state", type=Path); p.add_argument("--alignment-evidence", type=Path); p.add_argument("--mqm-errors", type=Path); p.add_argument("--backtranslation-check", type=Path); p.add_argument("--evaluation-summary", type=Path); p.add_argument("--blind-review-pack", type=Path); p.add_argument("--release-gate", type=Path); p.add_argument("--timeline-validation", type=Path); p.add_argument("--output", type=Path); p.add_argument("--stage", choices=STAGES, default="text-crosschecked"); p.add_argument("--version", type=int); p.add_argument("--all-blocks-reviewed", action="store_true"); p.add_argument("--direct-human-listening", action="store_true"); p.add_argument("--evidence-complete", action="store_true"); p.set_defaults(func=cmd_package)
+    p = sub.add_parser("package", help="새 버전으로 최종 산출물 패키징"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path, required=True); p.add_argument("--photos", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--translation-queue", type=Path, help="결정의 evidence_refs를 대조할 원본 번역 큐"); p.add_argument("--semantic-frames", type=Path); p.add_argument("--hypothesis-ledger", type=Path); p.add_argument("--speaker-state", type=Path); p.add_argument("--alignment-evidence", type=Path); p.add_argument("--mqm-errors", type=Path); p.add_argument("--backtranslation-check", type=Path); p.add_argument("--evaluation-summary", type=Path); p.add_argument("--blind-review-pack", type=Path); p.add_argument("--release-gate", type=Path); p.add_argument("--timeline-validation", type=Path); p.add_argument("--output", type=Path); p.add_argument("--stage", choices=STAGES, default="text-crosschecked"); p.add_argument("--version", type=int); p.add_argument("--all-blocks-reviewed", action="store_true"); p.add_argument("--direct-human-listening", action="store_true"); p.add_argument("--evidence-complete", action="store_true"); p.set_defaults(func=cmd_package)
     p = sub.add_parser("run", help="결정적 단계만 수행하고 의미 판정 전 중단"); _add_common(p); _add_title(p); _input_args(p); p.set_defaults(func=cmd_run)
-    p = sub.add_parser("build-offline-hybrid", help="API 호출 없이 로컬 결과물을 병합하여 완전 자동 완성본 생성")
+    p = sub.add_parser("build-offline-hybrid", help="API 호출 없이 로컬 결과물을 병합한 재생용 미리보기 생성 (human final 아님)")
     _add_common(p)
     p.add_argument("--titles-file", type=Path, required=True, help="작품 목록 텍스트 파일 경로")
     p.add_argument("--workspace-root", type=Path, default=Path("workspaces"), help="워크스페이스 루트 경로")
