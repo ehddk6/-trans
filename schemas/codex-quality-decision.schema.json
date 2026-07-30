@@ -1,36 +1,398 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "translation-forensics/codex-quality-decision/v1",
+  "$id": "translation-forensics/codex-quality-decision/v2",
   "type": "object",
   "required": [
-    "schema_name", "schema_version", "title_id", "scene_id", "utterance_id",
-    "block_number", "source_faithful_korean", "viewer_natural_korean", "source_status",
-    "viewer_status", "source_quality_status", "independent_source_families",
-    "consensus_frame", "critical_slot_conflicts", "terra_frame_sha256",
-    "sol_frame_sha256", "repair_history", "human_equal", "human_final",
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "scene_id",
+    "utterance_id",
+    "block_number",
+    "source_faithful_korean",
+    "viewer_natural_korean",
+    "source_status",
+    "viewer_status",
+    "recovery_state",
+    "source_quality_status",
+    "independent_source_families",
+    "consensus_frame",
+    "selected_frame",
+    "slot_provenance",
+    "rendered_slots",
+    "omitted_slots",
+    "critical_slot_conflicts",
+    "render_blocking_conflicts",
+    "resolved_conflicts",
+    "coherence_findings",
+    "uncertainty_codes",
+    "terra_frame_sha256",
+    "sol_frame_sha256",
+    "repair_history",
+    "utterance_kind",
+    "utterance_kind_confidence",
+    "utterance_kind_reason_codes",
+    "utterance_kind_evidence_refs",
+    "human_equal",
+    "human_final",
     "final_promotion_allowed"
   ],
   "properties": {
-    "schema_name": {"const": "translation-forensics/codex-quality-decision"},
-    "schema_version": {"const": "1"},
-    "title_id": {"type": "string", "minLength": 1},
-    "scene_id": {"type": "string", "minLength": 1},
-    "utterance_id": {"type": "string", "minLength": 1},
-    "block_number": {"type": "integer", "minimum": 1},
-    "source_faithful_korean": {"type": "string"},
-    "viewer_natural_korean": {"type": "string", "minLength": 1},
-    "source_status": {"enum": ["accepted", "abstained", "unresolved"]},
-    "viewer_status": {"enum": ["supported", "best_effort", "unrecoverable"]},
-    "source_quality_status": {"enum": ["trusted", "suspect", "unusable"]},
-    "independent_source_families": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
-    "consensus_frame": {"type": "object"},
-    "critical_slot_conflicts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
-    "terra_frame_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "sol_frame_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "repair_history": {"type": "array", "items": {"type": "object"}},
-    "human_equal": {"const": false},
-    "human_final": {"const": false},
-    "final_promotion_allowed": {"const": false}
+    "schema_name": {
+      "const": "translation-forensics/codex-quality-decision"
+    },
+    "schema_version": {
+      "const": "2"
+    },
+    "title_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scene_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "utterance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "block_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source_faithful_korean": {
+      "type": "string"
+    },
+    "viewer_natural_korean": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_status": {
+      "enum": [
+        "accepted",
+        "abstained",
+        "unresolved"
+      ]
+    },
+    "viewer_status": {
+      "enum": [
+        "supported",
+        "best_effort",
+        "unrecoverable"
+      ]
+    },
+    "recovery_state": {
+      "enum": [
+        "accepted_consensus",
+        "accepted_partial",
+        "recovered_context",
+        "recovered_single_model",
+        "minimal_speech_act",
+        "vocalization",
+        "abstained"
+      ]
+    },
+    "source_quality_status": {
+      "enum": [
+        "trusted",
+        "suspect",
+        "unusable"
+      ]
+    },
+    "independent_source_families": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "consensus_frame": {
+      "type": "object"
+    },
+    "selected_frame": {
+      "type": "object"
+    },
+    "slot_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "speech_act",
+        "question",
+        "polarity",
+        "refusal_permission",
+        "command_strength",
+        "speaker",
+        "actor",
+        "action",
+        "target",
+        "location",
+        "tense_aspect",
+        "direction",
+        "intensity"
+      ],
+      "properties": {
+        "speech_act": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "question": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "polarity": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "refusal_permission": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "command_strength": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "speaker": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "actor": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "action": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "target": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "location": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "tense_aspect": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "direction": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        },
+        "intensity": {
+          "$ref": "#/$defs/slotProvenanceRecord"
+        }
+      }
+    },
+    "rendered_slots": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/slotName"
+      },
+      "uniqueItems": true
+    },
+    "omitted_slots": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/slotName"
+      },
+      "uniqueItems": true
+    },
+    "critical_slot_conflicts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/slotName"
+      },
+      "uniqueItems": true
+    },
+    "render_blocking_conflicts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/slotName"
+      },
+      "uniqueItems": true
+    },
+    "resolved_conflicts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/slotName"
+      },
+      "uniqueItems": true
+    },
+    "coherence_findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coherenceFinding"
+      }
+    },
+    "uncertainty_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "terra_frame_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sol_frame_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repair_history": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "human_equal": {
+      "const": false
+    },
+    "human_final": {
+      "const": false
+    },
+    "final_promotion_allowed": {
+      "const": false
+    },
+    "utterance_kind": {
+      "enum": [
+        "lexical_speech",
+        "vocalization",
+        "nonverbal",
+        "unknown"
+      ]
+    },
+    "utterance_kind_confidence": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "utterance_kind_reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "utterance_kind_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "$defs": {
+    "slotName": {
+      "enum": [
+        "speech_act",
+        "question",
+        "polarity",
+        "refusal_permission",
+        "command_strength",
+        "speaker",
+        "actor",
+        "action",
+        "target",
+        "location",
+        "tense_aspect",
+        "direction",
+        "intensity"
+      ]
+    },
+    "slotValue": {
+      "type": [
+        "string",
+        "boolean",
+        "null"
+      ]
+    },
+    "slotProvenanceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "terra_value",
+        "sol_value",
+        "selected_value",
+        "provenance",
+        "disposition",
+        "evidence_refs",
+        "confidence",
+        "rationale_code"
+      ],
+      "properties": {
+        "terra_value": {
+          "$ref": "#/$defs/slotValue"
+        },
+        "sol_value": {
+          "$ref": "#/$defs/slotValue"
+        },
+        "selected_value": {
+          "$ref": "#/$defs/slotValue"
+        },
+        "provenance": {
+          "enum": [
+            "dual_agreement",
+            "dual_compatible",
+            "terra_only_supported",
+            "sol_only_supported",
+            "conflict_omitted",
+            "conflict_blocking",
+            "absent"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "render",
+            "omit",
+            "block"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "rationale_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "coherenceFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "severity",
+        "slots",
+        "remediation"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/slotName"
+          },
+          "uniqueItems": true
+        },
+        "remediation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
 }

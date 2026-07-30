@@ -12,6 +12,8 @@ from jsonschema import Draft202012Validator
 
 from .codex_exec_provider import CodexExecProvider, canonical_json, sha256_json, validate_call_receipt
 from .local_asr import FasterWhisperBackend, LocalASRError, ReazonSpeechBackend, run_conflict_asr_rerun
+from .graduated_recovery import (build_frame_agreement,)
+
 from .srt import SubtitleBlock, compare_structure, parse_srt, write_srt
 
 
@@ -202,38 +204,11 @@ def compare_independent_frames(
     agreements: list[dict[str, Any]] = []
     for number in expected_blocks:
         left, right = terra[number], sol[number]
-        left_values = {slot: _semantic_slot_value(slot, left.get(slot)) for slot in CRITICAL_SLOTS}
-        right_values = {slot: _semantic_slot_value(slot, right.get(slot)) for slot in CRITICAL_SLOTS}
-        conflicts = [
-            slot
-            for slot in CRITICAL_SLOTS
-            if left_values[slot] is not None
-            and right_values[slot] is not None
-            and left_values[slot] != right_values[slot]
-        ]
-        coverage_gaps = [
-            slot
-            for slot in CRITICAL_SLOTS
-            if (left_values[slot] is None) != (right_values[slot] is None)
-        ]
-        consensus = {
-            slot: left_values[slot] if left_values[slot] == right_values[slot] else None
-            for slot in CRITICAL_SLOTS
-        }
-        agreements.append(
-            {
-                "schema_name": "translation-forensics/codex-frame-agreement",
-                "schema_version": "1",
-                "block_number": number,
-                "terra_frame_sha256": sha256_json(left),
-                "sol_frame_sha256": sha256_json(right),
-                "critical_slot_conflicts": conflicts,
-                "slot_coverage_gaps": coverage_gaps,
-                "consensus_frame": consensus,
-                "agreed": not conflicts,
-                "fully_agreed": not conflicts and not coverage_gaps,
-            }
-        )
+        agreement = build_frame_agreement(left, right)
+        agreement["block_number"] = number
+        agreement["terra_frame_sha256"] = sha256_json(left)
+        agreement["sol_frame_sha256"] = sha256_json(right)
+        agreements.append(agreement)
     return agreements
 
 
@@ -797,7 +772,7 @@ def run_codex_quality_title(
             all_decisions.append(
                 {
                     "schema_name": "translation-forensics/codex-quality-decision",
-                    "schema_version": "1",
+                    "schema_version": "2",
                     "title_id": title_id,
                     "scene_id": scene_id,
                     "utterance_id": f"{scene_id}:u-{number:05d}",
@@ -808,8 +783,17 @@ def run_codex_quality_title(
                     "acoustic_evidence_refs": acoustic[number].get("evidence_refs", []),
                     "acoustic_evidence_sha256": sha256_json(acoustic[number]),
                     "consensus_frame": agreement_by_number[number]["consensus_frame"],
+                    "selected_frame": agreement_by_number[number].get("selected_frame", agreement_by_number[number]["consensus_frame"]),
                     "critical_slot_conflicts": agreement_by_number[number]["critical_slot_conflicts"],
+                    "render_blocking_conflicts": agreement_by_number[number].get("render_blocking_conflicts", agreement_by_number[number]["critical_slot_conflicts"]),
                     "slot_coverage_gaps": agreement_by_number[number].get("slot_coverage_gaps", []),
+                    "resolved_conflicts": agreement_by_number[number].get("resolved_conflicts", []),
+                    "coherence_findings": agreement_by_number[number].get("coherence_findings", []),
+                    "slot_provenance": agreement_by_number[number].get("slot_provenance", {}),
+                    "omitted_slots": agreement_by_number[number].get("omitted_slots", []),
+                    "uncertainty_codes": row.get("uncertainty_codes", []),
+                    "recovery_state": row.get("recovery_state", "abstained"),
+                    "rendered_slots": row.get("rendered_slots", []),
                     "terra_frame_sha256": agreement_by_number[number]["terra_frame_sha256"],
                     "sol_frame_sha256": agreement_by_number[number]["sol_frame_sha256"],
                     "sol_final_verdict": reviews_by_number[number]["verdict"],
@@ -818,6 +802,10 @@ def run_codex_quality_title(
                         for review in all_critiques
                         if review.get("scene_id") == scene_id and int(review.get("block_number", 0)) == number
                     ],
+                    "utterance_kind": "lexical_speech",
+                    "utterance_kind_confidence": "high",
+                    "utterance_kind_reason_codes": [],
+                    "utterance_kind_evidence_refs": [],
                     "human_equal": False,
                     "human_final": False,
                     "final_promotion_allowed": False,

@@ -1,23 +1,114 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "translation-forensics/codex-quality-critique-response/v1",
+  "$id": "translation-forensics/codex-quality-critique-response/v2",
   "type": "object",
-  "required": ["scene_id", "reviews"],
+  "required": [
+    "scene_id",
+    "reviews"
+  ],
   "properties": {
-    "scene_id": {"type": "string", "minLength": 1},
+    "scene_id": {
+      "type": "string",
+      "minLength": 1
+    },
     "reviews": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["block_number", "verdict", "critical_slot_conflicts", "unsupported_additions", "naturalness_issues", "reason"],
+        "required": [
+          "block_number",
+          "verdict",
+          "critical_slot_conflicts",
+          "unsupported_additions",
+          "naturalness_issues",
+          "claim_findings",
+          "fallback_blocking",
+          "reason"
+        ],
         "properties": {
-          "block_number": {"type": "integer", "minimum": 1},
-          "verdict": {"enum": ["accept", "repair", "quarantine"]},
-          "critical_slot_conflicts": {"type": "array", "items": {"type": "string"}},
-          "unsupported_additions": {"type": "array", "items": {"type": "string"}},
-          "naturalness_issues": {"type": "array", "items": {"type": "string"}},
-          "reason": {"type": "string", "minLength": 1, "maxLength": 160}
+          "block_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "verdict": {
+            "enum": [
+              "accept",
+              "repair",
+              "quarantine"
+            ]
+          },
+          "critical_slot_conflicts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unsupported_additions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "naturalness_issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "claim_findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "slot",
+                "disposition",
+                "reason"
+              ],
+              "properties": {
+                "slot": {
+                  "enum": [
+                    "speech_act",
+                    "question",
+                    "polarity",
+                    "refusal_permission",
+                    "command_strength",
+                    "speaker",
+                    "actor",
+                    "action",
+                    "target",
+                    "location",
+                    "tense_aspect",
+                    "direction",
+                    "intensity",
+                    "translation"
+                  ]
+                },
+                "disposition": {
+                  "enum": [
+                    "supported",
+                    "repair",
+                    "omit",
+                    "blocking"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                }
+              }
+            }
+          },
+          "fallback_blocking": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
         }
       }
     }

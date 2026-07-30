@@ -1,32 +1,535 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "translation-forensics/codex-quality-frame-response/v1",
+  "$id": "translation-forensics/codex-quality-frame-response/v2",
   "type": "object",
-  "required": ["scene_id", "frames"],
+  "required": [
+    "scene_id",
+    "frames"
+  ],
   "properties": {
-    "scene_id": {"type": "string", "minLength": 1},
+    "scene_id": {
+      "type": "string",
+      "minLength": 1
+    },
     "frames": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["block_number", "speech_act", "question", "polarity", "refusal_permission", "command_strength", "speaker", "actor", "action", "target", "location", "tense_aspect", "direction", "intensity", "confidence"],
+        "required": [
+          "block_number",
+          "speech_act",
+          "question",
+          "polarity",
+          "refusal_permission",
+          "command_strength",
+          "speaker",
+          "actor",
+          "action",
+          "target",
+          "location",
+          "tense_aspect",
+          "direction",
+          "intensity",
+          "confidence"
+        ],
         "properties": {
-          "block_number": {"type": "integer", "minimum": 1},
-          "speech_act": {"enum": ["statement", "question", "request", "command", "refusal", "permission", "prohibition", "response", "vocalization", "nonverbal", "unknown", null]},
-          "question": {"type": ["boolean", "null"]},
-          "polarity": {"enum": ["positive", "negative", "mixed", "neutral", "unknown", null]},
-          "refusal_permission": {"enum": ["refusal", "permission", "prohibition", "none", "unknown", null]},
-          "command_strength": {"enum": ["none", "suggestion", "request", "command", "urgent", "unknown", null]},
-          "speaker": {"enum": ["speaker-a", "speaker-b", "overlapping", "unknown", null]},
-          "actor": {"enum": ["speaker-a", "speaker-b", "self", "other", "both", "unknown", null]},
-          "action": {"type": ["string", "null"]},
-          "target": {"enum": ["speaker-a", "speaker-b", "self", "other", "both", "unknown", null]},
-          "location": {"type": ["string", "null"]},
-          "tense_aspect": {"enum": ["past", "present", "future", "progressive", "completed", "unknown", null]},
-          "direction": {"enum": ["toward", "away", "in", "out", "up", "down", "stop", "continue", "unknown", null]},
-          "intensity": {"enum": ["low", "medium", "high", "unknown", null]},
-          "confidence": {"enum": ["high", "medium", "low"]}
+          "block_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "speech_act": {
+            "enum": [
+              "statement",
+              "question",
+              "request",
+              "command",
+              "refusal",
+              "permission",
+              "prohibition",
+              "response",
+              "vocalization",
+              "nonverbal",
+              "unknown",
+              null
+            ]
+          },
+          "question": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "polarity": {
+            "enum": [
+              "positive",
+              "negative",
+              "mixed",
+              "neutral",
+              "unknown",
+              null
+            ]
+          },
+          "refusal_permission": {
+            "enum": [
+              "refusal",
+              "permission",
+              "prohibition",
+              "none",
+              "unknown",
+              null
+            ]
+          },
+          "command_strength": {
+            "enum": [
+              "none",
+              "suggestion",
+              "request",
+              "command",
+              "urgent",
+              "unknown",
+              null
+            ]
+          },
+          "speaker": {
+            "enum": [
+              "speaker-a",
+              "speaker-b",
+              "overlapping",
+              "unknown",
+              null
+            ]
+          },
+          "actor": {
+            "enum": [
+              "speaker-a",
+              "speaker-b",
+              "self",
+              "other",
+              "both",
+              "unknown",
+              null
+            ]
+          },
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "target": {
+            "enum": [
+              "speaker-a",
+              "speaker-b",
+              "self",
+              "other",
+              "both",
+              "unknown",
+              null
+            ]
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tense_aspect": {
+            "enum": [
+              "past",
+              "present",
+              "future",
+              "progressive",
+              "completed",
+              "unknown",
+              null
+            ]
+          },
+          "direction": {
+            "enum": [
+              "toward",
+              "away",
+              "in",
+              "out",
+              "up",
+              "down",
+              "stop",
+              "continue",
+              "unknown",
+              null
+            ]
+          },
+          "intensity": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "unknown",
+              null
+            ]
+          },
+          "confidence": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "slot_support": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "speech_act": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "question": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "polarity": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "refusal_permission": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "command_strength": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "speaker": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "actor": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "action": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "target": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "tense_aspect": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "direction": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "intensity": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "basis",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "source-text",
+                      "dual-asr",
+                      "single-asr",
+                      "scene-context",
+                      "none"
+                    ]
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

@@ -1,23 +1,149 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "translation-forensics/codex-quality-translation-response/v1",
+  "$id": "translation-forensics/codex-quality-translation-response/v2",
   "type": "object",
-  "required": ["scene_id", "blocks"],
+  "required": [
+    "scene_id",
+    "blocks"
+  ],
   "properties": {
-    "scene_id": {"type": "string", "minLength": 1},
+    "scene_id": {
+      "type": "string",
+      "minLength": 1
+    },
     "blocks": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["block_number", "source_faithful_korean", "viewer_natural_korean", "source_status", "viewer_status", "evidence_refs"],
+        "required": [
+          "block_number",
+          "source_faithful_korean",
+          "viewer_natural_korean",
+          "conservative_source_faithful_korean",
+          "conservative_viewer_natural_korean",
+          "source_status",
+          "viewer_status",
+          "recovery_state",
+          "fallback_recovery_state",
+          "rendered_slots",
+          "fallback_rendered_slots",
+          "uncertainty_codes",
+          "evidence_refs"
+        ],
         "properties": {
-          "block_number": {"type": "integer", "minimum": 1},
-          "source_faithful_korean": {"type": "string"},
-          "viewer_natural_korean": {"type": "string", "minLength": 1},
-          "source_status": {"enum": ["accepted", "abstained", "unresolved"]},
-          "viewer_status": {"enum": ["supported", "best_effort", "unrecoverable"]},
-          "evidence_refs": {"type": "array", "items": {"type": "string"}}
+          "block_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "source_faithful_korean": {
+            "type": "string"
+          },
+          "viewer_natural_korean": {
+            "type": "string",
+            "minLength": 1
+          },
+          "conservative_source_faithful_korean": {
+            "type": "string"
+          },
+          "conservative_viewer_natural_korean": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_status": {
+            "enum": [
+              "accepted",
+              "abstained",
+              "unresolved"
+            ]
+          },
+          "viewer_status": {
+            "enum": [
+              "supported",
+              "best_effort",
+              "unrecoverable"
+            ]
+          },
+          "recovery_state": {
+            "enum": [
+              "accepted_consensus",
+              "accepted_partial",
+              "recovered_context",
+              "recovered_single_model",
+              "minimal_speech_act",
+              "vocalization",
+              "abstained"
+            ]
+          },
+          "fallback_recovery_state": {
+            "enum": [
+              "accepted_consensus",
+              "accepted_partial",
+              "minimal_speech_act",
+              "vocalization",
+              "abstained"
+            ]
+          },
+          "rendered_slots": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "speech_act",
+                "question",
+                "polarity",
+                "refusal_permission",
+                "command_strength",
+                "speaker",
+                "actor",
+                "action",
+                "target",
+                "location",
+                "tense_aspect",
+                "direction",
+                "intensity"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "fallback_rendered_slots": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "speech_act",
+                "question",
+                "polarity",
+                "refusal_permission",
+                "command_strength",
+                "speaker",
+                "actor",
+                "action",
+                "target",
+                "location",
+                "tense_aspect",
+                "direction",
+                "intensity"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "uncertainty_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 240
+          }
         }
       }
     }
