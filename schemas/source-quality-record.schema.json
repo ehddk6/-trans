@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/source-quality-record/v1",
+  "type": "object",
+  "required": ["schema_name", "schema_version", "title_id", "block_number", "start", "end", "source_text", "source_text_sha256", "source_quality_status", "reason_codes", "consecutive_run_length", "global_reuse_count", "legitimate_short_repetition", "acoustic_source_families"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/source-quality-record"},
+    "schema_version": {"const": "1"},
+    "title_id": {"type": "string", "minLength": 1},
+    "block_number": {"type": "integer", "minimum": 1},
+    "start": {"type": "string"},
+    "end": {"type": "string"},
+    "source_text": {"type": "string"},
+    "source_text_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_quality_status": {"enum": ["trusted", "suspect", "unusable"]},
+    "reason_codes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "consecutive_run_length": {"type": "integer", "minimum": 1},
+    "global_reuse_count": {"type": "integer", "minimum": 1},
+    "legitimate_short_repetition": {"type": "boolean"},
+    "acoustic_source_families": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  },
+  "additionalProperties": true
+}

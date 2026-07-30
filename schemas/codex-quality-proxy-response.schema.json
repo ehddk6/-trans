@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/codex-quality-proxy-response/v1",
+  "type": "object",
+  "required": ["batch_id", "judgments"],
+  "properties": {
+    "batch_id": {"type": "string", "minLength": 1},
+    "judgments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["block_number", "winner", "critical_error_side", "reason"],
+        "properties": {
+          "block_number": {"type": "integer", "minimum": 1},
+          "winner": {"enum": ["A", "B", "tie"]},
+          "critical_error_side": {"enum": ["none", "A", "B", "both"]},
+          "reason": {"type": "string", "minLength": 1, "maxLength": 160}
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/codex-quality-translation-response/v1",
+  "type": "object",
+  "required": ["scene_id", "blocks"],
+  "properties": {
+    "scene_id": {"type": "string", "minLength": 1},
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["block_number", "source_faithful_korean", "viewer_natural_korean", "source_status", "viewer_status", "evidence_refs"],
+        "properties": {
+          "block_number": {"type": "integer", "minimum": 1},
+          "source_faithful_korean": {"type": "string"},
+          "viewer_natural_korean": {"type": "string", "minLength": 1},
+          "source_status": {"enum": ["accepted", "abstained", "unresolved"]},
+          "viewer_status": {"enum": ["supported", "best_effort", "unrecoverable"]},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

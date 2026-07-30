@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-naturalness-comparison/v1",
+  "title": "SSIS-908 fixed-denominator naturalness comparison v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "status",
+    "expected_block_count",
+    "adjudicated_block_count",
+    "denominator_block_count",
+    "blocking_blocks",
+    "unresolved_blocks",
+    "counting_unit",
+    "minimum_improvement_win_percent",
+    "maximum_improvement_loss_percent",
+    "improvement_win_count",
+    "improvement_win_blocks",
+    "improvement_loss_count",
+    "improvement_loss_blocks",
+    "tie_count",
+    "tie_blocks",
+    "nonverbal_tie_count",
+    "nonverbal_tie_blocks",
+    "unresolved_count",
+    "improvement_win_rate",
+    "improvement_win_percent",
+    "improvement_loss_rate",
+    "improvement_loss_percent",
+    "meets_minimum_improvement_win_rate",
+    "meets_maximum_improvement_loss_rate",
+    "gate_passed",
+    "reason"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-naturalness-comparison"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "status": {"enum": ["awaiting-human-review", "pass", "fail", "inconclusive"]},
+    "expected_block_count": {"type": "integer", "minimum": 1},
+    "adjudicated_block_count": {"type": "integer", "minimum": 0},
+    "denominator_block_count": {"type": "integer", "minimum": 1},
+    "blocking_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "unresolved_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "counting_unit": {"const": "all final adjudicated blocks including ties"},
+    "minimum_improvement_win_percent": {"const": 65.0},
+    "maximum_improvement_loss_percent": {"const": 15.0},
+    "improvement_win_count": {"type": ["integer", "null"], "minimum": 0},
+    "improvement_win_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "improvement_loss_count": {"type": ["integer", "null"], "minimum": 0},
+    "improvement_loss_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "tie_count": {"type": ["integer", "null"], "minimum": 0},
+    "tie_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "nonverbal_tie_count": {"type": ["integer", "null"], "minimum": 0},
+    "nonverbal_tie_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "unresolved_count": {"type": ["integer", "null"], "minimum": 0},
+    "improvement_win_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "improvement_win_percent": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+    "improvement_loss_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "improvement_loss_percent": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+    "meets_minimum_improvement_win_rate": {"type": ["boolean", "null"]},
+    "meets_maximum_improvement_loss_rate": {"type": ["boolean", "null"]},
+    "gate_passed": {"type": ["boolean", "null"]},
+    "reason": {"type": "string", "minLength": 1}
+  }
+}

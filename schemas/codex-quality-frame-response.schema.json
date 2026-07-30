@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/codex-quality-frame-response/v1",
+  "type": "object",
+  "required": ["scene_id", "frames"],
+  "properties": {
+    "scene_id": {"type": "string", "minLength": 1},
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["block_number", "speech_act", "question", "polarity", "refusal_permission", "command_strength", "speaker", "actor", "action", "target", "location", "tense_aspect", "direction", "intensity", "confidence"],
+        "properties": {
+          "block_number": {"type": "integer", "minimum": 1},
+          "speech_act": {"enum": ["statement", "question", "request", "command", "refusal", "permission", "prohibition", "response", "vocalization", "nonverbal", "unknown", null]},
+          "question": {"type": ["boolean", "null"]},
+          "polarity": {"enum": ["positive", "negative", "mixed", "neutral", "unknown", null]},
+          "refusal_permission": {"enum": ["refusal", "permission", "prohibition", "none", "unknown", null]},
+          "command_strength": {"enum": ["none", "suggestion", "request", "command", "urgent", "unknown", null]},
+          "speaker": {"enum": ["speaker-a", "speaker-b", "overlapping", "unknown", null]},
+          "actor": {"enum": ["speaker-a", "speaker-b", "self", "other", "both", "unknown", null]},
+          "action": {"type": ["string", "null"]},
+          "target": {"enum": ["speaker-a", "speaker-b", "self", "other", "both", "unknown", null]},
+          "location": {"type": ["string", "null"]},
+          "tense_aspect": {"enum": ["past", "present", "future", "progressive", "completed", "unknown", null]},
+          "direction": {"enum": ["toward", "away", "in", "out", "up", "down", "stop", "continue", "unknown", null]},
+          "intensity": {"enum": ["low", "medium", "high", "unknown", null]},
+          "confidence": {"enum": ["high", "medium", "low"]}
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

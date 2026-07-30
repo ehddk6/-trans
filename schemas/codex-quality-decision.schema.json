@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/codex-quality-decision/v1",
+  "type": "object",
+  "required": [
+    "schema_name", "schema_version", "title_id", "scene_id", "utterance_id",
+    "block_number", "source_faithful_korean", "viewer_natural_korean", "source_status",
+    "viewer_status", "source_quality_status", "independent_source_families",
+    "consensus_frame", "critical_slot_conflicts", "terra_frame_sha256",
+    "sol_frame_sha256", "repair_history", "human_equal", "human_final",
+    "final_promotion_allowed"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/codex-quality-decision"},
+    "schema_version": {"const": "1"},
+    "title_id": {"type": "string", "minLength": 1},
+    "scene_id": {"type": "string", "minLength": 1},
+    "utterance_id": {"type": "string", "minLength": 1},
+    "block_number": {"type": "integer", "minimum": 1},
+    "source_faithful_korean": {"type": "string"},
+    "viewer_natural_korean": {"type": "string", "minLength": 1},
+    "source_status": {"enum": ["accepted", "abstained", "unresolved"]},
+    "viewer_status": {"enum": ["supported", "best_effort", "unrecoverable"]},
+    "source_quality_status": {"enum": ["trusted", "suspect", "unusable"]},
+    "independent_source_families": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "consensus_frame": {"type": "object"},
+    "critical_slot_conflicts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "terra_frame_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "sol_frame_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "repair_history": {"type": "array", "items": {"type": "object"}},
+    "human_equal": {"const": false},
+    "human_final": {"const": false},
+    "final_promotion_allowed": {"const": false}
+  },
+  "additionalProperties": true
+}

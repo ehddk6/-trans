@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-candidate-provenance/v1",
+  "title": "SSIS-908 pilot candidate provenance v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "status",
+    "candidate_status",
+    "block_count",
+    "structure_preserved",
+    "pipeline_order",
+    "models",
+    "inputs",
+    "stages",
+    "outputs",
+    "human_reviewed",
+    "pilot_evaluated",
+    "human_final_allowed",
+    "final_promotion_allowed",
+    "claim_scope"
+  ],
+  "$defs": {
+    "file_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    }
+  },
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-candidate-provenance"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "status": {"const": "candidate-generated"},
+    "candidate_status": {"const": "pilot-candidate"},
+    "block_count": {"const": 298},
+    "structure_preserved": {"const": true},
+    "pipeline_order": {
+      "const": [
+        "terra-translation-decision",
+        "sol-independent-critique-repair",
+        "semantic-recheck"
+      ]
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["translation_decision", "independent_critique_repair"],
+      "properties": {
+        "translation_decision": {"const": "gpt-5.6-terra"},
+        "independent_critique_repair": {"const": "gpt-5.6-sol"}
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locked_structure", "frozen_baseline", "terra_prompt", "sol_prompt"],
+      "properties": {
+        "locked_structure": {"$ref": "#/$defs/file_ref"},
+        "frozen_baseline": {"$ref": "#/$defs/file_ref"},
+        "terra_prompt": {"$ref": "#/$defs/file_ref"},
+        "sol_prompt": {"$ref": "#/$defs/file_ref"}
+      }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stage", "model", "records", "artifact"],
+          "properties": {
+            "stage": {"const": "terra-translation-decision"},
+            "model": {"const": "gpt-5.6-terra"},
+            "records": {"const": 298},
+            "artifact": {"$ref": "#/$defs/file_ref"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stage", "model", "independent", "records", "repairs", "repair_blocks", "artifact"],
+          "properties": {
+            "stage": {"const": "sol-independent-critique-repair"},
+            "model": {"const": "gpt-5.6-sol"},
+            "independent": {"const": true},
+            "records": {"const": 298},
+            "repairs": {"type": "integer", "minimum": 0, "maximum": 298},
+            "repair_blocks": {
+              "type": "array",
+              "items": {"type": "integer", "minimum": 1, "maximum": 298},
+              "uniqueItems": true
+            },
+            "artifact": {"$ref": "#/$defs/file_ref"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stage", "gate", "records", "passed", "failed", "artifact"],
+          "properties": {
+            "stage": {"const": "semantic-recheck"},
+            "gate": {"const": "pipeline-hard-gate"},
+            "records": {"const": 298},
+            "passed": {"const": 298},
+            "failed": {"const": 0},
+            "artifact": {"$ref": "#/$defs/file_ref"}
+          }
+        }
+      ],
+      "items": false
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_faithful", "viewer_natural"],
+      "properties": {
+        "source_faithful": {"$ref": "#/$defs/file_ref"},
+        "viewer_natural": {"$ref": "#/$defs/file_ref"}
+      }
+    },
+    "human_reviewed": {"const": false},
+    "pilot_evaluated": {"const": false},
+    "human_final_allowed": {"const": false},
+    "final_promotion_allowed": {"const": false},
+    "claim_scope": {"type": "string", "minLength": 1}
+  }
+}

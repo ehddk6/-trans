@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://translation-forensics.local/schemas/pilot-timeline-alignment/v1",
+  "title": "Pilot timeline alignment",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "status",
+    "clip_preparation_allowed",
+    "expected_block_count",
+    "mapped_block_count",
+    "structure",
+    "human_anchors",
+    "block_mappings",
+    "errors"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-timeline-alignment"},
+    "schema_version": {"const": "1"},
+    "title_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["resolved", "unresolved"]},
+    "clip_preparation_allowed": {"type": "boolean"},
+    "expected_block_count": {"type": "integer", "minimum": 1},
+    "mapped_block_count": {"type": "integer", "minimum": 0},
+    "tolerance_seconds": {"type": "number", "minimum": 0},
+    "structure": {"$ref": "#/$defs/fileWithBlocks"},
+    "media": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "allOf": [
+            {"$ref": "#/$defs/file"},
+            {"type": "object", "required": ["duration_seconds"], "properties": {"duration_seconds": {"type": "number", "exclusiveMinimum": 0}}}
+          ]
+        }
+      ]
+    },
+    "human_anchors": {"type": "array", "items": {"type": "object"}},
+    "offset_map": {"type": ["object", "null"]},
+    "block_mappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["block_number", "srt_start_seconds", "srt_end_seconds", "media_start_seconds", "media_end_seconds", "start_segment_id", "end_segment_id"],
+        "properties": {
+          "block_number": {"type": "integer", "minimum": 1},
+          "srt_start_seconds": {"type": "number", "minimum": 0},
+          "srt_end_seconds": {"type": "number", "minimum": 0},
+          "media_start_seconds": {"type": "number", "minimum": 0},
+          "media_end_seconds": {"type": "number", "minimum": 0},
+          "start_segment_id": {"type": "string", "minLength": 1},
+          "end_segment_id": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "errors": {"type": "array", "items": {"type": "string"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "resolved"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "clip_preparation_allowed": {"const": true},
+          "errors": {"maxItems": 0}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "file": {
+      "type": "object",
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "fileWithBlocks": {
+      "allOf": [
+        {"$ref": "#/$defs/file"},
+        {
+          "type": "object",
+          "required": ["block_count", "last_end_seconds"],
+          "properties": {
+            "block_count": {"type": "integer", "minimum": 1},
+            "last_end_seconds": {"type": "number", "minimum": 0}
+          }
+        }
+      ]
+    }
+  }
+}

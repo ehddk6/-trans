@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-error-block-reduction/v1",
+  "title": "SSIS-908 critical/major meaning-context error-block reduction v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "status",
+    "expected_block_count",
+    "adjudicated_block_count",
+    "blocking_blocks",
+    "unresolved_blocks",
+    "counting_unit",
+    "qualifying_dimensions",
+    "qualifying_severities",
+    "minimum_reduction_percent",
+    "baseline_error_block_count",
+    "baseline_error_blocks",
+    "improvement_error_block_count",
+    "improvement_error_blocks",
+    "error_block_reduction_count",
+    "error_block_reduction_rate",
+    "error_block_reduction_percent",
+    "meets_minimum_reduction",
+    "gate_passed",
+    "reason"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-error-block-reduction"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "status": {"enum": ["awaiting-human-review", "pass", "fail", "inconclusive"]},
+    "expected_block_count": {"type": "integer", "minimum": 1},
+    "adjudicated_block_count": {"type": "integer", "minimum": 0},
+    "blocking_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "unresolved_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "counting_unit": {"const": "unique blocks with one or more qualifying MQM errors"},
+    "qualifying_dimensions": {
+      "const": ["contextual_consistency", "semantic_fidelity"]
+    },
+    "qualifying_severities": {
+      "const": ["critical", "major"]
+    },
+    "minimum_reduction_percent": {"type": "number", "minimum": 0, "maximum": 100},
+    "baseline_error_block_count": {"type": ["integer", "null"], "minimum": 0},
+    "baseline_error_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "improvement_error_block_count": {"type": ["integer", "null"], "minimum": 0},
+    "improvement_error_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "error_block_reduction_count": {"type": ["integer", "null"]},
+    "error_block_reduction_rate": {"type": ["number", "null"], "maximum": 1},
+    "error_block_reduction_percent": {"type": ["number", "null"], "maximum": 100},
+    "meets_minimum_reduction": {"type": ["boolean", "null"]},
+    "gate_passed": {"type": ["boolean", "null"]},
+    "reason": {"type": "string", "minLength": 1}
+  }
+}

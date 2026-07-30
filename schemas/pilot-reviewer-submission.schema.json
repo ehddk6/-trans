@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-reviewer-submission/v1",
+  "title": "SSIS-908 independent reviewer attestation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name", "schema_version", "title_id", "pack_id", "reviewer_slot",
+    "reviewer_id", "pack_sha256", "decisions_sha256", "completed_at_utc",
+    "japanese_listening_capable", "worked_independently",
+    "direct_listening_all_blocks", "participated_in_baseline_or_candidate_production",
+    "candidate_provenance_seen"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-reviewer-submission"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "pack_id": {"type": "string", "minLength": 1},
+    "reviewer_slot": {"enum": ["reviewer-1", "reviewer-2"]},
+    "reviewer_id": {"type": "string", "minLength": 1},
+    "pack_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "decisions_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "completed_at_utc": {"type": "string", "minLength": 1},
+    "japanese_listening_capable": {"const": true},
+    "worked_independently": {"const": true},
+    "direct_listening_all_blocks": {"const": true},
+    "participated_in_baseline_or_candidate_production": {"const": false},
+    "candidate_provenance_seen": {"const": false}
+  }
+}

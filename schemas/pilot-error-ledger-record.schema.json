@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-error-ledger-record/v1",
+  "title": "SSIS-908 pilot block error-ledger record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "block_number",
+    "adjudication_status",
+    "human_reviewed",
+    "semantic_gate",
+    "context_gate",
+    "naturalness_outcome",
+    "nonverbal",
+    "mqm_errors"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-error-ledger-record"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "block_number": {"type": "integer", "minimum": 1},
+    "adjudication_status": {"enum": ["agreed", "adjudicated", "unresolved"]},
+    "human_reviewed": {"type": "boolean"},
+    "semantic_gate": {
+      "enum": ["both-pass", "baseline-only", "improvement-only", "both-fail", "unresolved", "nonverbal"]
+    },
+    "context_gate": {
+      "enum": ["both-pass", "baseline-only", "improvement-only", "both-fail", "unresolved", "nonverbal"]
+    },
+    "naturalness_outcome": {
+      "enum": ["baseline", "improvement", "tie", "unresolved", "nonverbal"]
+    },
+    "nonverbal": {"type": ["boolean", "null"]},
+    "mqm_errors": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/mqm_error"}
+    }
+  },
+  "$defs": {
+    "mqm_error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate", "dimension", "severity", "error_type", "detail", "evidence_refs"],
+      "properties": {
+        "candidate": {"enum": ["baseline", "improvement"]},
+        "dimension": {"enum": ["semantic_fidelity", "contextual_consistency", "natural_korean"]},
+        "severity": {"enum": ["critical", "major", "minor"]},
+        "error_type": {"type": "string", "minLength": 1},
+        "detail": {"type": "string", "minLength": 1},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

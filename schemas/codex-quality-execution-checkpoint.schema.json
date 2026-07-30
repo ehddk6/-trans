@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/codex-quality-execution-checkpoint.schema.json",
+  "title": "Codex quality execution checkpoint",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "status",
+    "title_id",
+    "failed_call",
+    "completed_model_calls_in_cache",
+    "completed_model_calls_materialized_in_package",
+    "completed_model_calls_by_role",
+    "resume_supported",
+    "resume_command",
+    "api_key_used",
+    "model_fallback_used",
+    "release_kind",
+    "human_equal",
+    "human_final",
+    "final_promotion_allowed",
+    "recorded_at"
+  ],
+  "properties": {
+    "schema_name": {
+      "const": "translation-forensics/codex-quality-execution-checkpoint"
+    },
+    "schema_version": {"const": "1"},
+    "status": {"const": "awaiting-codex-quota"},
+    "title_id": {"type": "string", "minLength": 1},
+    "failed_call": {
+      "type": "object",
+      "required": ["call_id", "role"],
+      "properties": {
+        "call_id": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "retry_after_reported_by_service": {"type": ["string", "null"]},
+    "completed_model_calls_in_cache": {"type": "integer", "minimum": 0},
+    "completed_model_calls_materialized_in_package": {"type": "integer", "minimum": 0},
+    "completed_model_calls_by_role": {
+      "type": "object",
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "resume_supported": {"const": true},
+    "resume_command": {"type": "string", "minLength": 1},
+    "api_key_used": {"const": false},
+    "model_fallback_used": {"const": false},
+    "release_kind": {"const": "autonomous-quality-candidate"},
+    "human_equal": {"const": false},
+    "human_final": {"const": false},
+    "final_promotion_allowed": {"const": false},
+    "recorded_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}
