@@ -114,8 +114,15 @@ class FakeQualityProvider:
                         "block_number": number,
                         "source_faithful_korean": f"멈춰 {number}",
                         "viewer_natural_korean": f"멈춰 {number}",
+                        "conservative_source_faithful_korean": f"멈춰 {number}",
+                        "conservative_viewer_natural_korean": f"멈춰 {number}",
                         "source_status": "accepted",
                         "viewer_status": "supported",
+                        "recovery_state": "accepted_consensus",
+                        "fallback_recovery_state": "accepted_consensus",
+                        "rendered_slots": ["speech_act", "polarity", "action"],
+                        "fallback_rendered_slots": ["speech_act", "polarity", "action"],
+                        "uncertainty_codes": [],
                         "evidence_refs": [],
                         "reason": "supported",
                     }
@@ -132,6 +139,8 @@ class FakeQualityProvider:
                         "critical_slot_conflicts": [],
                         "unsupported_additions": [],
                         "naturalness_issues": [],
+                        "claim_findings": [],
+                        "fallback_blocking": False,
                         "reason": "supported",
                     }
                     for number in numbers
@@ -208,3 +217,5 @@ def test_end_to_end_quality_package_with_real_contracts(tmp_path):
     validation = validate_codex_quality(package)
     assert validation["status"] == "pass"
     assert validation["accepted_rate"] == 1.0
+    assert validation["safe_usable_rate"] == 1.0
+    assert validation["recovery_state_counts"] == {"accepted_consensus": 2}

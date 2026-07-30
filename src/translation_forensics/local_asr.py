@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from .asr_evidence import normalize_japanese, text_similarity
+from .asr_fusion import add_asr_fusion
 from .srt import SubtitleBlock, parse_srt
 
 
@@ -473,7 +474,10 @@ def run_full_local_asr(
         newline="\n",
     )
     blocks, _, _ = parse_srt(structure_path)
-    block_records = map_transcripts_to_blocks(blocks, windows, records)
+    block_records = [
+        add_asr_fusion(record)
+        for record in map_transcripts_to_blocks(blocks, windows, records)
+    ]
     block_evidence_path.write_text(
         "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in block_records),
         encoding="utf-8",
@@ -583,7 +587,11 @@ def run_conflict_asr_rerun(
                     "external_transfer": False,
                 }
             )
-    _write = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
+    records = [add_asr_fusion(record) for record in records]
+    _write = "".join(
+        json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n"
+        for record in records
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     evidence_path.write_text(_write, encoding="utf-8", newline="\n")
     return {int(row["block_number"]): row for row in records}
@@ -861,6 +869,7 @@ def build_timestamped_utterance_evidence(
                 "block_alignment_status": "utterance-timestamp-aligned" if transcripts else "no-acoustic-evidence",
             }
         )
+    block_records = [add_asr_fusion(record) for record in block_records]
     output_dir.mkdir(parents=True, exist_ok=True)
     ledger_path.write_text(
         "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in utterances),

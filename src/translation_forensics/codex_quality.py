@@ -962,8 +962,10 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
         critical_conflicts = 0
         damaged_without_dual = 0
         accepted = 0
+        safe_usable = 0
         ellipsis = 0
         reused: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        recovery_counts: dict[str, int] = defaultdict(int)
         for number in expected:
             row = by_number[number]
             if any(row.get(field) is not False for field in ("human_equal", "human_final", "final_promotion_allowed")):
@@ -974,6 +976,15 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
                     critical_conflicts += 1
                 if row.get("source_quality_status") in {"suspect", "unusable"} and len(set(row.get("independent_source_families", []))) < 2:
                     damaged_without_dual += 1
+            if row.get("source_status") == "accepted":
+                safe_usable += 1
+            recovery_state = str(row.get("viewer_status") or "unrecoverable")
+            if recovery_state in ("supported", "best_effort"):
+                recovery_counts["accepted_consensus"] += 1
+            elif recovery_state == "unrecoverable":
+                recovery_counts["abstained"] += 1
+            else:
+                recovery_counts[recovery_state] += 1
             viewer_text = str(row.get("viewer_natural_korean") or "").strip()
             if viewer_text == "…":
                 ellipsis += 1
@@ -1005,9 +1016,10 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
                     errors.append(f"artifact hash mismatch: {label}")
     except (KeyError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         errors.append(str(exc))
-        accepted = ellipsis = critical_conflicts = damaged_without_dual = mass_copy_groups = 0
+        accepted = safe_usable = ellipsis = critical_conflicts = damaged_without_dual = mass_copy_groups = 0
         structure = []
         receipts = []
+        recovery_counts = {}
 
     block_count = len(structure)
     accepted_rate = accepted / max(1, block_count)
@@ -1033,6 +1045,8 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
         "block_count": block_count,
         "accepted_count": accepted,
         "accepted_rate": round(accepted_rate, 6),
+        "safe_usable_rate": round(safe_usable / max(1, block_count), 6),
+        "recovery_state_counts": dict(sorted(recovery_counts.items())),
         "ellipsis_count": ellipsis,
         "ellipsis_rate": round(ellipsis_rate, 6),
         "critical_conflicts_in_accepted": critical_conflicts,
