@@ -578,7 +578,7 @@ def run_conflict_asr_rerun(
                     "end": block.end,
                     "transcripts": transcripts,
                     "evidence_refs": sorted(
-                        f"asr-rerun:{window.window_id}:{row['source_family']}" for row in transcripts
+                        f"asr:{window.window_id}:{row['source_family']}" for row in transcripts
                     ),
                     "independent_source_families": sorted({row["source_family"] for row in transcripts}),
                     "block_alignment_status": "boundary-expanded-cluster-rerun",

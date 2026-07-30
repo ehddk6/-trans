@@ -12,17 +12,7 @@ from jsonschema import Draft202012Validator
 
 from .codex_exec_provider import CodexExecProvider, canonical_json, sha256_json, validate_call_receipt
 from .local_asr import FasterWhisperBackend, LocalASRError, ReazonSpeechBackend, run_conflict_asr_rerun
-from .graduated_recovery import (
-    build_frame_agreement,
-    derive_slot_corroboration,
-    apply_graduated_evidence_gate,
-    apply_review_outcomes,
-    coherence_check,
-    compatibility_status,
-    graduated_source_status,
-    needs_context_rerun,
-)
-from .utterance_routing import apply_utterance_route
+from .graduated_recovery import (build_frame_agreement,)
 
 from .srt import SubtitleBlock, compare_structure, parse_srt, write_srt
 
@@ -133,16 +123,70 @@ def _normalized_slot(value: Any) -> Any:
         return value
     return re.sub(r"\s+", " ", str(value).strip().casefold()) or None
 
+CRITICAL_FLIPPING_SLOTS = {"polarity", "refusal_permission", "command_strength"}
 
+def _coherence_check(consensus_frame):
+    issues = []
+    sa = str(consensus_frame.get("speech_act") or "")
+    q = consensus_frame.get("question")
+    cs = str(consensus_frame.get("command_strength") or "")
+    pol = consensus_frame.get("polarity")
+    rp = consensus_frame.get("refusal_permission")
+    if q is True and sa and sa not in ("question",):
+        issues.append("question_true_but_speech_act_not_question")
+    if q is False and sa == "question":
+        issues.append("question_false_but_speech_act_question")
+    if cs and sa and sa not in ("command", "request", "prohibition", "permission"):
+        issues.append("command_strength_without_command_speech_act")
+    if pol == "positive" and rp:
+        issues.append("positive_polarity_with_refusal_permission")
+    if pol == "negative" and rp == "granted":
+        issues.append("negative_polarity_with_granted_permission")
+    if consensus_frame.get("action") and not consensus_frame.get("actor"):
+        issues.append("action_without_actor")
+    return issues
+
+
+def _graduated_source_status(conflicts, coverage_gaps, source_quality_status, num_asr_families, consensus_frame):
+    flipping_conflicts = [s for s in conflicts if s in CRITICAL_FLIPPING_SLOTS]
+    descriptive_conflicts = [s for s in conflicts if s not in CRITICAL_FLIPPING_SLOTS]
+    coherence_issues = _coherence_check(consensus_frame)
+    if source_quality_status in ("suspect", "unusable") and num_asr_families < 2:
+        return "abstained", "unrecoverable", ["damaged_source_without_dual_acoustic_evidence"]
+    has_agreed_speech_act = bool(consensus_frame.get("speech_act"))
+    flipping_dangerous = bool(flipping_conflicts) or any(
+        issue in coherence_issues for issue in [
+            "positive_polarity_with_refusal_permission",
+            "negative_polarity_with_granted_permission",
+            "question_false_but_speech_act_question",
+        ]
+    )
+    if not has_agreed_speech_act and flipping_dangerous:
+        return "abstained", "unrecoverable", flipping_conflicts + coherence_issues + ["no_agreed_semantic_core"]
+    if flipping_dangerous:
+        return "accepted", "best_effort", flipping_conflicts + coherence_issues + ["meaning_flipping_conflict"]
+    if descriptive_conflicts:
+        return "accepted", "best_effort", descriptive_conflicts + ["descriptive_coverage_gap"]
+    if coherence_issues:
+        return "accepted", "best_effort", coherence_issues
+    return "accepted", "supported", []
+
+
+def _semantic_slot_value(slot: str, value: Any) -> Any:
+    normalized = _normalized_slot(value)
+    if normalized in {None, "unknown"}:
+        return None
+    if slot in {"refusal_permission", "command_strength"} and normalized == "none":
+        return None
+    if slot == "polarity" and normalized == "neutral":
+        return None
+    return normalized
 
 
 def compare_independent_frames(
     terra_frames: list[dict[str, Any]],
     sol_frames: list[dict[str, Any]],
     expected_blocks: list[int],
-    *,
-    acoustic: dict[int, dict[str, Any]] | None = None,
-    source_quality: dict[int, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     def keyed(rows: list[dict[str, Any]], label: str) -> dict[int, dict[str, Any]]:
         result: dict[int, dict[str, Any]] = {}
@@ -160,16 +204,7 @@ def compare_independent_frames(
     agreements: list[dict[str, Any]] = []
     for number in expected_blocks:
         left, right = terra[number], sol[number]
-        if acoustic is not None and source_quality is not None:
-            corrob = derive_slot_corroboration(
-                left, right,
-                acoustic_record=acoustic[number],
-                source_quality_record=source_quality[number],
-                block_number=number,
-            )
-        else:
-            corrob = None
-        agreement = build_frame_agreement(left, right, corroboration=corrob)
+        agreement = build_frame_agreement(left, right)
         agreement["block_number"] = number
         agreement["terra_frame_sha256"] = sha256_json(left)
         agreement["sol_frame_sha256"] = sha256_json(right)
@@ -225,7 +260,6 @@ def _scene_payload(
                 "source_quality_reasons": source_quality[block.number].get("reason_codes", []),
                 "evidence_refs": acoustic[block.number].get("evidence_refs", []),
                 "independent_source_families": acoustic[block.number].get("independent_source_families", []),
-                "asr_fusion": acoustic[block.number].get("asr_fusion", {}),
             }
             for block in scene
         ],
@@ -264,6 +298,61 @@ def _persist_call(
     return response, receipt
 
 
+def _enforce_evidence_gate(
+    rows: list[dict[str, Any]],
+    agreements: dict[int, dict[str, Any]],
+    source_quality: dict[int, dict[str, Any]],
+    acoustic: dict[int, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Graduated gate using _graduated_source_status per block."""
+    enforced: list[dict[str, Any]] = []
+    for row in rows:
+        number = int(row["block_number"])
+        quality_status = str(source_quality[number]["source_quality_status"])
+        families = sorted(set(acoustic[number].get("independent_source_families", [])))
+        agreement = agreements.get(number, {})
+        conflicts = list(agreement.get("critical_slot_conflicts", []))
+        gaps = agreement.get("slot_coverage_gaps", [])
+        consensus_frame = agreement.get("consensus_frame", {})
+        output = dict(row)
+        grad_status, grad_quality, grad_issues = _graduated_source_status(
+            conflicts, gaps, quality_status, len(families), consensus_frame
+        )
+        output["source_status"] = grad_status
+        output["viewer_status"] = grad_quality
+        if grad_issues:
+            output["reason"] = "; ".join(grad_issues)
+        if grad_status in {"abstained", "unresolved"}:
+            output["source_faithful_korean"] = str(output.get("source_faithful_korean") or "…").strip() or "…"
+            output["viewer_natural_korean"] = str(output.get("viewer_natural_korean") or "…").strip() or "…"
+        enforced.append(output)
+    return enforced
+
+
+def _quarantine_reviews(rows: list[dict[str, Any]], reviews: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Graduated quarantine: only block if unsupported critical meaning, incoherence, or empty core."""
+    by_number = {int(row["block_number"]): row for row in reviews}
+    result: list[dict[str, Any]] = []
+    for row in rows:
+        number = int(row["block_number"])
+        review = by_number[number]
+        verdict = review.get("verdict", "")
+        has_unsupported = bool(review.get("unsupported_additions"))
+        has_conflicts = bool(review.get("critical_slot_conflicts"))
+        if verdict == "quarantine" and (has_unsupported or has_conflicts):
+            result.append(
+                {
+                    **row,
+                    "source_faithful_korean": "…",
+                    "viewer_natural_korean": "…",
+                    "source_status": "abstained",
+                    "viewer_status": "unrecoverable",
+                    "reason": f"Sol quarantine after repair budget: {review.get('reason')}",
+                }
+            )
+        else:
+            result.append(row)
+    return result
 
 
 def evaluate_evidence_ceiling(
@@ -334,7 +423,6 @@ def run_codex_quality_title(
 
     structure, _, _ = parse_srt(structure_path)
     expected = [block.number for block in structure]
-    source_text_by_number = {block.number: block.text for block in structure}
     source_quality = _load_by_block(source_quality_map_path, expected, "source quality")
     acoustic = _load_by_block(acoustic_evidence_path, expected, "acoustic evidence")
     ceiling = evaluate_evidence_ceiling(
@@ -426,7 +514,7 @@ def run_codex_quality_title(
             sol_response, sol_receipt = sol_future.result()
         terra_frames = _response_rows(terra_response, "frames", numbers, scene_id)
         sol_frames = _response_rows(sol_response, "frames", numbers, scene_id)
-        agreements = compare_independent_frames(terra_frames, sol_frames, numbers, acoustic=acoustic, source_quality=source_quality)
+        agreements = compare_independent_frames(terra_frames, sol_frames, numbers)
         rerun_performed = False
         rerun_error = ""
         conflict_numbers = [
@@ -524,8 +612,6 @@ def run_codex_quality_title(
                         _response_rows(terra_retry, "frames", conflict_numbers, retry_scene_id),
                         _response_rows(sol_retry, "frames", conflict_numbers, retry_scene_id),
                         conflict_numbers,
-                        acoustic=acoustic,
-                        source_quality=source_quality,
                     )
                 }
                 agreements = [
@@ -553,7 +639,8 @@ def run_codex_quality_title(
             "consensus": [
                 {
                     **agreement,
-                    "render_blocking_conflicts": agreement.get("render_blocking_conflicts", []),
+                    "forced_source_status": "accepted",
+                    "render_blocking_conflicts": agreement.get("critical_slot_conflicts", []),
                 }
                 for agreement in agreements
             ],
@@ -570,7 +657,7 @@ def run_codex_quality_title(
             resume=resume,
         )
         candidate_rows = _response_rows(translation_response, "blocks", numbers, scene_id)
-        candidate_rows = apply_graduated_evidence_gate(candidate_rows, agreement_by_number, source_quality, acoustic)
+        candidate_rows = _enforce_evidence_gate(candidate_rows, agreement_by_number, source_quality, acoustic)
         all_receipts.append(translation_receipt)
         candidate_by_number = {int(row["block_number"]): row for row in candidate_rows}
         final_reviews_by_number: dict[int, dict[str, Any]] = {}
@@ -669,7 +756,7 @@ def run_codex_quality_title(
                 resume=resume,
             )
             repaired_rows = _response_rows(repair_response, "blocks", repair_numbers, repair_scene_id)
-            repaired_rows = apply_graduated_evidence_gate(repaired_rows, agreement_by_number, source_quality, acoustic)
+            repaired_rows = _enforce_evidence_gate(repaired_rows, agreement_by_number, source_quality, acoustic)
             candidate_by_number.update({int(row["block_number"]): row for row in repaired_rows})
             active_numbers = repair_numbers
             all_receipts.append(repair_receipt)
@@ -678,20 +765,10 @@ def run_codex_quality_title(
         if sorted(final_reviews_by_number) != numbers:
             raise CodexQualityError(f"Sol final review coverage is incomplete for {scene_id}")
         final_reviews = [final_reviews_by_number[number] for number in numbers]
-        candidate_rows = apply_review_outcomes(candidate_rows, final_reviews)
+        candidate_rows = _quarantine_reviews(candidate_rows, final_reviews)
         reviews_by_number = final_reviews_by_number
         for row in candidate_rows:
             number = int(row["block_number"])
-            route = apply_utterance_route(
-                agreement_by_number[number],
-                source_text=source_text_by_number.get(number, ""),
-                acoustic_record=acoustic[number],
-                source_quality_record=source_quality[number],
-            )
-            row["utterance_kind"] = route.get("utterance_kind", "lexical_speech")
-            row["utterance_kind_confidence"] = route.get("utterance_kind_confidence", "high")
-            row["utterance_kind_reason_codes"] = route.get("utterance_kind_reason_codes", [])
-            row["utterance_kind_evidence_refs"] = route.get("utterance_kind_evidence_refs", [])
             all_decisions.append(
                 {
                     "schema_name": "translation-forensics/codex-quality-decision",
@@ -883,14 +960,19 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
                 errors.append(f"block {number}: claim boundary is invalid")
             if row.get("source_status") == "accepted":
                 accepted += 1
-                if row.get("render_blocking_conflicts"):
+                if row.get("critical_slot_conflicts"):
                     critical_conflicts += 1
                 if row.get("source_quality_status") in {"suspect", "unusable"} and len(set(row.get("independent_source_families", []))) < 2:
                     damaged_without_dual += 1
-            if row.get("source_status") in ("accepted", "unresolved"):
+            if row.get("source_status") == "accepted":
                 safe_usable += 1
-            recovery_state = str(row.get("recovery_state") or "abstained")
-            recovery_counts[recovery_state] = recovery_counts.get(recovery_state, 0) + 1
+            recovery_state = str(row.get("viewer_status") or "unrecoverable")
+            if recovery_state in ("supported", "best_effort"):
+                recovery_counts["accepted_consensus"] += 1
+            elif recovery_state == "unrecoverable":
+                recovery_counts["abstained"] += 1
+            else:
+                recovery_counts[recovery_state] += 1
             viewer_text = str(row.get("viewer_natural_korean") or "").strip()
             if viewer_text == "…":
                 ellipsis += 1
@@ -898,7 +980,7 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
             if normalized and normalized != "…" and not KOREAN_SHORT_RE.fullmatch(normalized):
                 reused[normalized].append(row)
         if critical_conflicts:
-            errors.append(f"accepted blocks retain {critical_conflicts} render-blocking conflicts")
+            errors.append(f"accepted blocks retain {critical_conflicts} critical frame conflicts")
         if damaged_without_dual:
             errors.append(f"{damaged_without_dual} damaged-source blocks were accepted without two ASR families")
         mass_copy_groups = 0

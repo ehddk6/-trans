@@ -140,19 +140,24 @@ def _family_hypothesis(
 
 def _surface_risk_flags(value: Any) -> dict[str, bool]:
     text = re.sub(r"\s+", "", str(value or ""))
+    text_lower = text.casefold()
     return {
         "negative": bool(
             re.search(
                 r"(?:ない|なく|なかった|ません|じゃない|ではない|ぬ)"
                 r"(?:よ|ね|ぞ|から|けど|って)?(?:[。！？!?…]*)$",
-                text,
+                text_lower,
             )
         ),
-        "question": bool(re.search(r"(?:[?？]|か[。！？!?…]*)$", text)),
-        "refusal": any(token in text for token in ("いや", "だめ", "ダメ", "無理", "やめ")),
-        "permission": any(token in text for token in ("どうぞ", "いいよ", "構わない", "かまわない")),
-        "stop": any(token in text for token in ("やめ", "止め", "とめ")),
-        "continue": any(token in text for token in ("続け", "つづけ", "そのまま")),
+        "question": bool(re.search(r"(?:[?？]|か[。！？!?…]*)$", text_lower)),
+        "refusal": any(token in text_lower for token in ("いや", "だめ", "ダメ", "無理", "やめ")),
+        "permission": any(token in text_lower for token in ("どうぞ", "いいよ", "構わない", "かまわない")),
+        "stop": any(token in text_lower for token in ("やめ", "止め", "とめ")),
+        "continue": any(token in text_lower for token in ("続け", "つづけ", "そのまま")),
+        "direction_up": any(token in text_lower for token in ("上げ", "あが", "あげ")),
+        "direction_down": any(token in text_lower for token in ("下げ", "さが", "おろ", "おりろ")),
+        "direction_in": any(token in text_lower for token in ("入れ", "いれ")),
+        "direction_out": any(token in text_lower for token in ("出せ", "だせ", "出て", "でて")),
     }
 
 
@@ -176,6 +181,14 @@ def _meaning_flip_risks(left: Any, right: Any) -> list[str]:
         right_flags["stop"] and left_flags["continue"]
     ):
         risks.append("stop-continue-marker-divergence")
+    if left_flags["direction_up"] and right_flags["direction_down"]:
+        risks.append("direction-up-down-divergence")
+    if left_flags["direction_down"] and right_flags["direction_up"]:
+        risks.append("direction-down-up-divergence")
+    if left_flags["direction_in"] and right_flags["direction_out"]:
+        risks.append("direction-in-out-divergence")
+    if left_flags["direction_out"] and right_flags["direction_in"]:
+        risks.append("direction-out-in-divergence")
     return risks
 
 
