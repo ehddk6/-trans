@@ -1,0 +1,195 @@
+{
+  "scene_id": "scene-0017",
+  "reviews": [
+    {
+      "block_number": 586,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표만 있어 발화 의미를 전달하지 못함"
+      ],
+      "reason": "음향이 'らも' 단편뿐이고 화행·강도 합의도 깨져 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 587,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 '脱いで'가 벗으라는 뜻을 직접 지지하고 remove 합의 프레임과도 일치한다."
+    },
+    {
+      "block_number": 588,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "intensity"
+      ],
+      "unsupported_additions": [
+        "음향에서 확인되지 않는 긴급 명령 의미"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향은 'おやすみなさい'인데 원문·합의는 긴급 명령이어서 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 589,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향의 성기 지칭과 맛에 대한 긍정 진술을 자연스럽고 간결하게 옮겼다."
+    },
+    {
+      "block_number": 590,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "말하기 금지라는 원문과 합의 프레임을 정확히 유지하며 대화체도 자연스럽다."
+    },
+    {
+      "block_number": 591,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "대상과 현재의 긍정 확인 질문을 유지하며 자막용 축약도 허용 가능한 범위다."
+    },
+    {
+      "block_number": 592,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "대상, 긍정 극성, 현재의 확인 질문이 원문과 합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 593,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "location"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표만 있어 발화 의미를 전달하지 못함"
+      ],
+      "reason": "이동 요청은 잡히지만 화행과 장소가 합의되지 않아 구체적인 한국어 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 594,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대에게 아빠를 실망시키지 말라는 금지·요청의 행위자와 대상을 모두 보존했다."
+    },
+    {
+      "block_number": 595,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표만 있어 발화 의미를 전달하지 못함"
+      ],
+      "reason": "중단 의미는 있으나 화행 합의가 깨져 명령과 금지의 힘을 확정할 수 없다."
+    },
+    {
+      "block_number": 596,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표만 있어 발화 의미를 전달하지 못함"
+      ],
+      "reason": "현재 상태 진술의 강도가 합의되지 않았고 제안문도 의미를 복원하지 못한다."
+    },
+    {
+      "block_number": 597,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "부정적 거절을 짧고 자연스럽게 옮겨 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 598,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "화자 자신의 더 큰 노력과 미래 의지를 정확히 보존했다."
+    },
+    {
+      "block_number": 599,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "화자가 자신에게 행동을 허용해 달라고 요청하는 의미와 힘을 유지했다."
+    },
+    {
+      "block_number": 600,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표만 있어 반복된 거절 의미를 전달하지 못함"
+      ],
+      "reason": "거절 자체는 확인되지만 강도 합의가 깨졌고 제안문으로는 반복 강조도 판정할 수 없다."
+    },
+    {
+      "block_number": 601,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 참조는 없지만 신뢰 원문과 합의 프레임이 현재의 긍정적 감각 진술을 지지한다."
+    },
+    {
+      "block_number": 602,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 '気持ちいい'와 현재의 긍정적 감각 진술 프레임에 정확히 일치한다."
+    },
+    {
+      "block_number": 603,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 참조는 없지만 신뢰 원문과 합의 프레임이 동일한 현재 감각 진술을 지지한다."
+    },
+    {
+      "block_number": 604,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action: 두 번째 상태 'つらい' 누락"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "외로움은 맞지만 뒤이은 'つらいんだよね'의 괴로운 상태 진술이 통째로 빠졌다."
+    },
+    {
+      "block_number": 605,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "낮은 강도의 짧은 감탄 발성을 자연스럽게 대응했다."
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "scene_id": "scene-0004",
+  "frames": [
+    {
+      "block_number": 78,
+      "speech_act": "statement",
+      "question": true,
+      "polarity": "negative",
+      "refusal_permission": "prohibition",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "self",
+      "action": "feel_good",
+      "target": "self",
+      "location": null,
+      "tense_aspect": "present",
+      "direction": null,
+      "intensity": "unknown",
+      "confidence": "high"
+    }
+  ]
+}

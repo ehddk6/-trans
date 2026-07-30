@@ -1,0 +1,13 @@
+{
+  "scene_id": "scene-0014",
+  "reviews": [
+    {
+      "block_number": 298,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "원문 자막은 사용할 수 없고 ASR도 블록 정렬·독립 이중 근거가 없어, 의미를 단정하지 않은 말줄임표 처리가 타당하다."
+    }
+  ]
+}

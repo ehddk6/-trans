@@ -1,0 +1,39 @@
+{
+  "scene_id": "scene-0009-conflict-rerun",
+  "frames": [
+    {
+      "block_number": 356,
+      "speech_act": "question",
+      "question": true,
+      "polarity": "neutral",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "speaker-b",
+      "action": "prefer",
+      "target": "unknown",
+      "location": null,
+      "tense_aspect": "present",
+      "direction": null,
+      "intensity": null,
+      "confidence": "high"
+    },
+    {
+      "block_number": 357,
+      "speech_act": "unknown",
+      "question": null,
+      "polarity": "mixed",
+      "refusal_permission": "none",
+      "command_strength": "unknown",
+      "speaker": "unknown",
+      "actor": "unknown",
+      "action": "cause_twitch",
+      "target": "unknown",
+      "location": null,
+      "tense_aspect": "progressive",
+      "direction": null,
+      "intensity": null,
+      "confidence": "medium"
+    }
+  ]
+}

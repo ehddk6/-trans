@@ -1,0 +1,359 @@
+{
+  "scene_id": "scene-0001",
+  "reviews": [
+    {
+      "block_number": 1,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action unresolved by consensus",
+        "command content omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표가 여러 발화를 통째로 누락함"
+      ],
+      "reason": "action 합의가 없고 제안도 명령과 진술을 모두 생략해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 2,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved by consensus",
+        "action unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만 있어 응답 내용이 전달되지 않음"
+      ],
+      "reason": "speech_act와 action이 합의되지 않았으며 제안에는 검증할 의미가 없다."
+    },
+    {
+      "block_number": 3,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action unresolved by consensus",
+        "intensity unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "감사와 격려 발화를 모두 누락함"
+      ],
+      "reason": "action과 intensity가 충돌한 상태에서 줄임표로 발화를 생략했다."
+    },
+    {
+      "block_number": 4,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action/direction: return-toward → go-and-return"
+      ],
+      "unsupported_additions": [
+        "‘다녀오다’가 출발 동작까지 명시함"
+      ],
+      "naturalness_issues": [],
+      "reason": "‘다녀올게’는 출발과 귀환을 함께 뜻해 귀환·toward 프레임보다 의미가 넓다."
+    },
+    {
+      "block_number": 5,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "target unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "질문을 줄임표로 누락함"
+      ],
+      "reason": "귀가 시각 질문의 target이 합의되지 않아 제안 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 6,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "늦을 가능성과 향후 연락 의사를 자연스럽고 충실하게 보존한다."
+    },
+    {
+      "block_number": 7,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor unresolved by consensus",
+        "tense_aspect unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대기 진술을 줄임표로 누락함"
+      ],
+      "reason": "wait의 actor와 tense/aspect가 합의되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 8,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved by consensus",
+        "action unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "배웅 발화를 줄임표로 누락함"
+      ],
+      "reason": "speech_act와 action이 합의되지 않아 배웅 의미를 안전하게 확정할 수 없다."
+    },
+    {
+      "block_number": 9,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아버지의 재혼, 반년 전이라는 시점과 과거 진술을 모두 보존한다."
+    },
+    {
+      "block_number": 10,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "쿠미 씨의 과거 직업과 근무 장소, 전언성까지 자연스럽게 유지한다."
+    },
+    {
+      "block_number": 11,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action unresolved by consensus",
+        "tense_aspect unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "현재 신분 설명을 줄임표로 누락함"
+      ],
+      "reason": "action과 tense/aspect가 합의되지 않아 퇴직·주부 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 12,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "actor: father-as-subject → father-as-addressee ambiguity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "조사 없는 ‘아버지,’가 호격으로 읽힘"
+      ],
+      "reason": "쉼표 때문에 아버지가 귀가 주체가 아니라 말을 듣는 상대처럼 해석될 수 있다."
+    },
+    {
+      "block_number": 13,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "speech_act: response → permission/command ambiguity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "마침표가 붙은 ‘그러세요’는 문맥상 허용 표현처럼 들림"
+      ],
+      "reason": "보고에 대한 반응이 허용이나 지시로 읽혀 speech-act가 흔들린다."
+    },
+    {
+      "block_number": 14,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대가 저녁에 먹을 것을 묻는 미래 질문을 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 15,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "location: prep_school → misleading literal ‘예비학교’"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "‘예비학교’는 予備校의 한국어 자막 표현으로 부자연스러움"
+      ],
+      "reason": "장소 유형은 맞지만 ‘예비학교’가 일본의 입시 학원 의미를 제대로 전달하지 못한다."
+    },
+    {
+      "block_number": 16,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "지망 학교 결정 여부를 묻는 완료 질문을 그대로 유지한다."
+    },
+    {
+      "block_number": 17,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아버지의 권유 때문에 계속 다닌다는 행위와 진행상을 충실히 보존한다."
+    },
+    {
+      "block_number": 18,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 이해·수긍 응답으로 출처와 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 19,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아직 시간이 있다는 완곡한 긍정 진술을 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 20,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대에게 차를 마실 의향을 묻는 질문으로 의미와 강도가 맞는다."
+    },
+    {
+      "block_number": 21,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity unresolved by consensus",
+        "action unresolved by consensus",
+        "target unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "긴 회상 진술 전체를 줄임표로 누락함"
+      ],
+      "reason": "polarity, action, target이 충돌해 친모에 관한 회상 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 22,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action unresolved by consensus",
+        "tense_aspect unresolved by consensus",
+        "intensity unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "연속 질문을 줄임표로 누락함"
+      ],
+      "reason": "질문 형식만 합의됐고 핵심 action, 시상, 강도는 지지되지 않는다."
+    },
+    {
+      "block_number": 23,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "출처와 합의 프레임의 짧은 긍정 응답을 그대로 보존한다."
+    },
+    {
+      "block_number": 24,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "별도 블록의 긍정 응답으로 출처 및 합의 프레임과 일치한다."
+    },
+    {
+      "block_number": 25,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "전화 인사 발성을 자연스러운 한국어 관용 표현으로 옮겼다."
+    },
+    {
+      "block_number": 26,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 확인에 대한 정중한 긍정 응답을 충실히 보존한다."
+    },
+    {
+      "block_number": 27,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "정중한 전화 인사를 줄임표로 누락함"
+      ],
+      "reason": "speech_act 합의가 없어 관용적 인사의 기능을 증거로 확정할 수 없다."
+    },
+    {
+      "block_number": 28,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 긍정 응답으로 출처와 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 29,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved by consensus",
+        "question force unresolved by consensus",
+        "intensity unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "반응 발화를 줄임표로 누락함"
+      ],
+      "reason": "speech_act, 질문성, 강도가 모두 미합의라 반응 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 30,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "정중한 이해·수락 응답으로 음향 근거와 합의 프레임에 맞는다."
+    },
+    {
+      "block_number": 31,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "격식체 전화 대화에서 해요체로 갑자기 낮아짐"
+      ],
+      "reason": "의미는 맞지만 주변의 합쇼체와 달리 ‘-게요’로 바뀌어 전화 대화의 격식이 흔들린다."
+    },
+    {
+      "block_number": 32,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "정중한 긍정 응답으로 출처와 합의 프레임을 그대로 보존한다."
+    },
+    {
+      "block_number": 33,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved by consensus"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "통화 종료 인사를 줄임표로 누락함"
+      ],
+      "reason": "speech_act가 합의되지 않아 정중한 통화 종료 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 34,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "‘네.’를 뒷받침하는 음향 참조와 독립 출처가 없음"
+      ],
+      "naturalness_issues": [
+        "앞선 긍정 응답을 복제한 filler처럼 보임"
+      ],
+      "reason": "trusted 표기와 프레임 합의만 있고 음향 근거가 전혀 없어 제안 의미를 증거로 지지할 수 없다."
+    }
+  ]
+}

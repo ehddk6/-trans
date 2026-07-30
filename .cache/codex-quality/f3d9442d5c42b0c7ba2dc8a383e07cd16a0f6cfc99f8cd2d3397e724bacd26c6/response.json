@@ -1,0 +1,15 @@
+{
+  "scene_id": "scene-0003-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 143,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "7개 발화를 7줄로 묶어 자막 가독성이 떨어지고 발화별 호흡이 드러나지 않음"
+      ],
+      "reason": "의미와 명령 강도는 근거에 부합하나, 7줄을 한 블록에 담아 읽기 어렵다."
+    }
+  ]
+}

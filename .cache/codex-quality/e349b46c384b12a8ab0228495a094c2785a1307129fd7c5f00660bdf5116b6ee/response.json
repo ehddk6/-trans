@@ -1,0 +1,49 @@
+{
+  "scene_id": "scene-0007",
+  "reviews": [
+    {
+      "block_number": 177,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "polarity",
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말소리 대신 말줄임표만 제시되어 자막 기능을 하지 못함"
+      ],
+      "reason": "두 ASR의 발화 범위가 넓고 블록 정렬도 없어 긴급성 외 의미를 특정할 수 없다."
+    },
+    {
+      "block_number": 178,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "명령 발화가 말줄임표로 대체되어 대화 연속성이 끊김"
+      ],
+      "reason": "복종 명령은 확인되지만 행위자와 대상이 합의되지 않았고 원문도 사용 불가라 블록 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 179,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "actor",
+        "action",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "가청 발화를 말줄임표만으로 처리해 정보가 과도하게 누락됨"
+      ],
+      "reason": "ASR 간 정보량 차이가 크고 핵심 발화행위·행동·대상이 미합의라 제안된 블록을 근거로 지지할 수 없다."
+    }
+  ]
+}

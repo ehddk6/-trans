@@ -1,0 +1,43 @@
+{
+  "scene_id": "scene-0013",
+  "blocks": [
+    {
+      "block_number": 402,
+      "source_faithful_korean": "하겠습니다.",
+      "viewer_natural_korean": "할게요.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00864:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 403,
+      "source_faithful_korean": "아, 부디.",
+      "viewer_natural_korean": "아, 그러세요.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00864:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 404,
+      "source_faithful_korean": "아, 부디.",
+      "viewer_natural_korean": "아, 그러세요.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 405,
+      "source_faithful_korean": "아아.",
+      "viewer_natural_korean": "아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00868:faster-whisper-large-v3"
+      ]
+    }
+  ]
+}

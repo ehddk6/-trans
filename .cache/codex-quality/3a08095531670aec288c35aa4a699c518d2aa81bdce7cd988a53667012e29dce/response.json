@@ -1,0 +1,56 @@
+{
+  "scene_id": "scene-0010-conflict-rerun",
+  "frames": [
+    {
+      "block_number": 358,
+      "speech_act": "request",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "request",
+      "speaker": "speaker-a",
+      "actor": "speaker-b",
+      "action": "take_break",
+      "target": "speaker-b",
+      "location": null,
+      "tense_aspect": "future",
+      "direction": null,
+      "intensity": "high",
+      "confidence": "high"
+    },
+    {
+      "block_number": 359,
+      "speech_act": "question",
+      "question": true,
+      "polarity": "negative",
+      "refusal_permission": "refusal",
+      "command_strength": "none",
+      "speaker": "speaker-a",
+      "actor": null,
+      "action": null,
+      "target": null,
+      "location": null,
+      "tense_aspect": null,
+      "direction": "stop",
+      "intensity": "medium",
+      "confidence": "high"
+    },
+    {
+      "block_number": 360,
+      "speech_act": "vocalization",
+      "question": false,
+      "polarity": null,
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "speaker-a",
+      "actor": null,
+      "action": "take_break",
+      "target": null,
+      "location": null,
+      "tense_aspect": null,
+      "direction": null,
+      "intensity": "low",
+      "confidence": "medium"
+    }
+  ]
+}

@@ -1,0 +1,638 @@
+{
+  "scene_id": "scene-0003",
+  "blocks": [
+    {
+      "block_number": 95,
+      "source_faithful_korean": "이런 걸 보여주고 내가 참을 수 있을 리 없잖아.",
+      "viewer_natural_korean": "이런 걸 보여주는데 어떻게 참아.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00109:faster-whisper-large-v3",
+        "utterance:utterance-00109:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 96,
+      "source_faithful_korean": "싫어.",
+      "viewer_natural_korean": "싫어.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00110:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 97,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00110:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 98,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00110:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 99,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 100,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 101,
+      "source_faithful_korean": "시끄러워.",
+      "viewer_natural_korean": "시끄러워.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 102,
+      "source_faithful_korean": "시끄러워.",
+      "viewer_natural_korean": "시끄러워.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00111:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 103,
+      "source_faithful_korean": "둘째야.",
+      "viewer_natural_korean": "두 번째야.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00111:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 104,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00111:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 105,
+      "source_faithful_korean": "난 속일 수 없어.",
+      "viewer_natural_korean": "난 못 속여.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00112:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 106,
+      "source_faithful_korean": "뭐가?",
+      "viewer_natural_korean": "뭐가?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00113:faster-whisper-large-v3",
+        "utterance:utterance-00114:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 107,
+      "source_faithful_korean": "돈 때문에 그러는 거지?",
+      "viewer_natural_korean": "돈 때문에 그러는 거잖아?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00114:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 108,
+      "source_faithful_korean": "어딘가…",
+      "viewer_natural_korean": "어딘가…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00114:faster-whisper-large-v3",
+        "utterance:utterance-00115:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 109,
+      "source_faithful_korean": "잠깐 쉬어.",
+      "viewer_natural_korean": "잠깐 쉬어.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00116:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 110,
+      "source_faithful_korean": "싫어.",
+      "viewer_natural_korean": "싫어.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00117:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 111,
+      "source_faithful_korean": "이렇게 뜨거워졌어.",
+      "viewer_natural_korean": "이렇게 뜨거워졌어.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00117:faster-whisper-large-v3",
+        "utterance:utterance-00118:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 112,
+      "source_faithful_korean": "만지는 정도는 괜찮지?",
+      "viewer_natural_korean": "만지는 정도는 괜찮잖아?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00118:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 113,
+      "source_faithful_korean": "더 보여줘.",
+      "viewer_natural_korean": "더 보여줘.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00119:faster-whisper-large-v3",
+        "utterance:utterance-00119:reazonspeech-k2-v2",
+        "utterance:utterance-00120:faster-whisper-large-v3",
+        "utterance:utterance-00120:reazonspeech-k2-v2",
+        "utterance:utterance-00121:faster-whisper-large-v3",
+        "utterance:utterance-00121:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 114,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00121:faster-whisper-large-v3",
+        "utterance:utterance-00121:reazonspeech-k2-v2",
+        "utterance:utterance-00122:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 115,
+      "source_faithful_korean": "틀리지 않아.",
+      "viewer_natural_korean": "틀리지 않아.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 116,
+      "source_faithful_korean": "진짜 무리야.",
+      "viewer_natural_korean": "진짜 안 돼.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00124:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 117,
+      "source_faithful_korean": "난 안 돼.",
+      "viewer_natural_korean": "난 못 해.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00124:faster-whisper-large-v3",
+        "utterance:utterance-00125:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 118,
+      "source_faithful_korean": "싫어.",
+      "viewer_natural_korean": "싫어.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00127:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 119,
+      "source_faithful_korean": "미안해.",
+      "viewer_natural_korean": "미안해.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00127:faster-whisper-large-v3",
+        "utterance:utterance-00128:faster-whisper-large-v3",
+        "utterance:utterance-00129:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 120,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00130:faster-whisper-large-v3",
+        "utterance:utterance-00131:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 121,
+      "source_faithful_korean": "왜 그래?",
+      "viewer_natural_korean": "왜 그래?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00131:faster-whisper-large-v3",
+        "utterance:utterance-00132:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 122,
+      "source_faithful_korean": "싫어.",
+      "viewer_natural_korean": "싫어.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00133:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 123,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 124,
+      "source_faithful_korean": "쿠미 씨, 보여줘.",
+      "viewer_natural_korean": "쿠미 씨, 보여줘.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 125,
+      "source_faithful_korean": "제대로 보여줘.",
+      "viewer_natural_korean": "제대로 보여줘.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00134:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 126,
+      "source_faithful_korean": "안 돼.",
+      "viewer_natural_korean": "안 돼.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00134:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 127,
+      "source_faithful_korean": "싫어.",
+      "viewer_natural_korean": "싫어.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00134:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 128,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00134:faster-whisper-large-v3",
+        "utterance:utterance-00135:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 129,
+      "source_faithful_korean": "싫어.",
+      "viewer_natural_korean": "싫어.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00135:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 130,
+      "source_faithful_korean": "왜 이렇게 젖어 있어?",
+      "viewer_natural_korean": "왜 이렇게 젖어 있어?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00136:faster-whisper-large-v3",
+        "utterance:utterance-00137:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 131,
+      "source_faithful_korean": "진정해.",
+      "viewer_natural_korean": "진정해.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00137:faster-whisper-large-v3",
+        "utterance:utterance-00138:faster-whisper-large-v3",
+        "utterance:utterance-00139:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 132,
+      "source_faithful_korean": "안쪽을 보여줘.",
+      "viewer_natural_korean": "안쪽도 보여줘.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00139:faster-whisper-large-v3",
+        "utterance:utterance-00140:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 133,
+      "source_faithful_korean": "안 돼.",
+      "viewer_natural_korean": "안 돼.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00140:faster-whisper-large-v3",
+        "utterance:utterance-00141:faster-whisper-large-v3",
+        "utterance:utterance-00141:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 134,
+      "source_faithful_korean": "보여줘.",
+      "viewer_natural_korean": "보여줘.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00141:faster-whisper-large-v3",
+        "utterance:utterance-00141:reazonspeech-k2-v2",
+        "utterance:utterance-00142:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 135,
+      "source_faithful_korean": "안 돼.",
+      "viewer_natural_korean": "안 돼.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00142:faster-whisper-large-v3",
+        "utterance:utterance-00143:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 136,
+      "source_faithful_korean": "왜 안 보여줘?",
+      "viewer_natural_korean": "왜 안 보여줘?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00143:faster-whisper-large-v3",
+        "utterance:utterance-00144:faster-whisper-large-v3",
+        "utterance:utterance-00145:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 137,
+      "source_faithful_korean": "보여줘, 괜찮잖아.",
+      "viewer_natural_korean": "보여줘, 괜찮잖아.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00146:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 138,
+      "source_faithful_korean": "그 정도는 괜찮지?",
+      "viewer_natural_korean": "그 정도는 괜찮잖아?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00147:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 139,
+      "source_faithful_korean": "왜?",
+      "viewer_natural_korean": "왜?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00147:faster-whisper-large-v3",
+        "utterance:utterance-00148:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 140,
+      "source_faithful_korean": "보여줘.",
+      "viewer_natural_korean": "보여줘.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00149:faster-whisper-large-v3",
+        "utterance:utterance-00150:faster-whisper-large-v3",
+        "utterance:utterance-00151:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 141,
+      "source_faithful_korean": "벌려.",
+      "viewer_natural_korean": "벌려.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00151:faster-whisper-large-v3",
+        "utterance:utterance-00152:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 142,
+      "source_faithful_korean": "손 치워.",
+      "viewer_natural_korean": "손 치워.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00153:faster-whisper-large-v3",
+        "utterance:utterance-00154:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 143,
+      "source_faithful_korean": "빨리 벌려.",
+      "viewer_natural_korean": "빨리 벌려.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00154:faster-whisper-large-v3",
+        "utterance:utterance-00155:faster-whisper-large-v3",
+        "utterance:utterance-00156:faster-whisper-large-v3",
+        "utterance:utterance-00157:faster-whisper-large-v3",
+        "utterance:utterance-00158:faster-whisper-large-v3",
+        "utterance:utterance-00159:faster-whisper-large-v3",
+        "utterance:utterance-00160:faster-whisper-large-v3",
+        "utterance:utterance-00161:faster-whisper-large-v3",
+        "utterance:utterance-00162:faster-whisper-large-v3",
+        "utterance:utterance-00162:reazonspeech-k2-v2",
+        "utterance:utterance-00163:faster-whisper-large-v3",
+        "utterance:utterance-00163:reazonspeech-k2-v2",
+        "utterance:utterance-00164:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 144,
+      "source_faithful_korean": "벌려.",
+      "viewer_natural_korean": "벌려.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00166:faster-whisper-large-v3",
+        "utterance:utterance-00167:faster-whisper-large-v3",
+        "utterance:utterance-00168:faster-whisper-large-v3",
+        "utterance:utterance-00168:reazonspeech-k2-v2",
+        "utterance:utterance-00169:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 145,
+      "source_faithful_korean": "다리 벌려, 할 수 있지?",
+      "viewer_natural_korean": "다리 벌려, 할 수 있지?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00170:faster-whisper-large-v3",
+        "utterance:utterance-00170:reazonspeech-k2-v2",
+        "utterance:utterance-00171:faster-whisper-large-v3",
+        "utterance:utterance-00171:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 146,
+      "source_faithful_korean": "다리를 벌렸어.",
+      "viewer_natural_korean": "다리를 벌렸네.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 147,
+      "source_faithful_korean": "손 벌려.",
+      "viewer_natural_korean": "손 벌려.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 148,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00174:faster-whisper-large-v3",
+        "utterance:utterance-00174:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 149,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00174:faster-whisper-large-v3",
+        "utterance:utterance-00174:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 150,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00174:faster-whisper-large-v3",
+        "utterance:utterance-00174:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 151,
+      "source_faithful_korean": "미안해.",
+      "viewer_natural_korean": "미안해.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 152,
+      "source_faithful_korean": "그만해.",
+      "viewer_natural_korean": "그만해.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 153,
+      "source_faithful_korean": "뭐?",
+      "viewer_natural_korean": "뭐?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 154,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00176:faster-whisper-large-v3"
+      ]
+    }
+  ]
+}

@@ -142,6 +142,8 @@ def validate_srt_file(path: Path, *, reference: list[SubtitleBlock] | None = Non
                 issues.append(_issue("work_tag", "error", f"작업용 태그가 남아 있습니다: {pattern}", block.number))
         if any(pattern in text for pattern in broken_patterns):
             issues.append(_issue("broken_character", "error", "깨진 문자가 있습니다.", block.number))
+        if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", text):
+            issues.append(_issue("control_character", "error", "허용되지 않은 제어 문자가 있습니다.", block.number))
         if re.search(r" {2,}|\t", text):
             issues.append(_issue("abnormal_space", "warning", "비정상적인 공백 또는 탭이 있습니다.", block.number))
         if re.search(r"[!?！？。]{2,}|\.{3,}", text):

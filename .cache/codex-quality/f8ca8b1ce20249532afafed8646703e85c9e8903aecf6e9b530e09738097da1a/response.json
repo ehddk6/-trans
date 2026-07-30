@@ -1,0 +1,13 @@
+{
+  "scene_id": "scene-0006-repair-review-2",
+  "reviews": [
+    {
+      "block_number": 277,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "두 독립 음성 근거와 합의 프레임에 부합하며, 경고의 강도와 미래 진술을 자연스럽게 보존한다."
+    }
+  ]
+}

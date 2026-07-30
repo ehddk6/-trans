@@ -1,0 +1,27 @@
+{
+  "scene_id": "scene-0003-repair-2",
+  "blocks": [
+    {
+      "block_number": 143,
+      "source_faithful_korean": "손 치워. 좀 비켜 봐.\n치우라고. 말한 대로 해.\n자, 벌려. 빨리 벌리라니까.\n자, 괜찮아? 빨리.",
+      "viewer_natural_korean": "손 치워. 좀 비켜 봐.\n치우라고. 말한 대로 해.\n자, 벌려. 빨리 벌리라니까.\n자, 괜찮아? 빨리.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00154:faster-whisper-large-v3",
+        "utterance:utterance-00155:faster-whisper-large-v3",
+        "utterance:utterance-00156:faster-whisper-large-v3",
+        "utterance:utterance-00157:faster-whisper-large-v3",
+        "utterance:utterance-00158:faster-whisper-large-v3",
+        "utterance:utterance-00159:faster-whisper-large-v3",
+        "utterance:utterance-00160:faster-whisper-large-v3",
+        "utterance:utterance-00161:faster-whisper-large-v3",
+        "utterance:utterance-00162:faster-whisper-large-v3",
+        "utterance:utterance-00162:reazonspeech-k2-v2",
+        "utterance:utterance-00163:faster-whisper-large-v3",
+        "utterance:utterance-00163:reazonspeech-k2-v2",
+        "utterance:utterance-00164:faster-whisper-large-v3"
+      ]
+    }
+  ]
+}

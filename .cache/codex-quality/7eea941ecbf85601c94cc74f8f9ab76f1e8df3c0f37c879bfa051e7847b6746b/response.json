@@ -1,0 +1,23 @@
+{
+  "scene_id": "scene-0009",
+  "reviews": [
+    {
+      "block_number": 183,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘よいしょ’와 발성 강도에 부합하며 자연스러운 한국어 감탄사다."
+    },
+    {
+      "block_number": 184,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "ASR 간 핵심 action이 충돌해 발화 의미를 확정할 수 없음"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "독립 ASR이 핵심 행동을 서로 다르게 인식하므로 의미 복원이 불가능하다."
+    }
+  ]
+}

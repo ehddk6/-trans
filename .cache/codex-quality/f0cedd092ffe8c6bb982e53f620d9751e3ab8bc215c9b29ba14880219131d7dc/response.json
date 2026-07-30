@@ -1,0 +1,279 @@
+{
+  "scene_id": "scene-0011",
+  "reviews": [
+    {
+      "block_number": 361,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "의미 있는 발화를 말줄임표로 대체해 정보가 소실됨"
+      ],
+      "reason": "음향은 땀에 관한 진술이지만 잠금 원문·합의 프레임이 충돌해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 362,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향의 긍정 진행 진술과 일치하며 자연스러운 한국어다."
+    },
+    {
+      "block_number": 363,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "발화 내용을 말줄임표로 대체함"
+      ],
+      "reason": "행위에 대한 합의가 없고 제공된 음향 창에서도 해당 발화를 확인할 수 없다."
+    },
+    {
+      "block_number": 364,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "발화 내용을 말줄임표로 대체함"
+      ],
+      "reason": "독립 음향 근거가 없고 행위 슬롯도 충돌해 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 365,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question",
+        "polarity",
+        "refusal_permission",
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "발화 내용을 말줄임표로 대체함"
+      ],
+      "reason": "중지 명령의 핵심 화행·극성·행위자·강도에 합의가 없고 음향 근거도 없다."
+    },
+    {
+      "block_number": 366,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "명확한 발화를 말줄임표로 누락함"
+      ],
+      "reason": "음향은 목소리가 나오는 발화를 지지하지만 시제·상 합의가 깨져 제안문을 확정할 수 없다."
+    },
+    {
+      "block_number": 367,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정적인 현재 진술의 힘과 구어체가 합의 프레임에 맞는다."
+    },
+    {
+      "block_number": 368,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "함께 소리를 내 보자는 제안으로 자연스럽게 읽혀 행위자와 명령 강도를 보존한다."
+    },
+    {
+      "block_number": 369,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "잠금 원문과 합의 프레임의 입을 막으라는 명령을 간결하게 보존한다."
+    },
+    {
+      "block_number": 370,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question",
+        "polarity",
+        "refusal_permission",
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "발화 내용을 말줄임표로 대체함"
+      ],
+      "reason": "음향 전사들이 잠금 원문과 양립하지 않고 핵심 화행 슬롯도 대거 충돌한다."
+    },
+    {
+      "block_number": 371,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "target"
+      ],
+      "unsupported_additions": [
+        "음향과 잠금 원문이 뒷받침하지 않는 일반 감탄사 '아…'"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향은 인사말, 잠금 원문은 이름 호칭이어서 일반 감탄사로 확정할 근거가 없다."
+    },
+    {
+      "block_number": 372,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "연휴에 함께 여행하자는 미래 지향 제안 질문을 정확히 보존한다."
+    },
+    {
+      "block_number": 373,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정 응답의 의미와 친근한 구어체가 자연스럽다."
+    },
+    {
+      "block_number": 374,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "발화 내용을 말줄임표로 대체함"
+      ],
+      "reason": "질문의 행위자를 확정할 수 없고 해당 음향 내용도 제공되지 않았다."
+    },
+    {
+      "block_number": 375,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "온천을 선택지로 제안하는 질문을 자연스럽게 옮겼다."
+    },
+    {
+      "block_number": 376,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "온천을 되묻는 짧은 질문의 대상과 질문성을 그대로 보존한다."
+    },
+    {
+      "block_number": 377,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재의 긍정 응답으로 의미와 대화체가 모두 적절하다."
+    },
+    {
+      "block_number": 378,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "action",
+        "location",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "발화 내용을 말줄임표로 대체함"
+      ],
+      "reason": "질문성 외의 행위자·행위·장소·시제에 합의가 없어 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 379,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "발화 내용을 말줄임표로 대체함"
+      ],
+      "reason": "자기 지향 질문의 행위와 시제·상이 충돌하고 음향 내용도 확인되지 않는다."
+    },
+    {
+      "block_number": 380,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "target: 잠금 원문의 어휘 대상을 전부 누락함"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "물음표만 있는 자막은 발화 내용을 전달하지 못함"
+      ],
+      "reason": "질문성은 유지하지만 발화의 어휘 대상을 삭제해 자막으로 불완전하다."
+    },
+    {
+      "block_number": 381,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "가나가와를 후보지로 되묻는 질문을 정확하고 간결하게 보존한다."
+    },
+    {
+      "block_number": 382,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "완결된 진술을 말줄임표로 누락함"
+      ],
+      "reason": "야마나시에 함께 간 경험을 말하는 핵심은 있으나 시제·상이 합의되지 않았다."
+    },
+    {
+      "block_number": 383,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대 의견에 동의하는 현재의 긍정 응답으로 자연스럽다."
+    },
+    {
+      "block_number": 384,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "발화를 말줄임표로 대체해 대화 연속성이 끊김"
+      ],
+      "reason": "합의 프레임에 의미 정보가 없고 제공된 음향도 없어 말줄임표 이상의 판단이 불가능하다."
+    },
+    {
+      "block_number": 385,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "완결된 진술을 말줄임표로 누락함"
+      ],
+      "reason": "음향은 일이 끝났다는 진술이지만 잠금 원문은 지혈 행위여서 행위자와 행위를 확정할 수 없다."
+    }
+  ]
+}

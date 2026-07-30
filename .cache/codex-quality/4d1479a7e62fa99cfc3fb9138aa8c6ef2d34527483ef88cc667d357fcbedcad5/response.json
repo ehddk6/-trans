@@ -1,0 +1,39 @@
+{
+  "scene_id": "scene-0009",
+  "frames": [
+    {
+      "block_number": 356,
+      "speech_act": "question",
+      "question": true,
+      "polarity": "neutral",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "prefer",
+      "target": "unknown",
+      "location": null,
+      "tense_aspect": "present",
+      "direction": null,
+      "intensity": "low",
+      "confidence": "high"
+    },
+    {
+      "block_number": 357,
+      "speech_act": "question",
+      "question": true,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "unknown",
+      "action": "twitch",
+      "target": "unknown",
+      "location": "there",
+      "tense_aspect": "progressive",
+      "direction": null,
+      "intensity": "medium",
+      "confidence": "medium"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "schema_name": "translation-forensics/local-asr-manifest",
+  "schema_version": "1",
+  "title_id": "SSIS-908-SMOKE",
+  "status": "completed",
+  "audio_sha256": "1c6c4adffc69ee2b807d2627503a67c0664beed238fed1d9ea26f2366696fe8a",
+  "structure_sha256": "1b9b54faa119e2ca4f63757b73b8b8e2ec7bae4181574136d0590176e03ef224",
+  "duration_seconds": 6946.04,
+  "window_contract": {
+    "vad": "ffmpeg-silencedetect",
+    "minimum_core_seconds": 24.0,
+    "target_core_seconds": 26.0,
+    "maximum_core_seconds": 28.0,
+    "context_overlap_seconds": 2.0
+  },
+  "windows": [
+    {
+      "window_id": "window-00001",
+      "core_start": 0.0,
+      "core_end": 26.0,
+      "clip_start": 0.0,
+      "clip_end": 27.0,
+      "duration": 27.0
+    }
+  ],
+  "completed_source_families": [
+    "faster-whisper-large-v3",
+    "reazonspeech-k2-v2"
+  ],
+  "backend_errors": [],
+  "transcripts": {
+    "path": "local-asr-transcripts.jsonl",
+    "sha256": "6039a203aee4f5022f1b50820e31788068ac7045d8201fcb9815e457b2319833",
+    "records": 2
+  },
+  "block_acoustic_evidence": {
+    "path": "block-acoustic-evidence.jsonl",
+    "sha256": "83bf8cea3eff7b85ae76f41fc1b0be206ca3fe79338db3d0074787aa72869217",
+    "records": 298
+  },
+  "external_asr_transfer": false
+}

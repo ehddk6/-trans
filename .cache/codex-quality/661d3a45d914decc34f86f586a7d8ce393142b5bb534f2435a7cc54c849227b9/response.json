@@ -1,0 +1,56 @@
+{
+  "scene_id": "scene-0008",
+  "frames": [
+    {
+      "block_number": 180,
+      "speech_act": "statement",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "unknown",
+      "action": "be_beautiful",
+      "target": "unknown",
+      "location": null,
+      "tense_aspect": "present",
+      "direction": "unknown",
+      "intensity": "medium",
+      "confidence": "low"
+    },
+    {
+      "block_number": 181,
+      "speech_act": "unknown",
+      "question": null,
+      "polarity": "unknown",
+      "refusal_permission": "unknown",
+      "command_strength": "unknown",
+      "speaker": "unknown",
+      "actor": "unknown",
+      "action": null,
+      "target": "unknown",
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": "unknown",
+      "intensity": "low",
+      "confidence": "low"
+    },
+    {
+      "block_number": 182,
+      "speech_act": "command",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "command",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "open",
+      "target": "self",
+      "location": null,
+      "tense_aspect": "present",
+      "direction": "out",
+      "intensity": "medium",
+      "confidence": "low"
+    }
+  ]
+}

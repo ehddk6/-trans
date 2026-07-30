@@ -1,0 +1,15 @@
+{
+  "scene_id": "scene-0015-repair-1",
+  "blocks": [
+    {
+      "block_number": 493,
+      "source_faithful_korean": "실례하겠습니다.",
+      "viewer_natural_korean": "그럼, 이만 실례하겠습니다.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-01116:faster-whisper-large-v3"
+      ]
+    }
+  ]
+}

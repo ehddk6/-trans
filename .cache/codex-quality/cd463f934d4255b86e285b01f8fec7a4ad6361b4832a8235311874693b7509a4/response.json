@@ -1,0 +1,76 @@
+{
+  "scene_id": "scene-0010",
+  "reviews": [
+    {
+      "block_number": 185,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "두 ASR과 합의 프레임의 가속·진행·강조 의미를 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 186,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "독립 음향 근거가 하나뿐인 손상 구간이므로 의미를 보태지 않은 기권 처리가 타당하다."
+    },
+    {
+      "block_number": 187,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "ASR 간 불일치에서 합의된 발성 범위만 옮겨 의미를 과도하게 확정하지 않았다."
+    },
+    {
+      "block_number": 188,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "target/location: 두 ASR의 '내 항문도'가 '나도'로 일반화됨"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "행동과 요청 강도는 맞지만 명시된 신체 부위를 빼 대상·위치 정보를 바꿨다."
+    },
+    {
+      "block_number": 189,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "intensity: viewer 문안이 'もっともっと'의 반복 강도를 '더' 1회로 낮춤"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "핥으라는 요청은 맞지만 최종 시청자 문안에서 합의된 높은 반복 강도가 약해졌다."
+    },
+    {
+      "block_number": 190,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "중지 명령의 극성이 합의되지 않았으므로 의미를 확정하지 않은 기권 처리가 안전하다."
+    },
+    {
+      "block_number": 191,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "단일 ASR의 발성만 있어 구체적 의미를 보태지 않은 기권 처리가 타당하다."
+    },
+    {
+      "block_number": 192,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "source status: 합의는 accepted를 강제하지만 후보는 unresolved로 제출됨",
+        "speech act: 'おやすみなさい'와 'ああ'가 충돌해 확정 불가"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "독립 ASR이 인사와 발성으로 갈려 accepted 의미를 뒷받침하지 못하므로 격리가 필요하다."
+    }
+  ]
+}

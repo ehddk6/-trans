@@ -143,7 +143,14 @@ def test_consistency_ledger_flows_into_queue_review_and_strict_application(tmp_p
 def test_quality_regression_suite_covers_synthetic_translation_failures() -> None:
     report = validate_quality_regression_suite(ROOT / "tests" / "fixtures" / "translation-quality-regressions.json")
     assert report["status"] == "pass"
-    assert report["cases"] == 15
+    assert report["cases"] == 19
+    assert report["covered_pilot_error_types"] == report["required_pilot_error_types"] == [
+        "confirmation-speech-act-loss",
+        "corrupted-fragment-leakage",
+        "unsupported-speaker-inference",
+        "unsupported-target-inference",
+    ]
+    assert report["missing_pilot_error_types"] == []
     assert all(not row["passing_codes"] for row in report["results"])
 
 

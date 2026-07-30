@@ -1,0 +1,39 @@
+{
+  "scene_id": "scene-0010-conflict-rerun",
+  "frames": [
+    {
+      "block_number": 188,
+      "speech_act": "request",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "request",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "lick",
+      "target": "self",
+      "location": "anus",
+      "tense_aspect": "present",
+      "direction": null,
+      "intensity": "medium",
+      "confidence": "medium"
+    },
+    {
+      "block_number": 190,
+      "speech_act": "command",
+      "question": false,
+      "polarity": "mixed",
+      "refusal_permission": "unknown",
+      "command_strength": "urgent",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "stop",
+      "target": "unknown",
+      "location": null,
+      "tense_aspect": "present",
+      "direction": "unknown",
+      "intensity": "high",
+      "confidence": "low"
+    }
+  ]
+}

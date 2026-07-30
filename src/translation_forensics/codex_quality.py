@@ -121,6 +121,54 @@ def _normalized_slot(value: Any) -> Any:
         return value
     return re.sub(r"\s+", " ", str(value).strip().casefold()) or None
 
+CRITICAL_FLIPPING_SLOTS = {"polarity", "refusal_permission", "command_strength"}
+
+def _coherence_check(consensus_frame):
+    issues = []
+    sa = str(consensus_frame.get("speech_act") or "")
+    q = consensus_frame.get("question")
+    cs = str(consensus_frame.get("command_strength") or "")
+    pol = consensus_frame.get("polarity")
+    rp = consensus_frame.get("refusal_permission")
+    if q is True and sa and sa not in ("question",):
+        issues.append("question_true_but_speech_act_not_question")
+    if q is False and sa == "question":
+        issues.append("question_false_but_speech_act_question")
+    if cs and sa and sa not in ("command", "request", "prohibition", "permission"):
+        issues.append("command_strength_without_command_speech_act")
+    if pol == "positive" and rp:
+        issues.append("positive_polarity_with_refusal_permission")
+    if pol == "negative" and rp == "granted":
+        issues.append("negative_polarity_with_granted_permission")
+    if consensus_frame.get("action") and not consensus_frame.get("actor"):
+        issues.append("action_without_actor")
+    return issues
+
+
+def _graduated_source_status(conflicts, coverage_gaps, source_quality_status, num_asr_families, consensus_frame):
+    flipping_conflicts = [s for s in conflicts if s in CRITICAL_FLIPPING_SLOTS]
+    descriptive_conflicts = [s for s in conflicts if s not in CRITICAL_FLIPPING_SLOTS]
+    coherence_issues = _coherence_check(consensus_frame)
+    if source_quality_status in ("suspect", "unusable") and num_asr_families < 2:
+        return "abstained", "unrecoverable", ["damaged_source_without_dual_acoustic_evidence"]
+    has_agreed_speech_act = bool(consensus_frame.get("speech_act"))
+    flipping_dangerous = bool(flipping_conflicts) or any(
+        issue in coherence_issues for issue in [
+            "positive_polarity_with_refusal_permission",
+            "negative_polarity_with_granted_permission",
+            "question_false_but_speech_act_question",
+        ]
+    )
+    if not has_agreed_speech_act and flipping_dangerous:
+        return "abstained", "unrecoverable", flipping_conflicts + coherence_issues + ["no_agreed_semantic_core"]
+    if flipping_dangerous:
+        return "accepted", "best_effort", flipping_conflicts + coherence_issues + ["meaning_flipping_conflict"]
+    if descriptive_conflicts:
+        return "accepted", "best_effort", descriptive_conflicts + ["descriptive_coverage_gap"]
+    if coherence_issues:
+        return "accepted", "best_effort", coherence_issues
+    return "accepted", "supported", []
+
 
 def _semantic_slot_value(slot: str, value: Any) -> Any:
     normalized = _normalized_slot(value)
@@ -281,30 +329,25 @@ def _enforce_evidence_gate(
     source_quality: dict[int, dict[str, Any]],
     acoustic: dict[int, dict[str, Any]],
 ) -> list[dict[str, Any]]:
+    """Graduated gate using _graduated_source_status per block."""
     enforced: list[dict[str, Any]] = []
     for row in rows:
         number = int(row["block_number"])
         quality_status = str(source_quality[number]["source_quality_status"])
         families = sorted(set(acoustic[number].get("independent_source_families", [])))
-        conflicts = list(agreements[number].get("critical_slot_conflicts", []))
-        forced_reasons: list[str] = []
-        if conflicts:
-            forced_reasons.append("independent-frame-conflict")
-        if quality_status in {"suspect", "unusable"} and len(families) < 2:
-            forced_reasons.append("damaged-source-without-dual-acoustic-evidence")
+        agreement = agreements.get(number, {})
+        conflicts = list(agreement.get("critical_slot_conflicts", []))
+        gaps = agreement.get("slot_coverage_gaps", [])
+        consensus_frame = agreement.get("consensus_frame", {})
         output = dict(row)
-        output.setdefault("reason", "Translation is constrained by the independent consensus frame.")
-        if forced_reasons:
-            output.update(
-                {
-                    "source_faithful_korean": "…",
-                    "viewer_natural_korean": "…",
-                    "source_status": "abstained",
-                    "viewer_status": "unrecoverable",
-                    "reason": "; ".join(forced_reasons),
-                }
-            )
-        if output.get("source_status") in {"abstained", "unresolved"}:
+        grad_status, grad_quality, grad_issues = _graduated_source_status(
+            conflicts, gaps, quality_status, len(families), consensus_frame
+        )
+        output["source_status"] = grad_status
+        output["viewer_status"] = grad_quality
+        if grad_issues:
+            output["reason"] = "; ".join(grad_issues)
+        if grad_status in {"abstained", "unresolved"}:
             output["source_faithful_korean"] = str(output.get("source_faithful_korean") or "…").strip() or "…"
             output["viewer_natural_korean"] = str(output.get("viewer_natural_korean") or "…").strip() or "…"
         enforced.append(output)
@@ -312,12 +355,16 @@ def _enforce_evidence_gate(
 
 
 def _quarantine_reviews(rows: list[dict[str, Any]], reviews: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Graduated quarantine: only block if unsupported critical meaning, incoherence, or empty core."""
     by_number = {int(row["block_number"]): row for row in reviews}
     result: list[dict[str, Any]] = []
     for row in rows:
         number = int(row["block_number"])
         review = by_number[number]
-        if review.get("verdict") != "accept" or review.get("critical_slot_conflicts") or review.get("unsupported_additions"):
+        verdict = review.get("verdict", "")
+        has_unsupported = bool(review.get("unsupported_additions"))
+        has_conflicts = bool(review.get("critical_slot_conflicts"))
+        if verdict == "quarantine" and (has_unsupported or has_conflicts):
             result.append(
                 {
                     **row,
@@ -617,15 +664,8 @@ def run_codex_quality_title(
             "consensus": [
                 {
                     **agreement,
-                    "forced_source_status": (
-                        "abstained"
-                        if agreement["critical_slot_conflicts"]
-                        or (
-                            source_quality[int(agreement["block_number"])]["source_quality_status"] in {"suspect", "unusable"}
-                            and len(acoustic[int(agreement["block_number"])].get("independent_source_families", [])) < 2
-                        )
-                        else "accepted"
-                    ),
+                    "forced_source_status": "accepted",
+                    "render_blocking_conflicts": agreement.get("critical_slot_conflicts", []),
                 }
                 for agreement in agreements
             ],

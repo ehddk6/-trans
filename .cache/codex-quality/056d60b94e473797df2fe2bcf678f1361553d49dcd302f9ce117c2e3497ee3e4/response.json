@@ -1,0 +1,73 @@
+{
+  "scene_id": "scene-0013",
+  "frames": [
+    {
+      "block_number": 402,
+      "speech_act": "statement",
+      "question": false,
+      "polarity": "neutral",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "unknown",
+      "action": null,
+      "target": "unknown",
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": "unknown",
+      "intensity": "unknown",
+      "confidence": "low"
+    },
+    {
+      "block_number": 403,
+      "speech_act": "permission",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "permission",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "unknown",
+      "action": null,
+      "target": "other",
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": "unknown",
+      "intensity": "unknown",
+      "confidence": "high"
+    },
+    {
+      "block_number": 404,
+      "speech_act": "permission",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "permission",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "unknown",
+      "action": null,
+      "target": "other",
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": "unknown",
+      "intensity": "unknown",
+      "confidence": "high"
+    },
+    {
+      "block_number": 405,
+      "speech_act": "vocalization",
+      "question": false,
+      "polarity": "neutral",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "unknown",
+      "action": null,
+      "target": "unknown",
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": "unknown",
+      "intensity": "unknown",
+      "confidence": "medium"
+    }
+  ]
+}

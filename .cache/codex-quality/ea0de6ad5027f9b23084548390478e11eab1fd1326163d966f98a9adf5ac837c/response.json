@@ -1,0 +1,698 @@
+{
+  "scene_id": "scene-0001",
+  "reviews": [
+    {
+      "block_number": 1,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘응’ preserves the trusted ん as a neutral vocalization without adding a semantic slot."
+    },
+    {
+      "block_number": 2,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘응’ preserves the trusted ん as a neutral vocalization without adding a semantic slot."
+    },
+    {
+      "block_number": 3,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘응’ preserves the trusted ん as a neutral vocalization without adding a semantic slot."
+    },
+    {
+      "block_number": 4,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘응’ preserves the trusted ん as a neutral vocalization without adding a semantic slot."
+    },
+    {
+      "block_number": 5,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis is not a usable translation of audible dialogue."
+      ],
+      "reason": "Consensus leaves the action unresolved, so the audible negative statement cannot receive a supported Korean meaning."
+    },
+    {
+      "block_number": 6,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action is unresolved",
+        "intensity is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits an audible negative future statement."
+      ],
+      "reason": "Critical action and intensity conflicts prevent a supported rendering of the statement that it will not end."
+    },
+    {
+      "block_number": 7,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘응’ is a natural neutral rendering of the accepted vocalization."
+    },
+    {
+      "block_number": 8,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis is not a usable subtitle for audible speech."
+      ],
+      "reason": "Although お疲れ is audible, its speech-act function remains disputed and the source status is abstained."
+    },
+    {
+      "block_number": 9,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "target is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits an audible thanks response."
+      ],
+      "reason": "The thanking target is unresolved by consensus, so the block cannot receive a supported Korean meaning."
+    },
+    {
+      "block_number": 10,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action is unresolved",
+        "intensity is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits the question force."
+      ],
+      "reason": "Only one ASR supports 終わりそう? and consensus leaves its action unresolved; meaning cannot be assigned safely."
+    },
+    {
+      "block_number": 11,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action and command strength: 頼まれた is a request, while ‘맡기셔서’ states assignment"
+      ],
+      "unsupported_additions": [
+        "‘맡기셔서’ presents the work as directly assigned or entrusted"
+      ],
+      "naturalness_issues": [],
+      "reason": "The faithful line preserves a request, but the viewer wording strengthens it into an assignment."
+    },
+    {
+      "block_number": 12,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved",
+        "target is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits an audible apology."
+      ],
+      "reason": "The apology is audible, but disputed speech act and target slots force abstention."
+    },
+    {
+      "block_number": 13,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved",
+        "actor is unresolved",
+        "target is unresolved",
+        "intensity is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits an audible denial of blame."
+      ],
+      "reason": "Consensus cannot fix who caused what or the response function, so the negative statement remains quarantined."
+    },
+    {
+      "block_number": 14,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "The wording preserves self as the person who introduced the company and keeps the completed action."
+    },
+    {
+      "block_number": 15,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved",
+        "intensity is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits the audible appreciation statement."
+      ],
+      "reason": "The positive appreciation is audible, but its speech act and intensity remain disputed."
+    },
+    {
+      "block_number": 16,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘너는?’ preserves the direct question force and adds no unsupported action or target detail."
+    },
+    {
+      "block_number": 17,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis suppresses the audible questioning vocalization."
+      ],
+      "reason": "Consensus disputes the function of ん?, so its Korean dialogue value cannot be fixed."
+    },
+    {
+      "block_number": 18,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor is unresolved",
+        "target is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits an audible command."
+      ],
+      "reason": "The command is audible, but consensus cannot determine its actor and target safely."
+    },
+    {
+      "block_number": 19,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘카에데 씨는?’ preserves the name, honorific, and question force."
+    },
+    {
+      "block_number": 20,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘아니, 그 말이 아니라’ naturally preserves the negative corrective response."
+    },
+    {
+      "block_number": 21,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense/aspect is unresolved",
+        "intensity is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits two audible questions."
+      ],
+      "reason": "The name and question sequence is not securely resolved by the consensus frame."
+    },
+    {
+      "block_number": 22,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "spoken content is unresolved"
+      ],
+      "unsupported_additions": [
+        "A visible ellipsis implies hesitation or trailing off not established by evidence."
+      ],
+      "naturalness_issues": [
+        "The placeholder does not form usable Korean dialogue."
+      ],
+      "reason": "The locked Japanese and ASR are mutually garbled, so no spoken meaning is supportable."
+    },
+    {
+      "block_number": 23,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits audible information about client entertainment."
+      ],
+      "reason": "The activity is partly audible, but its disputed speech-act frame forces quarantine."
+    },
+    {
+      "block_number": 24,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "target/direction: ‘너도’ selects the other person despite そっち/こっち/どっち disagreement"
+      ],
+      "unsupported_additions": [
+        "Explicit second-person target ‘너’"
+      ],
+      "naturalness_issues": [],
+      "reason": "ASR disagrees on whose side is meant; the proposal fixes an unsupported second-person target."
+    },
+    {
+      "block_number": 25,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "intensity/volition: ‘억지로’ adds compulsion not fixed by 愛想笑い"
+      ],
+      "unsupported_additions": [
+        "Forced or unwilling smiling"
+      ],
+      "naturalness_issues": [],
+      "reason": "愛想笑い denotes a social or insincere smile; ‘억지로’ adds unsupported coercion and intensity."
+    },
+    {
+      "block_number": 26,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘힘들잖아’ preserves the statement force and conversational emphasis of 大変じゃん."
+    },
+    {
+      "block_number": 27,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘응’ matches the supported low-intensity positive response."
+    },
+    {
+      "block_number": 28,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis is not a usable rendering of the alleged response."
+      ],
+      "reason": "ASR supports only one うん across the sequence; this additional repeated block is not independently localized."
+    },
+    {
+      "block_number": 29,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis is not a usable rendering of the alleged response."
+      ],
+      "reason": "ASR supports only one うん across the sequence; this additional repeated block is not independently localized."
+    },
+    {
+      "block_number": 30,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis is not a usable rendering of the alleged response."
+      ],
+      "reason": "ASR supports only one うん across the sequence; this additional repeated block is not independently localized."
+    },
+    {
+      "block_number": 31,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis is not a usable rendering of the alleged response."
+      ],
+      "reason": "ASR supports only one うん across the sequence; this additional repeated block is not independently localized."
+    },
+    {
+      "block_number": 32,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis is not a usable rendering of the alleged response."
+      ],
+      "reason": "ASR supports only one うん across the sequence; this additional repeated block is not independently localized."
+    },
+    {
+      "block_number": 33,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 34,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 35,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 36,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 37,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 38,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The source is unusable copied filler; overlapping ASR cannot localize different speech to this block."
+    },
+    {
+      "block_number": 39,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The source is unusable copied filler; overlapping ASR cannot localize different speech to this block."
+    },
+    {
+      "block_number": 40,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 41,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 42,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 43,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 44,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 45,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 46,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 47,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 48,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 49,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated one-second placeholders cause subtitle flicker."
+      ],
+      "reason": "The locked source is unusable copied filler and ASR does not support block-local speech."
+    },
+    {
+      "block_number": 50,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action: ‘왜?’ asks for a reason, while 何? asks what"
+      ],
+      "unsupported_additions": [
+        "A causal inquiry introduced by ‘왜?’"
+      ],
+      "naturalness_issues": [],
+      "reason": "The viewer wording changes the question’s requested information from content to cause."
+    },
+    {
+      "block_number": 51,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘아무것도 아니야’ preserves the low-intensity negative response exactly."
+    },
+    {
+      "block_number": 52,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘그냥 좀 취했어’ preserves self, present drunkenness, and low intensity naturally."
+    },
+    {
+      "block_number": 53,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "spoken content is unresolved"
+      ],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "The placeholder breaks dialogue continuity."
+      ],
+      "reason": "The suspect reused source is not corroborated by ASR as block-local speech."
+    },
+    {
+      "block_number": 54,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech act and action are unresolved"
+      ],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "The placeholder breaks the likely farewell sequence."
+      ],
+      "reason": "The suspect filler conflicts with window-level farewell speech, which cannot be assigned without block alignment."
+    },
+    {
+      "block_number": 55,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity is unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "The ellipsis omits the locked statement but supplies no supported alternative."
+      ],
+      "reason": "気に入った is not corroborated by the acoustic window, and consensus also disputes intensity."
+    },
+    {
+      "block_number": 56,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "spoken content is unresolved"
+      ],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated placeholders disrupt the farewell sequence."
+      ],
+      "reason": "The suspect reused source lacks block-local ASR support; window-level farewell speech cannot be safely assigned."
+    },
+    {
+      "block_number": 57,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "spoken content is unresolved"
+      ],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated placeholders disrupt the farewell sequence."
+      ],
+      "reason": "The suspect reused source lacks block-local ASR support; window-level farewell speech cannot be safely assigned."
+    },
+    {
+      "block_number": 58,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "spoken content is unresolved"
+      ],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "Repeated placeholders disrupt the farewell sequence."
+      ],
+      "reason": "The suspect reused source lacks block-local ASR support; window-level farewell speech cannot be safely assigned."
+    },
+    {
+      "block_number": 59,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "lexical content: 岩 is not corroborated by either ASR transcript"
+      ],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "The placeholder does not resolve the source-acoustic contradiction."
+      ],
+      "reason": "The trusted locked word conflicts with both acoustic transcripts, so no block meaning is supportable."
+    },
+    {
+      "block_number": 60,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "spoken content is unresolved"
+      ],
+      "unsupported_additions": [
+        "The ellipsis implies an unevidenced hesitation."
+      ],
+      "naturalness_issues": [
+        "The final placeholder disrupts subtitle continuity."
+      ],
+      "reason": "The suspect reused source is not corroborated, and the non-aligned window cannot supply a replacement meaning."
+    }
+  ]
+}

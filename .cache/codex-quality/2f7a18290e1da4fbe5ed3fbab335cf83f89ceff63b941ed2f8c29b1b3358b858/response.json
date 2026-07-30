@@ -1,0 +1,17 @@
+{
+  "scene_id": "scene-0003-repair-review-2",
+  "reviews": [
+    {
+      "block_number": 143,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "‘좀 비켜 봐’는 ‘ちょっとどかしてよ’의 대상물을 치우라는 뜻을 화자 상대가 비키라는 행동으로 바꾼다."
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "한 자막에 4줄을 배치해 일반적인 2줄 제한을 넘고 가독성이 떨어진다."
+      ],
+      "reason": "핵심 명령은 대체로 맞지만 ‘비켜’가 행위·대상을 바꾸며, 4줄 구성도 자막 가독성을 해친다."
+    }
+  ]
+}

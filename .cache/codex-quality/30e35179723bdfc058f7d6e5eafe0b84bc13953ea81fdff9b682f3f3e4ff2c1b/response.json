@@ -1,0 +1,718 @@
+{
+  "scene_id": "scene-0004",
+  "reviews": [
+    {
+      "block_number": 155,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Matches the trusted source; the Korean is concise, idiomatic, and readable."
+    },
+    {
+      "block_number": 156,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action/request omitted",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis replaces recoverable lexical speech."
+      ],
+      "reason": "Tense is disputed and the ellipsis drops the agreed spread request; the block is not safely recoverable."
+    },
+    {
+      "block_number": 157,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action/continuation request omitted",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis breaks dialogue continuity."
+      ],
+      "reason": "The continuing request is broadly framed, but aspect remains disputed; an ellipsis cannot preserve its meaning."
+    },
+    {
+      "block_number": 158,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity unresolved",
+        "command_strength unresolved",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis omits the help request."
+      ],
+      "reason": "Polarity, strength, and aspect are unresolved, with no acoustic evidence independently supporting the request."
+    },
+    {
+      "block_number": 159,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech content conflicts with acoustic vocalizations",
+        "polarity unresolved",
+        "command_strength unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Only brief vocalizations are acoustically evidenced while the source proposes a help request; meaning is unsupported."
+    },
+    {
+      "block_number": 160,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "question force unresolved",
+        "action unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis suppresses aligned lexical speech."
+      ],
+      "reason": "Aligned ASR and locked text disagree on utterance type and action; the ellipsis cannot resolve the conflict."
+    },
+    {
+      "block_number": 161,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action unresolved",
+        "question content omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis removes a completed-state question."
+      ],
+      "reason": "Question force and completion are agreed, but the action is disputed; no defensible Korean meaning is recoverable."
+    },
+    {
+      "block_number": 162,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Preserves the source's brief question force and trailing hesitation naturally."
+    },
+    {
+      "block_number": 163,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "intensity unresolved",
+        "stop/prohibition omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis removes an urgent utterance."
+      ],
+      "reason": "A stop or prohibition is indicated, but speech act and intensity remain disputed; the content is unsafe."
+    },
+    {
+      "block_number": 164,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "permission question omitted",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis is not a translation of the audible question."
+      ],
+      "reason": "The permission question is audible, but aspect remains a forced critical dispute; the proposed ellipsis is inadequate."
+    },
+    {
+      "block_number": 165,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "question: rhetorical question rendered as a statement"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "해주길 원하잖아 is stiff for intimate dialogue."
+      ],
+      "reason": "The source and consensus require a question, while 잖아 with a period makes the Korean assertive."
+    },
+    {
+      "block_number": 166,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "permission question omitted",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis breaks the ongoing permission exchange."
+      ],
+      "reason": "The positive permission question is recoverable, but its critical aspect remains disputed."
+    },
+    {
+      "block_number": 167,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength unresolved",
+        "stop request omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Repeated stopping speech is replaced by an ellipsis."
+      ],
+      "reason": "The stop request is clear, but its command strength is disputed and cannot be safely supplied."
+    },
+    {
+      "block_number": 168,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "question force unresolved",
+        "polarity unresolved",
+        "refusal_permission unresolved",
+        "direction unresolved",
+        "intensity unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Permission and stopping readings conflict across critical slots; no evidence-bound Korean line is available."
+    },
+    {
+      "block_number": 169,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "location: こっち rendered as explicit 여기"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "여기도 narrows こっち to 'here' rather than preserving its 'this side/this one' deixis."
+    },
+    {
+      "block_number": 170,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "안도 is ambiguous and can be misread as the noun meaning relief."
+      ],
+      "reason": "The inside-location meaning is supported, but its Korean rendering is awkward and subtitle-ambiguous."
+    },
+    {
+      "block_number": 171,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action unresolved",
+        "intensity unresolved",
+        "completed statement omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "A completed-state statement is indicated, but its action and intensity remain critically disputed."
+    },
+    {
+      "block_number": 172,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action unresolved",
+        "high-intensity statement omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis discards aligned descriptive speech."
+      ],
+      "reason": "The high-intensity completed statement has an unresolved action, so its meaning cannot be safely restored."
+    },
+    {
+      "block_number": 173,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "polarity unresolved",
+        "urgent wait/stop content omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "The urgent wait or stop meaning conflicts in speech act and polarity; quarantine is required."
+    },
+    {
+      "block_number": 174,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity: 됐어 conflicts with aligned なってない",
+        "tense_aspect: affirmative completion conflicts with negative state"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Aligned ASR is negative, while the locked source and proposal are affirmative; critical evidence conflicts."
+    },
+    {
+      "block_number": 175,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "question force unresolved",
+        "action unresolved",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Only a brief acoustic fragment is available and the negative high-intensity frame remains unresolved."
+    },
+    {
+      "block_number": 176,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "The Korean naturally preserves the agreed brief question without adding unsupported detail."
+    },
+    {
+      "block_number": 177,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "action unresolved",
+        "negative high-intensity content omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Acoustic speech and the frame indicate intense negative content, but its act and action remain disputed."
+    },
+    {
+      "block_number": 178,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech content unrecoverable"
+      ],
+      "unsupported_additions": [
+        "Ellipsis implies a hesitation not established by acoustic evidence."
+      ],
+      "naturalness_issues": [
+        "Standalone ellipsis provides no usable subtitle content."
+      ],
+      "reason": "Neither acoustic evidence nor a recoverable semantic frame supports treating this block as an ellipsis."
+    },
+    {
+      "block_number": 179,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Directly matches the audible 何 and preserves its question force naturally."
+    },
+    {
+      "block_number": 180,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "polarity unresolved",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis suppresses potentially lexical speech."
+      ],
+      "reason": "The frame leaves speech act, polarity, and aspect critically unresolved; no safe subtitle meaning exists."
+    },
+    {
+      "block_number": 181,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "block-specific speech content unrecoverable"
+      ],
+      "unsupported_additions": [
+        "Ellipsis is not established by the referenced lexical ASR segment."
+      ],
+      "naturalness_issues": [],
+      "reason": "Referenced ASR contains lexical speech while the locked text is corrupt; block-specific meaning is unsupported."
+    },
+    {
+      "block_number": 182,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "A three-syllable subtitle displayed for 180 ms is unreadable."
+      ],
+      "reason": "The wording matches the positive high-intensity frame, but the subtitle exposure is too brief to read."
+    },
+    {
+      "block_number": 183,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech content unrecoverable"
+      ],
+      "unsupported_additions": [
+        "Ellipsis is not acoustically established."
+      ],
+      "naturalness_issues": [
+        "A 20 ms subtitle is unreadable."
+      ],
+      "reason": "The locked fragment is corrupt, the acoustic segment is not block-specific, and the 20 ms cue is unusable."
+    },
+    {
+      "block_number": 184,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech content unrecoverable"
+      ],
+      "unsupported_additions": [
+        "Ellipsis is not acoustically established."
+      ],
+      "naturalness_issues": [
+        "A 280 ms cue is too brief to read reliably."
+      ],
+      "reason": "Corrupt multilingual source text and coarse acoustic evidence cannot support a block-level subtitle."
+    },
+    {
+      "block_number": 185,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech content unrecoverable"
+      ],
+      "unsupported_additions": [
+        "Ellipsis is not acoustically established."
+      ],
+      "naturalness_issues": [
+        "A 100 ms subtitle is unreadable."
+      ],
+      "reason": "The source is corrupted and the 100 ms cue has no independently recoverable spoken meaning."
+    },
+    {
+      "block_number": 186,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech content unrecoverable"
+      ],
+      "unsupported_additions": [
+        "Ellipsis is not acoustically established."
+      ],
+      "naturalness_issues": [
+        "A 340 ms cue is too brief to read reliably."
+      ],
+      "reason": "The corrupted source and coarse shared ASR segment cannot support this separate subtitle cue."
+    },
+    {
+      "block_number": 187,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor unresolved",
+        "action unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis omits an audible negative statement."
+      ],
+      "reason": "The audible complaint is clear in tone, but actor and action remain critically disputed."
+    },
+    {
+      "block_number": 188,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity conflict",
+        "permission/refusal conflict",
+        "action conflict",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Aligned ASR asks permission to drink, while the locked source says no; critical meaning is contradictory."
+    },
+    {
+      "block_number": 189,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Faithfully preserves the negative why-question and reads naturally in Korean."
+    },
+    {
+      "block_number": 190,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "빨리잖아 uses an adverb predicatively and sounds awkward or incomplete."
+      ],
+      "reason": "The broad meaning is retained, but the Korean predicate is unnatural and needs wording repair."
+    },
+    {
+      "block_number": 191,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "혈연도 아니잖아 naturally preserves the present negative statement and source relationship."
+    },
+    {
+      "block_number": 192,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action/predicate: 혈연이 아니다 conflicts with 気持ち悪くない",
+        "target: blood relationship unsupported by aligned audio"
+      ],
+      "unsupported_additions": [
+        "Explicit blood relationship appears only in the conflicting locked source."
+      ],
+      "naturalness_issues": [],
+      "reason": "Exact-time ASR says it is not unpleasant, not that they are unrelated; the proposal is acoustically unsupported."
+    },
+    {
+      "block_number": 193,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "permission question omitted",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "A positive permission question is indicated, but its critical aspect is unresolved and no wording is proposed."
+    },
+    {
+      "block_number": 194,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "direction unresolved",
+        "negative continuation content omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "The high-intensity inability or continuation reading remains critically disputed."
+    },
+    {
+      "block_number": 195,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Preserves the repeated high-intensity refusal with natural, concise Korean."
+    },
+    {
+      "block_number": 196,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "self inability statement omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "The frame supports present self-inability, but its speech act remains disputed and the ellipsis loses it."
+    },
+    {
+      "block_number": 197,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Matches the audible negative causal statement and preserves present aspect."
+    },
+    {
+      "block_number": 198,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action: explicit look command absent from consensus",
+        "command_strength: imperative introduced"
+      ],
+      "unsupported_additions": [
+        "봐 makes interjective ほら an explicit command."
+      ],
+      "naturalness_issues": [],
+      "reason": "The permission question is supported, but 자, 봐 adds an unagreed action and command."
+    },
+    {
+      "block_number": 199,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "speech_act: vocalization changed into a command",
+        "action: look introduced",
+        "command_strength: imperative introduced"
+      ],
+      "unsupported_additions": [
+        "봐 explicitly orders the listener to look."
+      ],
+      "naturalness_issues": [],
+      "reason": "The fully agreed frame is only a vocalization; 봐 adds unsupported command force and action."
+    },
+    {
+      "block_number": 200,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved"
+      ],
+      "unsupported_additions": [
+        "Ellipsis is not supported by the lexical locked source."
+      ],
+      "naturalness_issues": [
+        "A 120 ms cue is unreadable."
+      ],
+      "reason": "The source contains lexical material, speech act is disputed, and the 120 ms ellipsis cue is unusable."
+    },
+    {
+      "block_number": 201,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "우와 preserves the agreed high-intensity vocalization concisely."
+    },
+    {
+      "block_number": 202,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Matches the aligned high-intensity positive feeling statement and reads naturally."
+    },
+    {
+      "block_number": 203,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech content unrecoverable"
+      ],
+      "unsupported_additions": [
+        "Ellipsis is not established by the broad acoustic segment."
+      ],
+      "naturalness_issues": [],
+      "reason": "The locked text is garbled and the shared ASR segment does not isolate recoverable speech for this cue."
+    },
+    {
+      "block_number": 204,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "The short Korean interjection preserves the agreed high-intensity vocalization."
+    },
+    {
+      "block_number": 205,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "엄청 preserves the acoustic and consensus intensity while remaining natural Korean."
+    },
+    {
+      "block_number": 206,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "polarity unresolved",
+        "actor unresolved",
+        "action unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis omits aligned lexical speech."
+      ],
+      "reason": "Aligned ASR includes a stop request absent from the locked source; critical meaning is contradictory."
+    },
+    {
+      "block_number": 207,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action: lick conflicts with acoustic stop",
+        "polarity: positive request conflicts with prohibition",
+        "tense_aspect unresolved",
+        "intensity unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "The locked source requests licking, while aligned audio says stop and no; the action and polarity are unsafe."
+    },
+    {
+      "block_number": 208,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action: locked feeling statement conflicts with acoustic licking statement",
+        "tense_aspect unresolved"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "Exact-time ASR concerns licking, not merely feeling good; source evidence conflicts and aspect is unresolved."
+    },
+    {
+      "block_number": 209,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect unresolved",
+        "lick request omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "Ellipsis removes a high-intensity request."
+      ],
+      "reason": "A high-intensity licking request is framed, but its aspect remains critically disputed."
+    },
+    {
+      "block_number": 210,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "tense_aspect: present 핥아 주는 conflicts with completed なめた",
+        "target: benefactive recipient introduced"
+      ],
+      "unsupported_additions": [
+        "주다 adds an unsupported benefactive meaning."
+      ],
+      "naturalness_issues": [],
+      "reason": "Aligned audio is completed licking; the Korean changes aspect and adds an unsupported beneficiary."
+    },
+    {
+      "block_number": 211,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect unresolved",
+        "high-intensity lick request omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "The request to lick extensively is supported, but its critical aspect remains unresolved."
+    },
+    {
+      "block_number": 212,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act unresolved",
+        "question force unresolved",
+        "polarity unresolved",
+        "command_strength unresolved",
+        "actor unresolved",
+        "action unresolved",
+        "tense_aspect unresolved",
+        "intensity unresolved"
+      ],
+      "unsupported_additions": [
+        "A continuous ellipsis is not supported across the mixed evidence."
+      ],
+      "naturalness_issues": [
+        "A 28-second ellipsis cue is a severe readability and timing problem."
+      ],
+      "reason": "Mixed lexical fragments and an empty frame cannot support this unusually long ellipsis subtitle."
+    },
+    {
+      "block_number": 213,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "tense_aspect/time: 이제 shifts imminent future to immediate now"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "The go-away request is preserved, but 이제 changes the source's 'soon' timing to 'now'."
+    },
+    {
+      "block_number": 214,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action: complex no-point proposition reduced to generic denial",
+        "target: 그건 introduces a demonstrative target"
+      ],
+      "unsupported_additions": [
+        "그건 is not established by the frame or acoustic fragment."
+      ],
+      "naturalness_issues": [
+        "Casual 반말 drifts from the source's polite register.",
+        "The 200 ms cue is unreadable."
+      ],
+      "reason": "The proposal loses the source proposition, adds a vague target, shifts register, and cannot be read in 200 ms."
+    }
+  ]
+}

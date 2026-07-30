@@ -1,0 +1,13 @@
+{
+  "scene_id": "scene-0019-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 651,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰된 일본어 원문과 합의 프레임에 부합하며, 긍정 평서문의 의미·시제·강도 변화나 근거 없는 추가가 없다."
+    }
+  ]
+}

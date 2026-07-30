@@ -1,0 +1,22 @@
+{
+  "scene_id": "scene-0003-conflict-rerun",
+  "frames": [
+    {
+      "block_number": 73,
+      "speech_act": "response",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "speaker-b",
+      "actor": "self",
+      "action": "feel_good",
+      "target": "self",
+      "location": null,
+      "tense_aspect": "present",
+      "direction": null,
+      "intensity": null,
+      "confidence": "high"
+    }
+  ]
+}

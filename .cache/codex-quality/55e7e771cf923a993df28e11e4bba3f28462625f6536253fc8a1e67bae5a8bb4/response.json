@@ -1,0 +1,33 @@
+{
+  "scene_id": "scene-0010",
+  "blocks": [
+    {
+      "block_number": 358,
+      "source_faithful_korean": "부탁해요.",
+      "viewer_natural_korean": "부탁해요.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 359,
+      "source_faithful_korean": "그렇죠?",
+      "viewer_natural_korean": "그렇죠?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00777:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 360,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00777:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

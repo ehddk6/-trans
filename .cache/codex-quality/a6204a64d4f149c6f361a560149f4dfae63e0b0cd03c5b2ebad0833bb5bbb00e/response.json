@@ -1,0 +1,15 @@
+{
+  "scene_id": "scene-0001-repair-1",
+  "blocks": [
+    {
+      "block_number": 31,
+      "source_faithful_korean": "물어보겠습니다.",
+      "viewer_natural_korean": "물어보겠습니다.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00071:faster-whisper-large-v3"
+      ]
+    }
+  ]
+}

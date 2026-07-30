@@ -1,0 +1,56 @@
+{
+  "scene_id": "scene-0010",
+  "frames": [
+    {
+      "block_number": 358,
+      "speech_act": "request",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "request",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "take_break",
+      "target": "other",
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": null,
+      "intensity": "medium",
+      "confidence": "high"
+    },
+    {
+      "block_number": 359,
+      "speech_act": "question",
+      "question": true,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": null,
+      "action": null,
+      "target": null,
+      "location": null,
+      "tense_aspect": "present",
+      "direction": null,
+      "intensity": "low",
+      "confidence": "high"
+    },
+    {
+      "block_number": 360,
+      "speech_act": "vocalization",
+      "question": false,
+      "polarity": "neutral",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": null,
+      "action": null,
+      "target": null,
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": null,
+      "intensity": "low",
+      "confidence": "medium"
+    }
+  ]
+}

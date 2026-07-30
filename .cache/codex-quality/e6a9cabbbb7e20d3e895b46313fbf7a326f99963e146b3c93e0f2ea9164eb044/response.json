@@ -1,0 +1,25 @@
+{
+  "scene_id": "scene-0009",
+  "blocks": [
+    {
+      "block_number": 356,
+      "source_faithful_korean": "어느 쪽이 좋으세요?",
+      "viewer_natural_korean": "어느 쪽이 더 좋아요?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00757:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 357,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00761:faster-whisper-large-v3"
+      ]
+    }
+  ]
+}

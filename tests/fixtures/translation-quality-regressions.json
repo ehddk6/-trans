@@ -1,6 +1,12 @@
 {
   "suite_name": "synthetic-ja-ko-translation-quality-regressions-v1",
   "synthetic": true,
+  "required_pilot_error_types": [
+    "unsupported-speaker-inference",
+    "unsupported-target-inference",
+    "corrupted-fragment-leakage",
+    "confirmation-speech-act-loss"
+  ],
   "default_input": {
     "source_japanese": "合成の日本語台詞です",
     "before_context": "앞 대사",
@@ -141,6 +147,46 @@
       "regression_candidate": {"source_faithful_korean": "또 올게."},
       "expected_regression_codes": ["required_text_missing"],
       "human_review_required": ["자연화와 정보량의 균형"]
+    },
+    {
+      "case_id": "pilot-omitted-speaker-must-not-be-first-person",
+      "pilot_error_type": "unsupported-speaker-inference",
+      "input": {"source_japanese": "自分…", "uncertainty": ["speaker"]},
+      "checks": {"must_abstain": true, "forbidden_inferred_slots": ["speaker"]},
+      "passing_candidate": {"status": "unresolved", "source_faithful_korean": "", "viewer_natural_korean": "", "inferred_slots": []},
+      "regression_candidate": {"status": "approved", "source_faithful_korean": "나는…", "viewer_natural_korean": "내가…", "inferred_slots": ["speaker"]},
+      "expected_regression_codes": ["abstention_required", "unsupported_inference"],
+      "human_review_required": ["원음과 장면에서 생략된 화자 확인"]
+    },
+    {
+      "case_id": "pilot-omitted-target-must-not-be-completed",
+      "pilot_error_type": "unsupported-target-inference",
+      "input": {"source_japanese": "自分の…", "uncertainty": ["target"]},
+      "checks": {"must_abstain": true, "forbidden_inferred_slots": ["target"]},
+      "passing_candidate": {"status": "unresolved", "source_faithful_korean": "", "viewer_natural_korean": "", "inferred_slots": []},
+      "regression_candidate": {"status": "approved", "source_faithful_korean": "자기 것을…", "viewer_natural_korean": "자기 거…", "inferred_slots": ["target"]},
+      "expected_regression_codes": ["abstention_required", "unsupported_inference"],
+      "human_review_required": ["불완전한 の 뒤의 대상 직접 청취"]
+    },
+    {
+      "case_id": "pilot-corrupted-fragment-must-not-leak",
+      "pilot_error_type": "corrupted-fragment-leakage",
+      "input": {"source_japanese": "自分の [破損断片]", "uncertainty": ["corrupted-fragment"]},
+      "checks": {"forbidden_text": {"source": ["cuid"], "viewer": ["cuid"]}},
+      "passing_candidate": {"status": "unresolved", "source_faithful_korean": "자기…", "viewer_natural_korean": "자기…"},
+      "regression_candidate": {"status": "approved", "source_faithful_korean": "자기 cuid…", "viewer_natural_korean": "자기 cuid…"},
+      "expected_regression_codes": ["forbidden_text_present"],
+      "human_review_required": ["손상된 문자열과 실제 발화의 구분"]
+    },
+    {
+      "case_id": "pilot-confirmation-speech-act-preserved",
+      "pilot_error_type": "confirmation-speech-act-loss",
+      "input": {"source_japanese": "奥まで入ってるでしょ"},
+      "checks": {"required_text": {"viewer": ["잖아"]}},
+      "passing_candidate": {"viewer_natural_korean": "깊이까지 들어가 있잖아."},
+      "regression_candidate": {"viewer_natural_korean": "깊이까지 들어가 있어."},
+      "expected_regression_codes": ["required_text_missing"],
+      "human_review_required": ["でしょ의 확인·동의 요구 화행과 억양"]
     },
     {
       "case_id": "subtitle-readability-cps",

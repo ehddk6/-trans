@@ -88,6 +88,7 @@ def validate_quality_regression_suite(path: Path) -> dict[str, Any]:
     errors: list[str] = []
     results: list[dict[str, Any]] = []
     seen: set[str] = set()
+    covered_pilot_error_types: set[str] = set()
     for index, case in enumerate(cases, 1):
         if not isinstance(case, dict):
             errors.append(f"{index}: case는 객체여야 합니다")
@@ -120,12 +121,39 @@ def validate_quality_regression_suite(path: Path) -> dict[str, Any]:
             errors.append(f"{case_id}: passing candidate가 자동 제약을 위반합니다: {', '.join(sorted(passing_codes))}")
         if not expected <= failing_codes:
             errors.append(f"{case_id}: regression candidate 탐지 누락: {', '.join(sorted(expected - failing_codes))}")
-        results.append({"case_id": case_id, "passing_codes": sorted(passing_codes), "failing_codes": sorted(failing_codes), "human_review_required": passing_report["human_review_required"]})
+        pilot_error_type = case.get("pilot_error_type")
+        if pilot_error_type is not None:
+            if not isinstance(pilot_error_type, str) or not pilot_error_type.strip():
+                errors.append(f"{case_id}: pilot_error_type은 비어 있지 않은 문자열이어야 합니다")
+            else:
+                covered_pilot_error_types.add(pilot_error_type)
+        results.append({
+            "case_id": case_id,
+            "passing_codes": sorted(passing_codes),
+            "failing_codes": sorted(failing_codes),
+            "human_review_required": passing_report["human_review_required"],
+            "pilot_error_type": pilot_error_type,
+        })
+    required_pilot_error_types = value.get("required_pilot_error_types", []) if isinstance(value, dict) else []
+    if not isinstance(required_pilot_error_types, list) or any(
+        not isinstance(item, str) or not item.strip() for item in required_pilot_error_types
+    ):
+        errors.append("required_pilot_error_types는 비어 있지 않은 문자열 배열이어야 합니다")
+        required_pilot_error_types = []
+    required_pilot_error_type_set = set(required_pilot_error_types)
+    if len(required_pilot_error_type_set) != len(required_pilot_error_types):
+        errors.append("required_pilot_error_types에 중복 항목이 있습니다")
+    missing_pilot_error_types = sorted(required_pilot_error_type_set - covered_pilot_error_types)
+    if missing_pilot_error_types:
+        errors.append(f"파일럿 오류 유형 회귀 사례 누락: {', '.join(missing_pilot_error_types)}")
     return {
         "status": "pass" if not errors else "fail",
         "suite": str(path),
         "cases": len(cases),
         "errors": errors,
         "results": results,
+        "required_pilot_error_types": sorted(required_pilot_error_type_set),
+        "covered_pilot_error_types": sorted(covered_pilot_error_types),
+        "missing_pilot_error_types": missing_pilot_error_types,
         "automatic_quality_claim": False,
     }

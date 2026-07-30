@@ -1,0 +1,607 @@
+{
+  "scene_id": "scene-0005",
+  "reviews": [
+    {
+      "block_number": 79,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "근거가 확정하지 않은 1인칭 화자 ‘나’"
+      ],
+      "naturalness_issues": [
+        "‘나 자신’만 30초간 노출되어 문장과 타이밍이 부자연스럽다."
+      ],
+      "reason": "‘自分’의 지시 대상이 미확정인데 ‘나’를 명시했고, 짧은 구절의 30초 노출도 부적절하다."
+    },
+    {
+      "block_number": 80,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "이동 명령을 말줄임표로 대체했고 30초간 노출된다."
+      ],
+      "reason": "이동 명령은 들리지만 행위자 합의가 깨졌고 블록 정렬도 없어 안전한 의미 확정이 불가능하다."
+    },
+    {
+      "block_number": 81,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "‘내가’만 독립적으로 남아 대화가 끊기며 다음 구절과도 긴 공백이 있다."
+      ],
+      "reason": "자기 지시는 맞지만 주어만 남은 독립 자막이라 한국어 대화 연속성이 깨진다."
+    },
+    {
+      "block_number": 82,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "고강도 계속 명령을 말줄임표로 누락했다."
+      ],
+      "reason": "계속하라는 강한 명령은 지지되지만 행위자 합의가 깨져 완전한 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 83,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표만으로 발화 기능을 전달하지 못한다."
+      ],
+      "reason": "두 ASR이 사과와 긍정 반응으로 갈리고 원문도 사용할 수 없어 의미를 지지할 증거가 없다."
+    },
+    {
+      "block_number": 84,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "intensity: high→weak/unspecified"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "‘아…’가 고강도 발성을 약화하며 30초 노출도 지나치게 길다."
+      ],
+      "reason": "발성 자체는 맞지만 합의된 높은 강도를 말줄임표가 약화하고 노출 시간도 비정상적이다."
+    },
+    {
+      "block_number": 85,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "중간 강도의 현재 발성을 간결하게 옮겼으며 추가 의미나 핵심 슬롯 충돌이 없다."
+    },
+    {
+      "block_number": 86,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "speech_act: vocalization→ellipsis",
+        "intensity: medium→unspecified"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "반복 발성을 말줄임표로 지웠고 30초간 노출된다."
+      ],
+      "reason": "중간 강도의 발성이 합의됐으므로 무음처럼 보이는 말줄임표는 발화 기능과 강도를 보존하지 못한다."
+    },
+    {
+      "block_number": 87,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "speech_act: vocalization→ellipsis",
+        "intensity: medium→unspecified"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "실제 발성을 말줄임표로 대체했다."
+      ],
+      "reason": "중간 강도의 발성이라는 합의가 있는데 말줄임표만 제시해 발화 기능과 강도를 누락했다."
+    },
+    {
+      "block_number": 88,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 30초간 표시되어 가독성이 낮다."
+      ],
+      "reason": "발성 강도에 합의가 없고 질문 여부도 비어 있어 이 블록의 표현을 증거로 확정할 수 없다."
+    },
+    {
+      "block_number": 89,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표만으로 대사를 복원하지 못한다."
+      ],
+      "reason": "청소 관련 발화는 들리지만 질문과 진술이 갈리고 원문도 사용할 수 없어 의미 확정이 불가능하다."
+    },
+    {
+      "block_number": 90,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 실제 대화 기능을 누락한다."
+      ],
+      "reason": "한 ASR은 얼굴을 깨끗이 하라는 말, 다른 ASR은 긍정 반응이라 의미를 지지할 독립 합의가 없다."
+    },
+    {
+      "block_number": 91,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "긍정 반응 가능성을 말줄임표로 처리했다."
+      ],
+      "reason": "긍정 반응 프레임은 있으나 단일 ASR 계열뿐이고 강제 상태가 abstained라 채택할 수 없다."
+    },
+    {
+      "block_number": 92,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "연속된 말줄임표가 자막 정보 없이 반복된다."
+      ],
+      "reason": "블록 정렬 없는 단일 ASR만 있고 원문도 사용할 수 없어 이 2초 구간의 의미를 특정할 수 없다."
+    },
+    {
+      "block_number": 93,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "연속된 말줄임표가 자막 정보 없이 반복된다."
+      ],
+      "reason": "같은 단일 ASR 창이 여러 블록에 재사용되어 이 블록에 배정할 독립 음향 증거가 없다."
+    },
+    {
+      "block_number": 94,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "연속된 말줄임표가 자막 정보 없이 반복된다."
+      ],
+      "reason": "같은 단일 ASR 창만 반복 참조하고 의미 슬롯도 모두 비어 있어 블록 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 95,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "연속된 말줄임표가 자막 정보 없이 반복된다."
+      ],
+      "reason": "단일 비정렬 음향 창과 사용할 수 없는 원문만으로는 이 블록의 발화를 지지할 수 없다."
+    },
+    {
+      "block_number": 96,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 약 28초간 표시된다."
+      ],
+      "reason": "넓은 비정렬 창에 서로 다른 대화가 섞였고 의미 프레임도 비어 있어 블록별 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 97,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표만으로 짧은 대화 블록을 누락했다."
+      ],
+      "reason": "원문은 사용할 수 없고 넓은 창의 사무실 대화를 이 2초 블록에 배정할 근거가 없다."
+    },
+    {
+      "block_number": 98,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 연속 블록에서 반복된다."
+      ],
+      "reason": "완전 합의 프레임에도 의미 내용이 없고 블록 단위 음향 정렬도 없어 제안 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 99,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 연속 블록에서 반복된다."
+      ],
+      "reason": "사용 불가 원문과 비정렬 대화 창만 있어 이 블록에 해당하는 발화 의미를 복원할 수 없다."
+    },
+    {
+      "block_number": 100,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "근거에 없는 평가 방식 질문 ‘어때’"
+      ],
+      "naturalness_issues": [
+        "두 글자 질문이 약 30초간 노출된다."
+      ],
+      "reason": "질문 여부만 합의됐고 대상·행동은 비어 있다. 여러 질문이 섞인 창에서 ‘어때?’를 특정할 수 없다."
+    },
+    {
+      "block_number": 101,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "자기 지시를 보존하며 바로 다음 블록의 서술과 자연스럽게 이어지고 추가 의미도 없다."
+    },
+    {
+      "block_number": 102,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "자신이 가고 싶다는 긍정 진술이 음향과 합의 프레임에 맞고 힘이나 시제를 바꾸지 않는다."
+    },
+    {
+      "block_number": 103,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "자신이 하겠다는 낮은 강도의 미래 진술을 자연스럽게 옮겼고 핵심 충돌이 없다."
+    },
+    {
+      "block_number": 104,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "인사 또는 작별 발화를 말줄임표로 누락했다."
+      ],
+      "reason": "‘お疲れ’는 들리지만 인사와 작별 기능의 합의가 깨져 강제 abstained 상태를 해제할 수 없다."
+    },
+    {
+      "block_number": 105,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "연속 인사 발화를 말줄임표로 누락했다."
+      ],
+      "reason": "두 번째 ‘お疲れ’도 발화 기능 합의가 깨졌고 블록 경계가 정렬되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 106,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대화 연결어를 말줄임표로 처리해 흐름이 끊긴다."
+      ],
+      "reason": "신뢰 원문과 음향 창의 발화가 대응하지 않고 합의 프레임도 비어 있어 안전한 번역 근거가 없다."
+    },
+    {
+      "block_number": 107,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "점심 회의 관련 질문을 말줄임표로 누락했다."
+      ],
+      "reason": "미래 회의 요청 질문은 보이지만 발화 기능과 대상 합의가 깨져 제안 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 108,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "허락 또는 수락 반응을 말줄임표로 누락했다."
+      ],
+      "reason": "회의 허락 프레임의 행위자와 대상이 충돌하고 강제 상태도 abstained라 의미 확정이 불가능하다."
+    },
+    {
+      "block_number": 109,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "낮은 강도의 긍정 응답을 자연스럽게 보존했으며 추가된 대상이나 행위가 없다."
+    },
+    {
+      "block_number": 110,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재의 긍정 진술 ‘大丈夫’를 자연스럽게 옮겼고 모든 합의 슬롯과 일치한다."
+    },
+    {
+      "block_number": 111,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "부정 반응 가능성을 말줄임표로 지웠다."
+      ],
+      "reason": "발화 기능과 극성이 모두 충돌하며 해당 블록의 독립 음향 정렬도 없어 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 112,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 다음 블록과의 문장 연결을 끊는다."
+      ],
+      "reason": "원문의 ‘常に’가 음향 창에서 확인되지 않고 의미 프레임도 비어 있어 해당 부사를 채택할 수 없다."
+    },
+    {
+      "block_number": 113,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "미확정 행위자를 화자 자신으로 명시",
+        "미확정 시제를 미래 의지 ‘-ㄹ게’로 명시"
+      ],
+      "naturalness_issues": [],
+      "reason": "가져가는 방향은 맞지만 ‘-ㄹ게’가 합의되지 않은 화자 행위와 미래 의지를 명시한다."
+    },
+    {
+      "block_number": 114,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표만으로 발화 내용을 전달하지 못한다."
+      ],
+      "reason": "원문과 두 ASR의 내용이 대응하지 않고 강도 합의도 깨져 이 블록의 긍정 진술을 특정할 수 없다."
+    },
+    {
+      "block_number": 115,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 짧은 발화의 의미를 완전히 누락한다."
+      ],
+      "reason": "원문 ‘天使’가 두 ASR에 없고 합의 의미도 비어 있어 어떤 발화인지 증거로 확정할 수 없다."
+    },
+    {
+      "block_number": 116,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "의미 없는 말줄임표가 대화 흐름을 끊는다."
+      ],
+      "reason": "원문 ‘アタケ’의 의미가 불명확하고 음향 전사와도 맞지 않아 번역 가능한 의미를 지지하지 못한다."
+    },
+    {
+      "block_number": 117,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "부정 반응을 말줄임표로 누락했다."
+      ],
+      "reason": "부정 응답 프레임은 있으나 강도 합의가 깨졌고 원문과 음향의 대응도 불명확해 확정할 수 없다."
+    },
+    {
+      "block_number": 118,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재의 중간 강도 긍정 평가를 자연스럽게 옮겼고 음향의 ‘上手’와도 일치한다."
+    },
+    {
+      "block_number": 119,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "낮은 강도의 현재 긍정 응답을 그대로 보존하며 모든 합의 슬롯과 일치한다."
+    },
+    {
+      "block_number": 120,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 핥는 동작, 진행상, 긍정 평가와 중간 강도를 모두 보존해 충돌이 없다."
+    },
+    {
+      "block_number": 121,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "‘음성’이라는 메타성 원문과 말줄임표 모두 대화 연속성을 해친다."
+      ],
+      "reason": "원문 ‘音声’가 두 ASR에 없고 합의 의미도 비어 있어 실제 발화인지조차 지지할 수 없다."
+    },
+    {
+      "block_number": 122,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "낮은 강도의 현재 질문 반응을 간결하게 보존했고 질문 힘을 바꾸지 않는다."
+    },
+    {
+      "block_number": 123,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "질문을 말줄임표로 누락했다."
+      ],
+      "reason": "무슨 일인지 묻는 질문은 지지되지만 질문 대상 합의가 깨져 강제 abstained 상태를 유지해야 한다."
+    },
+    {
+      "block_number": 124,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "중간 강도의 금지 명령을 말줄임표로 지웠다."
+      ],
+      "reason": "쉬지 말라는 계속 금지는 분명하지만 행위자 합의가 깨져 완전한 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 125,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "허락 또는 지시에 대한 낮은 강도의 긍정 응답을 자연스럽게 보존했다."
+    },
+    {
+      "block_number": 126,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "낮은 강도의 긍정 응답으로 합의 프레임과 원문에 맞으며 추가 의미가 없다."
+    },
+    {
+      "block_number": 127,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "낮은 강도의 긍정 응답을 그대로 옮겨 극성이나 발화 기능의 변화가 없다."
+    },
+    {
+      "block_number": 128,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰 원문도 말줄임표이고 의미 슬롯이 비어 있어 제안이 별도 의미를 추가하거나 바꾸지 않는다."
+    },
+    {
+      "block_number": 129,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "낮은 강도의 긍정 응답을 자연스럽게 보존했고 대상이나 행위를 덧붙이지 않았다."
+    },
+    {
+      "block_number": 130,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "중간 강도의 짧은 신음 발성을 자연스러운 한국어 감탄사로 보존했다."
+    },
+    {
+      "block_number": 131,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "원문의 반복 신음과 합의된 중간 강도를 유지하며 의미를 덧붙이지 않았다."
+    },
+    {
+      "block_number": 132,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "세 번째 중간 강도 발성을 같은 등록과 형태로 일관되게 옮겼다."
+    },
+    {
+      "block_number": 133,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "낮은 강도의 긍정 응답으로 원문과 합의 프레임에 맞고 자연스럽다."
+    },
+    {
+      "block_number": 134,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대에게 멈추고 기다려 달라는 중간 강도 요청을 자연스럽게 보존했다."
+    },
+    {
+      "block_number": 135,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "핥기 요청을 말줄임표로 누락했다."
+      ],
+      "reason": "핥기 행위 외에는 발화 기능·행위자·강도 합의가 모두 깨져 안전한 자막 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 136,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재의 중간 강도 긍정 평가를 간결하고 자연스럽게 옮겼으며 추가 대상이 없다."
+    },
+    {
+      "block_number": 137,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재 느끼는 긍정적 감각을 중간 강도로 자연스럽게 옮겨 합의 프레임과 일치한다."
+    },
+    {
+      "block_number": 138,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "구체적인 진입 질문을 말줄임표로 누락했다."
+      ],
+      "reason": "안으로 들어가는 현재 질문은 보이지만 강도 합의가 깨지고 위치도 비어 있어 의미를 확정할 수 없다."
+    }
+  ]
+}

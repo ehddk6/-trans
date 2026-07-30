@@ -1,0 +1,16 @@
+{
+  "scene_id": "scene-0015-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 493,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "음성에 없는 연결어 \"그럼\"",
+        "음성에 없는 명시적 퇴장 표현 \"이만\""
+      ],
+      "naturalness_issues": [],
+      "reason": "핵심 의미와 격식은 맞지만, 원음에 없는 \"그럼, 이만\"을 덧붙여 발화의 명시성을 높였다."
+    }
+  ]
+}

@@ -1,0 +1,444 @@
+{
+  "scene_id": "scene-0005",
+  "reviews": [
+    {
+      "block_number": 215,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰된 원문과 합의 프레임을 보존하며 연결형 문장도 문맥상 자연스럽다."
+    },
+    {
+      "block_number": 216,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복을 읽기 좋게 줄였으며 신뢰된 원문의 제지성 발화와 충돌하지 않는다."
+    },
+    {
+      "block_number": 217,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "direction: continue가 increase로 바뀜",
+        "tense_aspect: 지속 의미가 약화됨"
+      ],
+      "unsupported_additions": [
+        "219번의 'もっと'를 앞당긴 '더'"
+      ],
+      "naturalness_issues": [],
+      "reason": "원문과 합의는 계속 핥으라는 뜻인데, '더'가 강도 증가로 바뀌며 219번 내용을 선취한다."
+    },
+    {
+      "block_number": 218,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "'제발'은 합의된 긴급 요청과 높은 강도를 자연스럽게 반영한다."
+    },
+    {
+      "block_number": 219,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "의미 있는 발화를 '…'로 대체해 정보가 소실됨"
+      ],
+      "reason": "source_status가 abstained이고 발화행위·명령 강도·시제가 합의되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 220,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "반복된 부정 발화를 '…'로 대체해 정보가 소실됨"
+      ],
+      "reason": "source_status가 abstained이고 발화행위와 강도가 충돌해 안전한 번역을 확정할 수 없다."
+    },
+    {
+      "block_number": 221,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰된 원문의 짧은 연결 구절을 그대로 보존하며 합의 슬롯과 충돌하지 않는다."
+    },
+    {
+      "block_number": 222,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "짧은 반응 발화를 '…'로 대체해 기능이 사라짐"
+      ],
+      "reason": "source_status가 abstained이고 발화행위가 합의되지 않아 반응의 기능을 확정할 수 없다."
+    },
+    {
+      "block_number": 223,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정 확인 질문의 힘과 현재시제를 유지하며 자연스러운 한국어다."
+    },
+    {
+      "block_number": 224,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "발화를 '…'로 대체해 안심·허용 관련 정보가 소실됨"
+      ],
+      "reason": "source_status가 abstained이고 발화행위와 질문성이 충돌해 허용 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 225,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복을 한 차례 줄였지만 지시 대상과 발화 흐름은 유지된다."
+    },
+    {
+      "block_number": 226,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰된 원문을 간결하고 자연스럽게 옮겼으며 합의된 정보와 충돌하지 않는다."
+    },
+    {
+      "block_number": 227,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "대상에 대한 이유 질문을 정확히 보존한다."
+    },
+    {
+      "block_number": 228,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복된 이유 질문의 의문형과 강도를 그대로 유지한다."
+    },
+    {
+      "block_number": 229,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "감정 진술을 '…'로 대체해 정보가 소실됨"
+      ],
+      "reason": "source_status가 abstained이고 극성이 충돌해 감정 진술의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 230,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "사과 가능성이 있는 발화를 '…'로 대체함"
+      ],
+      "reason": "음향은 감탄·호흡만 포착했고 발화행위도 합의되지 않아 사과 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 231,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "사과 발화를 '…'로 대체해 대화 연속성이 끊김"
+      ],
+      "reason": "직접 음향 근거가 없고 source_status가 abstained라 사과의 발화행위를 확정할 수 없다."
+    },
+    {
+      "block_number": 232,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "사과 발화를 '…'로 대체해 대화 연속성이 끊김"
+      ],
+      "reason": "직접 음향 근거가 없고 source_status가 abstained라 사과의 발화행위를 확정할 수 없다."
+    },
+    {
+      "block_number": 233,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "사과 발화를 '…'로 대체해 대화 연속성이 끊김"
+      ],
+      "reason": "직접 음향 근거가 없고 source_status가 abstained라 사과의 발화행위를 확정할 수 없다."
+    },
+    {
+      "block_number": 234,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "용서 요청과 사과를 모두 보존하며 높은 절박함도 자연스럽다."
+    },
+    {
+      "block_number": 235,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "상대 비난 진술을 '…'로 대체해 정보가 소실됨"
+      ],
+      "reason": "상대가 잘못했다는 음향 단서는 있으나 극성이 충돌하고 source_status도 abstained다."
+    },
+    {
+      "block_number": 236,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "합의된 긴급 중단 명령과 금지 강도를 정확하고 읽기 좋게 표현한다."
+    },
+    {
+      "block_number": 237,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "상대 비난 진술을 '…'로 대체해 정보가 소실됨"
+      ],
+      "reason": "비난 대상은 상대방으로 모이지만 극성이 충돌해 확정 번역을 지지할 수 없다."
+    },
+    {
+      "block_number": 238,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "의미 있는 발화를 '…'로 대체해 정보가 소실됨"
+      ],
+      "reason": "음향과 원문 의미의 대응이 불명확하고 발화행위도 합의되지 않아 격리해야 한다."
+    },
+    {
+      "block_number": 239,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "혀를 내밀라는 발화를 '…'로 대체해 행동 정보가 소실됨"
+      ],
+      "reason": "혀를 밖으로 내미는 행동은 보이지만 발화행위와 명령 강도가 합의되지 않았다."
+    },
+    {
+      "block_number": 240,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "복합 발화를 '…'로 대체해 조건과 행동 정보가 소실됨"
+      ],
+      "reason": "발화행위·명령 강도·강도가 모두 충돌해 복합 문장의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 241,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "의미 있는 발화를 '…'로 대체해 정보가 소실됨"
+      ],
+      "reason": "원문과 음향의 대응이 불명확하고 발화행위도 합의되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 242,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "호칭이 포함된 사과를 '…'로 대체함"
+      ],
+      "reason": "단일 음향 계열만 있고 발화행위가 충돌해 사과와 호칭을 안전하게 확정할 수 없다."
+    },
+    {
+      "block_number": 243,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재의 긍정적 감각 진술을 간결하고 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 244,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "사과 발화를 '…'로 대체해 정보가 소실됨"
+      ],
+      "reason": "음향은 짧은 감탄만 포착했고 발화행위가 충돌해 사과 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 245,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향의 긍정적 쾌감과 높은 강도를 보존하며 반복 축약도 읽기 적절하다."
+    },
+    {
+      "block_number": 246,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "첫 질문과 이어지는 보기 명령을 모두 보존해 합의 프레임과 일치한다."
+    },
+    {
+      "block_number": 247,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "'진짜'가 음향의 높은 속도 강도를 자연스럽게 전달한다."
+    },
+    {
+      "block_number": 248,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "높은 긍정 강도와 현재의 감각 진술을 유지하며 대화체로 자연스럽다."
+    },
+    {
+      "block_number": 249,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "반복 사과를 '…'로 대체해 강도와 연속성이 사라짐"
+      ],
+      "reason": "source_status가 abstained이고 사과의 발화행위가 합의되지 않아 확정할 수 없다."
+    },
+    {
+      "block_number": 250,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "polarity",
+        "command_strength",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "행동 요구와 평가를 '…'로 대체해 정보가 소실됨"
+      ],
+      "reason": "행동·극성·발화행위·명령 강도가 모두 충돌해 제안된 공백 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 251,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "자신이 행동하도록 허용해 달라는 강한 요청을 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 252,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복되는 행동 허용 요청의 행위자와 요청 강도를 유지한다."
+    },
+    {
+      "block_number": 253,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "거부 발화를 '…'로 대체해 극성과 기능이 사라짐"
+      ],
+      "reason": "거부의 극성과 발화 기능은 보이지만 시제·상 충돌로 source_status가 abstained다."
+    },
+    {
+      "block_number": 254,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "말더듬과 자기수정을 줄여 최종 복수 지칭을 자연스럽게 전달한다."
+    },
+    {
+      "block_number": 255,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "화자의 임박한 절정을 미래상과 높은 강도로 자연스럽게 표현한다."
+    },
+    {
+      "block_number": 256,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "특정 행위에 대한 강한 금지와 부정 극성을 유지하며 반복 축약도 적절하다."
+    },
+    {
+      "block_number": 257,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긴급 중단과 밖으로 빼라는 명령의 방향·강도·금지성을 모두 보존한다."
+    }
+  ]
+}

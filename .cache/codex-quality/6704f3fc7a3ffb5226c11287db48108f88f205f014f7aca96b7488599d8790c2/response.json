@@ -1,0 +1,38 @@
+{
+  "scene_id": "scene-0004-repair-1",
+  "blocks": [
+    {
+      "block_number": 170,
+      "source_faithful_korean": "안쪽도 괜찮지?",
+      "viewer_natural_korean": "안쪽도 괜찮지?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00345:faster-whisper-large-v3",
+        "utterance:utterance-00347:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 182,
+      "source_faithful_korean": "대단해.",
+      "viewer_natural_korean": "와!",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00366:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 190,
+      "source_faithful_korean": "빠르잖아.",
+      "viewer_natural_korean": "빠르잖아.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr-rerun:conflict-group-00012:faster-whisper-large-v3",
+        "asr-rerun:conflict-group-00012:reazonspeech-k2-v2",
+        "utterance:utterance-00372:faster-whisper-large-v3"
+      ]
+    }
+  ]
+}

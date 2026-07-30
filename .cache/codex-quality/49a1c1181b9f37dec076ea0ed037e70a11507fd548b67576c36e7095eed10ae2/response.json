@@ -1,0 +1,17 @@
+{
+  "scene_id": "scene-0008-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 343,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor omitted: mother",
+        "action omitted: asking where she went",
+        "location/whereabouts omitted"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "블록 정렬 음성은 ‘엄마 어디 갔어?’로 명확하다. ‘어?’는 질문성만 남기고 핵심 행위자와 소재 질문을 삭제한다."
+    }
+  ]
+}

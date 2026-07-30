@@ -1,0 +1,26 @@
+{
+  "scene_id": "scene-0012-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 389,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰된 원문·블록 정렬 음향·합의 프레임과 일치하며 부정과 미래 의미도 자연스럽게 유지된다."
+    },
+    {
+      "block_number": 397,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "비블록 정렬 ASR가 walk가 아닌 흔들림 또는 키스를 인식함",
+        "ASR 후보의 질문·명령성이 제안문의 평서문성과 충돌함"
+      ],
+      "unsupported_additions": [
+        "음향으로 확인되지 않는 걷기 동작"
+      ],
+      "naturalness_issues": [],
+      "reason": "두 음향 재인식이 서로 충돌하고 어느 쪽도 ‘걷지 않음’을 지지하지 않아 제안 의미를 확정할 수 없다."
+    }
+  ]
+}

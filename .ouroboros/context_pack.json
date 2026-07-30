@@ -1,0 +1,17 @@
+{
+  "head": "32b52c983257fb534012be9d2c1557f7fb218da8",
+  "stack": [
+    "Python (pyproject): translation-forensics 0.1.0 (requires-python >=3.10)"
+  ],
+  "verify_commands": [],
+  "fingerprint": {
+    "pyproject.toml": [
+      1785122059839129400,
+      758
+    ],
+    "package.json": "absent",
+    "go.mod": "absent",
+    "Cargo.toml": "absent",
+    ".ouroboros/mechanical.toml": "absent"
+  }
+}

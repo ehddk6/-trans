@@ -1,0 +1,551 @@
+{
+  "scene_id": "scene-0006",
+  "reviews": [
+    {
+      "block_number": 258,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "지속 중인 위장 설정을 단순히 과거에 '죽었다고 한' 것으로 약화해 행위와 상이 달라진다."
+    },
+    {
+      "block_number": 259,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향·신뢰 원문·합의 프레임과 일치하며 한국어도 자연스럽다."
+    },
+    {
+      "block_number": 260,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "행위자, 고강도 노동, 완료된 결과가 합의 프레임과 일치한다."
+    },
+    {
+      "block_number": 261,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "action"
+      ],
+      "unsupported_additions": [
+        "실제 발화를 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "대사가 사라져 장면의 연속성이 끊김"
+      ],
+      "reason": "행위와 극성 합의가 깨져 출처가 기권 처리됐으며, 말줄임표도 음향 발화를 보존하지 못한다."
+    },
+    {
+      "block_number": 262,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "실제 발화를 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "대사가 사라져 독백의 연속성이 끊김"
+      ],
+      "reason": "행위와 시제·상 합의가 없어 의미를 확정할 수 없고, 말줄임표는 실제 발화를 누락한다."
+    },
+    {
+      "block_number": 263,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [
+        "실제 질문을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "질문이 사라져 문답 흐름이 끊김"
+      ],
+      "reason": "행위자와 행위 합의가 깨져 출처가 기권 처리됐고, 제안문은 질문 발화를 보존하지 않는다."
+    },
+    {
+      "block_number": 264,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [
+        "실제 질문을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "인사 뒤 질문이 누락돼 대화가 끊김"
+      ],
+      "reason": "행위자 합의가 없어 질문의 주체를 확정할 수 없으며, 말줄임표는 음향 내용과 맞지 않는다."
+    },
+    {
+      "block_number": 265,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [
+        "실제 질문을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "질문이 사라져 응답 연결이 깨짐"
+      ],
+      "reason": "행위자와 행위 합의가 없어 미래의 계속 여부를 묻는 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 266,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "target"
+      ],
+      "unsupported_additions": [
+        "실제 진술을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "가족 관계 진술이 누락됨"
+      ],
+      "reason": "가족이 되려는 대상에 합의가 없어 핵심 관계 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 267,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "target",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "실제 진술을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "화자의 의도 진술이 누락됨"
+      ],
+      "reason": "애정을 전할 대상과 시제·상 합의가 깨져 제안 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 268,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "실제 질문을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "질문이 누락돼 대화가 단절됨"
+      ],
+      "reason": "부정 질문의 행위자와 시제·상 합의가 없어 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 269,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [
+        "실제 요청을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "요청 발화가 누락됨"
+      ],
+      "reason": "요청의 행위자가 합의되지 않아 역할과 명령 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 270,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아버지인 자신이 상대에게 무엇을 해줄지 묻는 미래 질문으로 합의 프레임과 일치한다."
+    },
+    {
+      "block_number": 271,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [
+        "실제 질문을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "반복 대화 전체가 누락됨"
+      ],
+      "reason": "원문 자체가 반복적이고 행위자·행위 합의도 깨져 의미를 안정적으로 복원할 수 없다."
+    },
+    {
+      "block_number": 272,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "유와 대화를 마쳤는지 묻는 질문으로 음향과 합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 273,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [
+        "실제 발화를 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "응답이 누락돼 문답이 끊김"
+      ],
+      "reason": "발화 기능 합의가 깨져 내일 말하겠다는 진술인지 다른 기능인지 확정할 수 없다."
+    },
+    {
+      "block_number": 274,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "낮은 강도의 수긍 응답으로 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 275,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "actor",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "실제 중지 발화를 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "긴급한 제지 발화가 사라짐"
+      ],
+      "reason": "긴급한 중지 의미는 들리지만 발화 기능·행위자·시제 합의가 깨져 출처가 기권 처리됐다."
+    },
+    {
+      "block_number": 276,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [
+        "실제 질문을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "추궁 질문이 누락됨"
+      ],
+      "reason": "무엇을 노리는지 묻는 질문의 행위자가 합의되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 277,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "'이 이상이면'이 수량 조건처럼 들려 대화체로 어색함"
+      ],
+      "reason": "'이 이상이면'은 위협 조건을 부자연스럽게 표현해 대사의 즉시성과 가독성을 떨어뜨린다."
+    },
+    {
+      "block_number": 278,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "학원을 빼먹고 친구들과 놀 돈이 필요하다는 현재 진술로 합의 프레임과 일치한다."
+    },
+    {
+      "block_number": 279,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "실제 진술을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "친구 관계 설명이 누락됨"
+      ],
+      "reason": "친구 관계 행위의 시제·상이 합의되지 않아 현재인지 지속 상태인지 확정할 수 없다."
+    },
+    {
+      "block_number": 280,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "actor"
+      ],
+      "unsupported_additions": [
+        "실제 발화를 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "충고 또는 제안이 누락됨"
+      ],
+      "reason": "만남을 끊으라는 발화의 기능과 행위자가 합의되지 않아 명령 강도를 확정할 수 없다."
+    },
+    {
+      "block_number": 281,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action"
+      ],
+      "unsupported_additions": [
+        "실제 진술을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "결별 의사 진술이 누락됨"
+      ],
+      "reason": "미래에 상대들과 관계를 끊겠다는 행위가 합의되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 282,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [
+        "실제 요청을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "놀이 요청이 누락됨"
+      ],
+      "reason": "함께 놀자는 요청의 행위자와 대상이 합의되지 않아 관계 방향을 확정할 수 없다."
+    },
+    {
+      "block_number": 283,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "actor",
+        "action",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [
+        "실제 발화를 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "핵심 대사가 전부 누락됨"
+      ],
+      "reason": "발화 기능·명령 강도·행위자·행위·시제·강도 전반의 합의가 없어 복원할 수 없다."
+    },
+    {
+      "block_number": 284,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "polarity",
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [
+        "실제 명령을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "명령과 후속 발화가 누락됨"
+      ],
+      "reason": "발화 기능·극성·행위자·대상 합의가 깨졌고 후반 원문도 불안정해 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 285,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "direction"
+      ],
+      "unsupported_additions": [
+        "귀가 인사를 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "귀가 장면의 첫 인사가 누락됨"
+      ],
+      "reason": "귀가 방향 합의가 깨져 출처가 기권 처리됐으며, 말줄임표는 명확한 음향 발화를 보존하지 않는다."
+    },
+    {
+      "block_number": 286,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "direction"
+      ],
+      "unsupported_additions": [
+        "귀가 응답을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "인사 응답이 누락돼 대화가 끊김"
+      ],
+      "reason": "귀가 응답의 행위자와 방향이 합의되지 않아 화자 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 287,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [
+        "실제 질문을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "늦은 귀가 여부를 묻는 질문이 누락됨"
+      ],
+      "reason": "미래 부정 질문의 행위자가 합의되지 않아 누구의 예정인지 확정할 수 없다."
+    },
+    {
+      "block_number": 288,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "예정된 회의가 연기됐다는 완료 진술로 원문과 합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 289,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 수긍 응답으로 음향과 장면의 대화 흐름에 자연스럽다."
+    },
+    {
+      "block_number": 290,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아직 일이 남아 있다는 현재 상태를 자연스러운 이유절로 전달한다."
+    },
+    {
+      "block_number": 291,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [
+        "실제 허용 발화를 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "저녁 준비에 관한 허용이 누락됨"
+      ],
+      "reason": "허용되는 행위와 행위자가 합의되지 않아 누가 무엇을 서두르지 않아도 되는지 확정할 수 없다."
+    },
+    {
+      "block_number": 292,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정과 감사로 이루어진 응답이며 음향 및 합의 프레임과 일치한다."
+    },
+    {
+      "block_number": 293,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "유의 현재 상황을 묻는 짧은 질문으로 원문과 합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 294,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "direction"
+      ],
+      "unsupported_additions": [
+        "실제 진술을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "귀가 여부에 관한 응답이 누락됨"
+      ],
+      "reason": "귀가 방향 합의가 깨져 아직 돌아오지 않았다는 상태를 확정된 자막으로 채택할 수 없다."
+    },
+    {
+      "block_number": 295,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "오늘 아침 잠깐 대화했다는 완료 진술로 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 296,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "진행 중으로 합의된 '가고 있다'를 완료 추정인 '갔을 거야'로 바꿔 시제·상이 달라진다."
+    },
+    {
+      "block_number": 297,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "수긍 뒤 감사를 전하는 응답으로 원문과 합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 298,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "direction"
+      ],
+      "unsupported_additions": [
+        "귀가 환영을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "환영 인사가 누락돼 장면 연결이 끊김"
+      ],
+      "reason": "귀가 응답의 행위자와 방향이 합의되지 않아 화자와 이동 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 299,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [
+        "실제 진술을 대신한 비음향 말줄임표"
+      ],
+      "naturalness_issues": [
+        "현재 상황에 대한 반응이 누락됨"
+      ],
+      "reason": "이 시간에 있는 것이 드물다는 진술의 행위자와 행위가 합의되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 300,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "일정이 취소되어 없어졌다는 완료 의미로 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 301,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "오랜만에 세 사람이 함께 식사할 미래 상황을 자연스럽게 전달한다."
+    },
+    {
+      "block_number": 302,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 수긍 응답으로 원문과 대화 흐름에 자연스럽게 맞는다."
+    }
+  ]
+}

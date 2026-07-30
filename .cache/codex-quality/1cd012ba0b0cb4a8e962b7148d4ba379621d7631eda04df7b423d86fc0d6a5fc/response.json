@@ -1,0 +1,54 @@
+{
+  "scene_id": "scene-0003",
+  "reviews": [
+    {
+      "block_number": 73,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정형 현재 응답이며 「気持ちいいです」와 합의 프레임에 충실하다."
+    },
+    {
+      "block_number": 74,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "사용 불가 SRT 문구를 배제하고 음향 근거의 짧은 발성만 옮겼다."
+    },
+    {
+      "block_number": 75,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "직접 명령형이지만 명령 강도와 화행이 합의되지 않음",
+        "명령 대상과 자기 행동 진술 사이에서 행위자가 불확정임"
+      ],
+      "unsupported_additions": [
+        "단정적인 반말 명령형"
+      ],
+      "naturalness_issues": [],
+      "reason": "열기 동작만 합의됐고, ASR은 상대에게 한 명령과 화자의 자기 행동 진술로 갈려 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 76,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "단순 방식 질문을 허용·적절성 질문으로 바꿈"
+      ],
+      "unsupported_additions": [
+        "「하면 돼요」가 행동과 허용·충족 의미를 추가함"
+      ],
+      "naturalness_issues": [],
+      "reason": "「こうですか」는 단순한 방식 확인인데 제안문은 행동 허용이나 적절성까지 묻는다."
+    },
+    {
+      "block_number": 77,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "「すぐに」의 즉시성을 간결하게 보존하며, 조사 「요」도 의미 슬롯을 바꾸지 않는다."
+    }
+  ]
+}

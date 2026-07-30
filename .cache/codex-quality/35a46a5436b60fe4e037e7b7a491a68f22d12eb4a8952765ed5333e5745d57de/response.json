@@ -1,0 +1,34 @@
+{
+  "scene_id": "scene-0008",
+  "reviews": [
+    {
+      "block_number": 180,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "단일 음향 근거만 있어 의미를 확정하지 않은 생략 표기가 강제 abstained 상태와 일치한다."
+    },
+    {
+      "block_number": 181,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "저강도 응답음 「うん」이 음향 근거에 있으며, 짧은 반응인 「응.」과 의미·강도가 일치한다."
+    },
+    {
+      "block_number": 182,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "speech_act: 합의는 비어휘적 vocalization이나 후보는 긍정 응답으로 읽힘",
+        "polarity: 합의에 없는 긍정 의미가 후보에 명시됨"
+      ],
+      "unsupported_additions": [
+        "「응」의 동의·수긍 의미"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향과 합의는 늘인 발성만 지지한다. 「응…」은 수긍을 명시하므로 비어휘적 발성으로 조정해야 한다."
+    }
+  ]
+}
