@@ -601,6 +601,17 @@ def run_codex_quality_title(
             for agreement in agreements
         ]
         agreement_by_number = {int(row["block_number"]): row for row in agreements}
+        # Rerun evidence mutates the acoustic ledger. Rebuild the ordinary scene
+        # payload so translation and the first Sol critique see the same fused
+        # evidence that produced the final agreement records.
+        payload = _scene_payload(
+            scene_id,
+            scene,
+            source_quality,
+            acoustic,
+            context_before=before,
+            context_after=after,
+        )
         all_agreements.extend(
             {
                 **row,

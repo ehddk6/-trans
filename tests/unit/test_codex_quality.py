@@ -260,8 +260,10 @@ class VocalizationQualityProvider(FakeQualityProvider):
 class ConflictRetryQualityProvider(FakeQualityProvider):
     def __init__(self):
         self.frame_call_ids = []
+        self.payloads = {}
 
     def run_structured(self, *, role, title_id, call_id, prompt, payload, schema, resume=True):
+        self.payloads[call_id] = json.loads(json.dumps(payload, ensure_ascii=False))
         if role.startswith("meaning-frame"):
             self.frame_call_ids.append(call_id)
             response, receipt = super().run_structured(
@@ -541,6 +543,17 @@ def test_end_to_end_conflict_rerun_is_block_local_and_re_fused(tmp_path, monkeyp
     assert decisions[1]["recovery_state"] == "recovered_context"
     assert decisions[1]["boundary_expansion_asr_rerun"] is True
     assert decisions[2]["boundary_expansion_asr_rerun"] is False
+    translation_payload = provider.payloads["scene-0001.translation.terra"]
+    critique_payload = provider.payloads["scene-0001.critique.sol.0"]
+    for captured in (translation_payload, critique_payload):
+        locked = {int(row["block_number"]): row for row in captured["locked_blocks"]}
+        assert "utterance:retry-1-w:whisper" in {
+            ref
+            for hypothesis in locked[1]["asr_fusion"]["family_hypotheses"]
+            for ref in hypothesis["evidence_refs"]
+        }
+        assert locked[1]["asr_fusion"]["state"] == "dual_agreement"
+        assert locked[2]["asr_fusion"].get("state", "empty") == "empty"
     agreements = [
         json.loads(line)
         for line in (package / "frame-agreements.jsonl").read_text(encoding="utf-8").splitlines()
