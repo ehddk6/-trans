@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import logging
@@ -24,7 +25,7 @@ from .autonomous_release import prove_autonomous_claim, run_autonomous_release, 
 from .asr_evidence import read_asr_candidates
 from .closed_world import prove_quality_claim, run_closed_world, validate_closed_world_package
 from .codex_exec_provider import CodexExecError, CodexExecProvider, CodexUsageLimitError
-from .codex_quality import CodexQualityError, evaluate_codex_quality, run_codex_quality_title, validate_codex_quality
+from .codex_quality import CodexQualityError, evaluate_codex_quality, evaluate_evidence_ceiling, run_codex_quality_title, validate_codex_quality
 from .consistency import initialize_consistency_ledger, validate_consistency_ledger
 from .discovery import DiscoveryError, inspect_roles, resolve_role
 from .drafts import build_korean_aligned_draft
@@ -40,7 +41,17 @@ from .mqm import validate_mqm_csv
 from .manifest import append_history, build_project_manifest, write_json
 from .memory_ledger import initialize_memory_ledger, validate_memory_ledger
 from .machine_final import package_machine_final, repair_machine_final_asr
-from .local_asr import LocalASRError, build_timestamped_utterance_evidence, run_full_local_asr
+from .local_asr import (
+    LocalASRError,
+    build_timestamped_utterance_evidence,
+    merge_repaired_acoustic_evidence,
+    run_full_local_asr,
+    run_pre_ceiling_evidence_repair,
+)
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 from .openai_provider import BudgetTracker, OpenAIProvider, ProviderUnavailableError, BudgetExceededError
 from .outputs import STAGES, package_title_outputs
 from .pilot_audio_review import PilotAlignmentError, build_pilot_audio_review_packet, evaluate_pilot_alignment, write_blocked_audio_review_manifest, write_pilot_alignment
@@ -1209,6 +1220,7 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                 "status": "dry-run",
                 "titles": titles,
                 "full_local_asr": args.full_local_asr,
+                "repair_evidence": args.repair_evidence,
                 "resume": args.resume,
                 "api_key_required": False,
                 "external_codex_transfer": True,
@@ -1269,29 +1281,156 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                 allow_model_download=not args.offline,
                 resume=args.resume,
             )
+            source_quality_dir = quality_root / "source-quality-v3"
+            source_map_path = source_quality_dir / "source-quality-map.jsonl"
             source_result = write_source_quality_audit(
                 title_id=title,
                 japanese_path=plan["japanese"],
                 asr_evidence_path=acoustic_path,
-                output_dir=quality_root / "source-quality-v3",
+                output_dir=source_quality_dir,
                 resume=args.resume,
             )
+            effective_acoustic_path = acoustic_path
+            effective_source_map_path = source_map_path
+            repair_result: dict[str, Any] | None = None
+            if args.repair_evidence:
+                base_acoustic = {
+                    int(row["block_number"]): row
+                    for row in (
+                        json.loads(line)
+                        for line in acoustic_path.read_text(encoding="utf-8").splitlines()
+                        if line.strip()
+                    )
+                }
+                structure_blocks, _, _ = parse_srt(plan["structure"])
+                source_quality = {
+                    int(row["block_number"]): row
+                    for row in (
+                        json.loads(line)
+                        for line in source_map_path.read_text(encoding="utf-8").splitlines()
+                        if line.strip()
+                    )
+                }
+                initial_ceiling = evaluate_evidence_ceiling(
+                    title_id=title,
+                    expected_blocks=[block.number for block in structure_blocks],
+                    source_quality=source_quality,
+                    acoustic=base_acoustic,
+                )
+                if initial_ceiling["status"] != "pass":
+                    ineligible = [
+                        block
+                        for block in structure_blocks
+                        if block.number not in set(initial_ceiling["eligible_block_numbers"])
+                    ]
+                    repair_dir = quality_root / "pre-ceiling-repair-v2"
+                    repair_lineage = {
+                        "audio_sha256": _sha256_file(plan["audio"]),
+                        "structure_sha256": _sha256_file(plan["structure"]),
+                        "base_acoustic_sha256": _sha256_file(acoustic_path),
+                        "base_source_quality_sha256": _sha256_file(source_map_path),
+                        "title_id": title,
+                    }
+                    repaired_rows = run_pre_ceiling_evidence_repair(
+                        title_id=title,
+                        audio_path=plan["audio"],
+                        blocks=ineligible,
+                        base_acoustic=base_acoustic,
+                        output_dir=repair_dir,
+                        force_cpu=args.cpu,
+                        allow_model_download=not args.offline,
+                        resume=args.resume,
+                        lineage=repair_lineage,
+                    )
+                    merged_acoustic_path = repair_dir / "block-acoustic-evidence-merged.jsonl"
+                    effective_acoustic_path = (
+                        merged_acoustic_path
+                        if args.resume and merged_acoustic_path.is_file()
+                        else merge_repaired_acoustic_evidence(
+                            base_acoustic_path=acoustic_path,
+                            repaired_rows=repaired_rows,
+                            output_path=merged_acoustic_path,
+                        )
+                    )
+                    source_quality_dir = quality_root / "source-quality-v4-repaired"
+                    effective_source_map_path = source_quality_dir / "source-quality-map.jsonl"
+                    source_result = write_source_quality_audit(
+                        title_id=title,
+                        japanese_path=plan["japanese"],
+                        asr_evidence_path=effective_acoustic_path,
+                        output_dir=source_quality_dir,
+                        resume=args.resume,
+                    )
+                    repair_report = repair_dir / "repair-report.json"
+                    repair_result = json.loads(repair_report.read_text(encoding="utf-8"))
+                    final_acoustic = {
+                        int(row["block_number"]): row
+                        for row in (
+                            json.loads(line)
+                            for line in effective_acoustic_path.read_text(encoding="utf-8").splitlines()
+                            if line.strip()
+                        )
+                    }
+                    final_source_quality = {
+                        int(row["block_number"]): row
+                        for row in (
+                            json.loads(line)
+                            for line in effective_source_map_path.read_text(encoding="utf-8").splitlines()
+                            if line.strip()
+                        )
+                    }
+                    final_ceiling = evaluate_evidence_ceiling(
+                        title_id=title,
+                        expected_blocks=[block.number for block in structure_blocks],
+                        source_quality=final_source_quality,
+                        acoustic=final_acoustic,
+                    )
+                    repair_result.update(
+                        {
+                            "initial_ceiling": {
+                                "eligible_block_count": initial_ceiling["eligible_block_count"],
+                                "eligible_block_numbers": initial_ceiling["eligible_block_numbers"],
+                                "maximum_possible_accepted_rate": initial_ceiling["maximum_possible_accepted_rate"],
+                            },
+                            "final_ceiling": {
+                                "eligible_block_count": final_ceiling["eligible_block_count"],
+                                "eligible_block_numbers": final_ceiling["eligible_block_numbers"],
+                                "maximum_possible_accepted_rate": final_ceiling["maximum_possible_accepted_rate"],
+                                "status": final_ceiling["status"],
+                            },
+                            "net_new_eligible_block_numbers": sorted(
+                                set(final_ceiling["eligible_block_numbers"])
+                                - set(initial_ceiling["eligible_block_numbers"])
+                            ),
+                            "merged_acoustic_path": effective_acoustic_path.name,
+                            "merged_acoustic_sha256": _sha256_file(effective_acoustic_path),
+                            "regenerated_source_quality_path": effective_source_map_path.name,
+                            "regenerated_source_quality_sha256": _sha256_file(effective_source_map_path),
+                        }
+                    )
+                    repair_report.write_text(
+                        json.dumps(repair_result, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8",
+                        newline="\n",
+                    )
             package_result = run_codex_quality_title(
                 title_id=title,
                 structure_path=plan["structure"],
-                source_quality_map_path=quality_root / "source-quality-v3" / "source-quality-map.jsonl",
-                acoustic_evidence_path=acoustic_path,
+                source_quality_map_path=effective_source_map_path,
+                acoustic_evidence_path=effective_acoustic_path,
                 audio_path=plan["audio"],
                 output_dir=plan["package"],
                 provider=provider,
                 prompt_dir=root / "prompts",
                 schema_dir=root / "schemas",
+                evidence_repair_path=(quality_root / "pre-ceiling-repair-v2" / "repair-report.json") if repair_result else None,
                 max_scene_blocks=args.max_scene_blocks,
                 maximum_scene_gap_seconds=args.max_scene_gap,
                 max_repairs=args.max_repairs,
                 force_cpu=args.cpu,
                 allow_model_download=not args.offline,
                 resume=args.resume,
+                local_asr_call_count=int((repair_result or {}).get("local_asr_call_count", 0)),
             )
             results.append(
                 {
@@ -1300,6 +1439,7 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                     "source_quality": source_result.get("status_counts"),
                     "local_asr_status": asr_result.get("status"),
                     "utterance_evidence_status": utterance_result.get("status"),
+                    "evidence_repair": repair_result,
                     "package": package_result.get("output"),
                 }
             )
@@ -2456,7 +2596,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("apply-inferred-recovery", help="사용자 승인 음성 추론 복구본을 v4 SRT에 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--hold-ledger", required=True, type=Path); p.add_argument("--response", required=True, type=Path, action="append"); p.add_argument("--output", type=Path); p.add_argument("--version", default="v4"); p.add_argument("--hold-marker", default="…"); p.set_defaults(func=cmd_apply_inferred_recovery)
     p = sub.add_parser("run-autonomous-release", help="사람 final과 분리된 하이브리드 무인 번역·반증·패키징 실행"); _add_common(p); p.add_argument("--title", action="append"); p.add_argument("--titles-file", type=Path); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--local-asr", type=Path); p.add_argument("--local-asr-model", default="large-v3"); p.add_argument("--cpu", action="store_true"); p.add_argument("--allow-local-model-download", action="store_true"); p.add_argument("--output", type=Path); p.add_argument("--allow-network", action="store_true"); p.add_argument("--max-cost-usd", type=float); p.add_argument("--cache-dir", type=Path); p.add_argument("--resume", action="store_true"); p.add_argument("--max-workers", type=int, default=2); p.add_argument("--batch-size", type=int, default=20); p.add_argument("--max-repairs", type=int, default=2); p.set_defaults(func=cmd_run_autonomous_release)
     p = sub.add_parser("audit-source-quality", help="일본어 SRT의 구조와 텍스트 신뢰도를 분리해 trusted/suspect/unusable 지도를 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--asr-evidence", type=Path); p.add_argument("--output", type=Path); p.add_argument("--resume", action="store_true"); p.set_defaults(func=cmd_audit_source_quality)
-    p = sub.add_parser("run-codex-quality", help="Terra 생성·Sol 독립 반증 기반 autonomous-quality-candidate 실행"); _add_common(p); p.add_argument("--titles", required=True, help="쉼표로 구분한 작품 ID"); p.add_argument("--full-local-asr", action="store_true"); p.add_argument("--resume", action="store_true"); p.add_argument("--offline", action="store_true", help="로컬 ASR 모델 다운로드 금지"); p.add_argument("--cpu", action="store_true"); p.add_argument("--max-windows", type=int, default=0, help="개발용 ASR 창 제한; 0은 전체"); p.add_argument("--max-scene-blocks", type=int, default=60); p.add_argument("--max-scene-gap", type=float, default=60.0); p.add_argument("--max-repairs", type=int, default=2); p.add_argument("--codex-timeout", type=int, default=600); p.add_argument("--cache-dir", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_run_codex_quality)
+    p = sub.add_parser("run-codex-quality", help="Terra 생성·Sol 독립 반증 기반 autonomous-quality-candidate 실행"); _add_common(p); p.add_argument("--titles", required=True, help="쉼표로 구분한 작품 ID"); p.add_argument("--full-local-asr", action="store_true"); p.add_argument("--repair-evidence", action="store_true", help="초기 evidence ceiling 탈락 블록에 한해 native timestamp ASR 복구 후 ceiling 재평가"); p.add_argument("--resume", action="store_true"); p.add_argument("--offline", action="store_true", help="로컬 ASR 모델 다운로드 금지"); p.add_argument("--cpu", action="store_true"); p.add_argument("--max-windows", type=int, default=0, help="개발용 ASR 창 제한; 0은 전체"); p.add_argument("--max-scene-blocks", type=int, default=60); p.add_argument("--max-scene-gap", type=float, default=60.0); p.add_argument("--max-repairs", type=int, default=2); p.add_argument("--codex-timeout", type=int, default=600); p.add_argument("--cache-dir", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_run_codex_quality)
     p = sub.add_parser("validate-codex-quality", help="autonomous-quality-candidate의 구조·근거·모델 분리·충돌·해시 게이트 검증"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.set_defaults(func=cmd_validate_codex_quality)
     p = sub.add_parser("evaluate-codex-quality", help="고정 시드 120블록을 Terra/Sol 익명 A/B 대리평가"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--baseline", required=True, type=Path); p.add_argument("--sample-size", type=int, default=120); p.add_argument("--batch-size", type=int, default=20); p.add_argument("--resume", action="store_true"); p.add_argument("--codex-timeout", type=int, default=600); p.add_argument("--cache-dir", type=Path); p.set_defaults(func=cmd_evaluate_codex_quality)
     p = sub.add_parser("validate-autonomous-release", help="autonomous-release 구조·커버리지·해시·사람 final 경계 검증"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_autonomous_release)

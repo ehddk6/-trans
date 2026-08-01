@@ -121,7 +121,16 @@ def test_evidence_ceiling_blocks_impossible_title_before_model_calls():
         for number in range(1, 299)
     }
     acoustic = {
-        number: {"independent_source_families": ["a", "b"] if number in range(101, 135) else []}
+        number: {
+            "independent_source_families": ["a", "b"] if number in range(101, 135) else [],
+            "asr_fusion": {
+                "state": "dual_agreement",
+                "alignment_strength": "block-aligned",
+                "risk_codes": [],
+            }
+            if number in range(101, 135)
+            else {},
+        }
         for number in range(1, 299)
     }
     result = evaluate_evidence_ceiling(
@@ -133,6 +142,39 @@ def test_evidence_ceiling_blocks_impossible_title_before_model_calls():
     assert result["status"] == "fail"
     assert result["model_calls_allowed"] is False
     assert result["eligible_block_count"] == 134
+
+
+def test_evidence_ceiling_uses_downstream_fusion_predicate():
+    quality = {number: {"source_quality_status": "unusable"} for number in range(1, 4)}
+    acoustic = {
+        1: {"independent_source_families": ["a", "b"]},
+        2: {
+            "independent_source_families": ["a", "b"],
+            "asr_fusion": {
+                "state": "dual_conflict",
+                "alignment_strength": "block-aligned",
+                "risk_codes": ["dual-asr-source-conflict"],
+            },
+        },
+        3: {
+            "independent_source_families": ["a", "b"],
+            "block_alignment_status": "single-block-expanded",
+            "asr_fusion": {
+                "state": "dual_compatible",
+                "alignment_strength": "expanded",
+                "risk_codes": [],
+            },
+        },
+    }
+    result = evaluate_evidence_ceiling(
+        title_id="SAMPLE",
+        expected_blocks=[1, 2, 3],
+        source_quality=quality,
+        acoustic=acoustic,
+    )
+    # Family names alone are not enough: a fusion decision is mandatory for
+    # the production evidence ceiling.
+    assert result["eligible_block_numbers"] == [3]
 
 
 class FakeQualityProvider:

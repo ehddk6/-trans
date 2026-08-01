@@ -8,8 +8,108 @@ from translation_forensics.local_asr import (
     map_transcripts_to_blocks,
     plan_conflict_rerun_windows,
     plan_vad_windows,
+    run_pre_ceiling_evidence_repair,
 )
 from translation_forensics.srt import SubtitleBlock
+
+
+def test_pre_ceiling_repair_uses_native_overlap_and_never_copies_cluster_text(tmp_path, monkeypatch):
+    import translation_forensics.local_asr as local_asr
+
+    audio = tmp_path / "audio.mp3"
+    audio.write_bytes(b"audio")
+    clip = tmp_path / "clips" / "repair-group-00001.wav"
+    clip.parent.mkdir()
+    clip.write_bytes(b"clip")
+    monkeypatch.setattr(local_asr, "probe_audio_duration", lambda path: 10.0)
+    monkeypatch.setattr(local_asr, "extract_audio_windows", lambda audio_path, windows, clips_dir: [clip])
+
+    block = SubtitleBlock(1, "00:00:01,000", "00:00:02,000", "x", 1.0, 2.0)
+    base = {
+        1: {
+            "block_number": 1,
+            "start": block.start,
+            "end": block.end,
+            "transcripts": [],
+            "evidence_refs": [],
+            "independent_source_families": [],
+            "block_alignment_status": "no-acoustic-evidence",
+        }
+    }
+
+    class FakeBackend:
+        def __init__(self, family):
+            self.source_family = family
+            self.model_name = family
+
+        def transcribe_segments(self, path):
+            return [{"start_seconds": 1.0, "end_seconds": 1.5, "text": "same"}]
+
+    repaired = run_pre_ceiling_evidence_repair(
+        title_id="TEST",
+        audio_path=audio,
+        blocks=[block],
+        base_acoustic=base,
+        output_dir=tmp_path / "repair",
+        backends=[FakeBackend("family-a"), FakeBackend("family-b")],
+    )
+    assert sorted(repaired) == [1]
+    assert repaired[1]["independent_source_families"] == ["family-a", "family-b"]
+    assert repaired[1]["block_alignment_status"] == "pre-ceiling-repair-utterance-timestamp-aligned"
+    assert repaired[1]["asr_fusion"]["state"] == "dual_agreement"
+    assert all(item["alignment_scope"] == "utterance-timestamp" for item in repaired[1]["transcripts"])
+
+
+def test_pre_ceiling_repair_does_not_mark_long_segment_block_local_everywhere(tmp_path, monkeypatch):
+    import translation_forensics.local_asr as local_asr
+
+    audio = tmp_path / "audio.mp3"
+    audio.write_bytes(b"audio")
+    clip = tmp_path / "clips" / "repair-group-00001.wav"
+    clip.parent.mkdir()
+    clip.write_bytes(b"clip")
+    monkeypatch.setattr(local_asr, "probe_audio_duration", lambda path: 20.0)
+    monkeypatch.setattr(local_asr, "extract_audio_windows", lambda audio_path, windows, clips_dir: [clip])
+    blocks = [
+        SubtitleBlock(1, "00:00:10,000", "00:00:11,000", "a", 10.0, 11.0),
+        SubtitleBlock(2, "00:00:11,000", "00:00:12,000", "b", 11.0, 12.0),
+        SubtitleBlock(3, "00:00:12,000", "00:00:15,000", "c", 12.0, 15.0),
+    ]
+    base = {
+        block.number: {
+            "block_number": block.number,
+            "start": block.start,
+            "end": block.end,
+            "transcripts": [],
+            "evidence_refs": [],
+            "independent_source_families": [],
+        }
+        for block in blocks
+    }
+
+    class FakeBackend:
+        def __init__(self, family):
+            self.source_family = family
+            self.model_name = family
+
+        def transcribe_segments(self, path):
+            return [{"start_seconds": 10.0, "end_seconds": 15.0, "text": "long utterance"}]
+
+    repaired = run_pre_ceiling_evidence_repair(
+        title_id="TEST",
+        audio_path=audio,
+        blocks=blocks,
+        base_acoustic=base,
+        output_dir=tmp_path / "repair",
+        backends=[FakeBackend("family-a"), FakeBackend("family-b")],
+    )
+    aligned_counts = {
+        number: sum(bool(item.get("block_aligned")) for item in row["transcripts"])
+        for number, row in repaired.items()
+    }
+    assert set(repaired) == {1, 2, 3}
+    assert sum(count > 0 for count in aligned_counts.values()) <= 1
+    assert all(row["asr_fusion"]["alignment_strength"] != "block-aligned" for row in repaired.values() if aligned_counts[row["block_number"]] == 0)
 
 
 def test_vad_windows_choose_silence_with_24_to_28_second_core():

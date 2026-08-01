@@ -651,19 +651,42 @@ def compatibility_status(recovery_state: str) -> tuple[str, str]:
     return "abstained", "unrecoverable"
 
 
-def _has_dual_acoustic(acoustic_record: Mapping[str, Any]) -> bool:
+def has_usable_dual_acoustic(
+    acoustic_record: Mapping[str, Any],
+    *,
+    allow_legacy_without_fusion: bool = False,
+) -> bool:
+    """Return whether acoustic evidence meets the downstream dual-ASR gate.
+
+    Family names alone are not sufficient evidence.  The fusion record must
+    also report a compatible state, a block-local (or explicitly expanded)
+    alignment, and no unresolved fusion risk.  Keeping this predicate public
+    lets the pre-model evidence ceiling and the per-block translation gate use
+    exactly the same safety contract.
+    """
     families = set(acoustic_record.get("independent_source_families", []))
     if len(families) < 2:
         return False
     fusion = acoustic_record.get("asr_fusion")
     if not isinstance(fusion, Mapping):
-        # Backward-compatible read path for existing v1 evidence.
-        return True
+        # Compatibility is opt-in only.  Production evidence ceilings and
+        # final acceptance must have an explicit fusion decision.
+        return allow_legacy_without_fusion
+    alignment_strength = fusion.get("alignment_strength")
+    alignment_allowed = alignment_strength == "block-aligned" or (
+        alignment_strength == "expanded"
+        and acoustic_record.get("block_alignment_status") == "single-block-expanded"
+    )
     return (
         fusion.get("state") in {"dual_agreement", "dual_compatible"}
-        and fusion.get("alignment_strength") in {"block-aligned", "expanded"}
+        and alignment_allowed
         and not fusion.get("risk_codes")
     )
+
+
+def _has_dual_acoustic(acoustic_record: Mapping[str, Any]) -> bool:
+    """Strict private alias used by the final acceptance gate."""
+    return has_usable_dual_acoustic(acoustic_record, allow_legacy_without_fusion=False)
 
 
 def graduated_source_status(

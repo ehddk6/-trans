@@ -18,6 +18,15 @@ from .srt import SubtitleBlock, parse_srt
 
 WHISPER_FAMILY = "faster-whisper-large-v3"
 REAZON_FAMILY = "reazonspeech-k2-v2"
+PRE_CEILING_REPAIR_POLICY = {
+    "policy_version": "pre-ceiling-native-segment-v2",
+    "maximum_core_span_seconds": 12.0,
+    "clip_seconds": 28.0,
+    "attribution_min_segment_overlap_ratio": 0.5,
+    "attribution_min_block_overlap_ratio": 0.2,
+    "attribution_rule": "unique_centered_primary_block_or_multi_block_context_only",
+}
+PRE_CEILING_REPAIR_IMPLEMENTATION_ID = "timestamp-attribution-v2-dedup-fusion-policy-v2"
 SILENCE_START_RE = re.compile(r"silence_start:\s*([0-9.]+)")
 SILENCE_END_RE = re.compile(r"silence_end:\s*([0-9.]+)")
 
@@ -597,6 +606,312 @@ def run_conflict_asr_rerun(
     return {int(row["block_number"]): row for row in records}
 
 
+def run_pre_ceiling_evidence_repair(
+    *,
+    title_id: str,
+    audio_path: Path,
+    blocks: list[SubtitleBlock],
+    base_acoustic: dict[int, dict[str, Any]],
+    output_dir: Path,
+    force_cpu: bool = False,
+    allow_model_download: bool = True,
+    resume: bool = True,
+    backends: list[ASRBackend] | None = None,
+    lineage: dict[str, Any] | None = None,
+) -> dict[int, dict[str, Any]]:
+    """Repair only ineligible blocks with native timestamped dual-ASR evidence.
+
+    This is deliberately a pre-ceiling operation.  It never copies a cluster
+    transcript to every covered subtitle block: a segment is added only when
+    its native absolute timestamps overlap that block.  A block remains
+    ineligible when either family has no timestamped segment or when fusion
+    reports a semantic risk.
+    """
+    output_dir = output_dir.expanduser().resolve()
+    report_path = output_dir / "repair-report.json"
+    evidence_path = output_dir / "repaired-block-acoustic-evidence.jsonl"
+    requested_numbers = sorted(block.number for block in blocks)
+    base_signature = hashlib.sha256(
+        json.dumps(
+            {str(number): base_acoustic[number] for number in requested_numbers},
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    asr_config = {
+        "native_timestamped": True,
+        "source_families": [WHISPER_FAMILY, REAZON_FAMILY],
+        "force_cpu": bool(force_cpu),
+        "allow_model_download": bool(allow_model_download),
+        "decoding": "backend-native-default",
+    }
+    cache_identity = hashlib.sha256(
+        json.dumps(
+            {
+                "implementation_id": PRE_CEILING_REPAIR_IMPLEMENTATION_ID,
+                "policy": PRE_CEILING_REPAIR_POLICY,
+                "asr_config": asr_config,
+                "lineage": lineage or {},
+                "title_id": title_id,
+                "block_numbers": requested_numbers,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    input_signature = hashlib.sha256(
+        json.dumps(
+            {
+                "audio_sha256": _sha256(audio_path),
+                "title_id": title_id,
+                "block_numbers": requested_numbers,
+                "base_acoustic_sha256": base_signature,
+                "policy": PRE_CEILING_REPAIR_POLICY,
+                "lineage": lineage or {},
+                "implementation_id": PRE_CEILING_REPAIR_IMPLEMENTATION_ID,
+                "asr_config": asr_config,
+                "cache_identity": cache_identity,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    if resume and report_path.is_file() and evidence_path.is_file():
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        if report.get("input_signature") == input_signature:
+            rows = [
+                json.loads(line)
+                for line in evidence_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            return {int(row["block_number"]): row for row in rows}
+    if any(path.exists() for path in (report_path, evidence_path)):
+        raise FileExistsError(f"Pre-ceiling repair outputs already exist in {output_dir}")
+    if not requested_numbers:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(
+            json.dumps(
+                {
+                    "schema_name": "translation-forensics/pre-ceiling-evidence-repair",
+                    "schema_version": "1",
+                    "title_id": title_id,
+                    "status": "no-op",
+                    "input_signature": input_signature,
+                    "requested_block_numbers": [],
+                    "repaired_block_numbers": [],
+                    "model_calls": 0,
+                    "local_asr_call_count": 0,
+                    "semantic_model_call_count": 0,
+                    "policy": PRE_CEILING_REPAIR_POLICY,
+                    "implementation_id": PRE_CEILING_REPAIR_IMPLEMENTATION_ID,
+                    "asr_config": asr_config,
+                    "cache_identity": cache_identity,
+                    "lineage": lineage or {},
+                    "external_transfer": False,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        evidence_path.write_text("", encoding="utf-8", newline="\n")
+        return {}
+
+    duration = probe_audio_duration(audio_path)
+    planned = plan_conflict_rerun_windows(
+        blocks,
+        duration_seconds=duration,
+        maximum_core_span_seconds=PRE_CEILING_REPAIR_POLICY["maximum_core_span_seconds"],
+        clip_seconds=PRE_CEILING_REPAIR_POLICY["clip_seconds"],
+    )
+    clip_paths = extract_audio_windows(audio_path, [window for window, _ in planned], output_dir / "clips")
+    if backends is None:
+        backends = []
+        try:
+            backends.append(FasterWhisperBackend(force_cpu=force_cpu, local_files_only=not allow_model_download))
+        except LocalASRError:
+            pass
+        try:
+            backends.append(ReazonSpeechBackend())
+        except LocalASRError:
+            pass
+
+    repaired: dict[int, dict[str, Any]] = {}
+    model_call_count = 0
+    backend_errors: list[dict[str, str]] = []
+    raw_transcript_count = 0
+    for (window, covered_blocks), clip_path in zip(planned, clip_paths):
+        for backend in backends:
+            transcribe_segments = getattr(backend, "transcribe_segments", None)
+            if not callable(transcribe_segments):
+                backend_errors.append(
+                    {
+                        "source_family": str(getattr(backend, "source_family", "unknown")),
+                        "error": "backend lacks native timestamped transcribe_segments",
+                    }
+                )
+                continue
+            model_call_count += 1
+            try:
+                segments = transcribe_segments(clip_path)
+            except Exception as exc:  # local model libraries expose heterogeneous errors
+                backend_errors.append(
+                    {
+                        "source_family": str(getattr(backend, "source_family", "unknown")),
+                        "error": str(exc),
+                    }
+                )
+                continue
+            for segment in segments:
+                text = str(segment.get("text") or "").strip()
+                if not text:
+                    continue
+                start_seconds = float(window.clip_start) + float(segment.get("start_seconds", 0.0))
+                end_seconds = float(window.clip_start) + float(segment.get("end_seconds", 0.0))
+                if end_seconds <= start_seconds:
+                    continue
+                raw_transcript_count += 1
+                attribution = _segment_block_attribution(start_seconds, end_seconds, covered_blocks)
+                for block in covered_blocks:
+                    assignment = attribution.get(block.number)
+                    if assignment is None:
+                        continue
+                    item = {
+                        "source_family": str(backend.source_family),
+                        "model": str(backend.model_name),
+                        "text": text,
+                        "alignment_method": "pre-ceiling-native-segment-timestamp",
+                        "alignment_confidence": 1.0,
+                        "window_id": window.window_id,
+                        "repair_window_id": window.window_id,
+                        "start_seconds": round(start_seconds, 3),
+                        "end_seconds": round(end_seconds, 3),
+                        "audio_sha256": _sha256(clip_path),
+                        "alignment_scope": assignment["alignment_scope"],
+                        "block_aligned": assignment["block_aligned"],
+                        "attribution_status": assignment["attribution_status"],
+                        "evidence_repair": "pre-ceiling",
+                    }
+                    current = repaired.setdefault(
+                        block.number,
+                        {
+                            **base_acoustic[block.number],
+                            "transcripts": list(base_acoustic[block.number].get("transcripts", [])),
+                            "evidence_refs": list(base_acoustic[block.number].get("evidence_refs", [])),
+                            "independent_source_families": list(base_acoustic[block.number].get("independent_source_families", [])),
+                            "evidence_repair_attempts": [],
+                        },
+                    )
+                    current["transcripts"].append(item)
+                    current["evidence_refs"].append(
+                        f"asr-repair:{window.window_id}:{backend.source_family}:{round(start_seconds, 3)}"
+                    )
+                    current["independent_source_families"].append(str(backend.source_family))
+                    current["evidence_repair_attempts"].append(
+                        {
+                            "window_id": window.window_id,
+                            "source_family": str(backend.source_family),
+                            "start_seconds": round(start_seconds, 3),
+                            "end_seconds": round(end_seconds, 3),
+                        }
+                    )
+
+    repaired_rows: list[dict[str, Any]] = []
+    duplicate_transcript_count = 0
+    new_transcript_count = 0
+    for number, record in sorted(repaired.items()):
+        original_count = len(record.get("transcripts", []))
+        repair_transcripts = [
+            row for row in record.get("transcripts", [])
+            if row.get("evidence_repair") == "pre-ceiling"
+        ]
+        deduped, removed = _deduplicate_repair_transcripts(repair_transcripts)
+        duplicate_transcript_count += removed
+        new_transcript_count += len(deduped)
+        preserved = [
+            row for row in record.get("transcripts", [])
+            if row.get("evidence_repair") != "pre-ceiling"
+        ]
+        record["transcripts"] = preserved + deduped
+        record["evidence_refs"] = sorted(set(record["evidence_refs"]))
+        record["independent_source_families"] = sorted(set(record["independent_source_families"]))
+        record["block_alignment_status"] = (
+            "pre-ceiling-repair-utterance-timestamp-aligned"
+            if any(bool(row.get("block_aligned")) for row in record["transcripts"] if row.get("evidence_repair") == "pre-ceiling")
+            else "pre-ceiling-repair-multi-block-context"
+        )
+        record["evidence_repair_status"] = "attempted"
+        repaired_rows.append(add_asr_fusion(record))
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    evidence_path.write_text(
+        "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in repaired_rows),
+        encoding="utf-8",
+        newline="\n",
+    )
+    report = {
+        "schema_name": "translation-forensics/pre-ceiling-evidence-repair",
+        "schema_version": "1",
+        "title_id": title_id,
+        "status": "completed",
+        "input_signature": input_signature,
+        "requested_block_numbers": requested_numbers,
+        "repaired_block_numbers": [row["block_number"] for row in repaired_rows],
+        "planned_window_count": len(planned),
+        "model_calls": model_call_count,
+        "local_asr_call_count": model_call_count,
+        "semantic_model_call_count": 0,
+        "backend_success_count": model_call_count - len(backend_errors),
+        "backend_failure_count": len(backend_errors),
+        "raw_transcript_count": raw_transcript_count,
+        "new_transcript_count": new_transcript_count,
+        "duplicate_transcript_count": duplicate_transcript_count,
+        "cache_hit": False,
+        "policy": PRE_CEILING_REPAIR_POLICY,
+        "implementation_id": PRE_CEILING_REPAIR_IMPLEMENTATION_ID,
+        "asr_config": asr_config,
+        "cache_identity": cache_identity,
+        "lineage": lineage or {},
+        "backend_errors": backend_errors,
+        "evidence_path": evidence_path.name,
+        "evidence_sha256": _sha256(evidence_path),
+        "external_transfer": False,
+    }
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return {int(row["block_number"]): row for row in repaired_rows}
+
+
+def merge_repaired_acoustic_evidence(
+    *,
+    base_acoustic_path: Path,
+    repaired_rows: dict[int, dict[str, Any]],
+    output_path: Path,
+) -> Path:
+    """Write a new additive acoustic ledger, preserving the initial ledger."""
+    base_rows = [
+        json.loads(line)
+        for line in base_acoustic_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    merged = [repaired_rows.get(int(row["block_number"]), row) for row in base_rows]
+    output_path = output_path.expanduser().resolve()
+    if output_path.exists():
+        raise FileExistsError(f"Merged acoustic evidence already exists: {output_path}")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in merged),
+        encoding="utf-8",
+        newline="\n",
+    )
+    return output_path
+
+
 def plan_conflict_rerun_windows(
     blocks: list[SubtitleBlock],
     *,
@@ -678,6 +993,95 @@ def _utterance_overlap(left: dict[str, Any], right: dict[str, Any]) -> float:
         min(float(left["end_seconds"]), float(right["end_seconds"]))
         - max(float(left["start_seconds"]), float(right["start_seconds"])),
     )
+
+
+def _segment_block_attribution(
+    start_seconds: float,
+    end_seconds: float,
+    blocks: list[SubtitleBlock],
+) -> dict[int, dict[str, Any]]:
+    """Attribute one native segment conservatively across overlapping blocks.
+
+    A segment crossing several subtitle blocks is retained as context evidence,
+    but only a unique primary block may receive block-local alignment.  This
+    prevents one long ASR segment from becoming block-local evidence everywhere
+    it happens to overlap.
+    """
+    if end_seconds <= start_seconds:
+        return {}
+    segment_duration = end_seconds - start_seconds
+    candidates: list[tuple[SubtitleBlock, float]] = []
+    for block in blocks:
+        overlap = max(0.0, min(end_seconds, block.end_seconds) - max(start_seconds, block.start_seconds))
+        if overlap > 0:
+            candidates.append((block, overlap))
+    if not candidates:
+        return {}
+    center = (start_seconds + end_seconds) / 2.0
+    qualifying = [
+        (block, overlap)
+        for block, overlap in candidates
+        if overlap / segment_duration >= PRE_CEILING_REPAIR_POLICY["attribution_min_segment_overlap_ratio"]
+        and overlap / max(0.001, block.end_seconds - block.start_seconds)
+        >= PRE_CEILING_REPAIR_POLICY["attribution_min_block_overlap_ratio"]
+        and block.start_seconds <= center < block.end_seconds
+    ]
+    primary: SubtitleBlock | None = None
+    if len(qualifying) == 1:
+        primary = qualifying[0][0]
+    result: dict[int, dict[str, Any]] = {}
+    for block, overlap in candidates:
+        result[block.number] = {
+            "block_aligned": primary is not None and block.number == primary.number,
+            "alignment_scope": "utterance-timestamp" if primary is not None and block.number == primary.number else "multi-block",
+            "overlap_seconds": round(overlap, 3),
+            "attribution_status": "primary" if primary is not None and block.number == primary.number else "multi-block-context",
+        }
+    return result
+
+
+def _deduplicate_repair_transcripts(transcripts: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
+    """Remove duplicate native segments produced by overlapping repair windows."""
+    kept: list[dict[str, Any]] = []
+    duplicates = 0
+    for row in sorted(
+        transcripts,
+        key=lambda item: (
+            str(item.get("source_family") or ""),
+            float(item.get("start_seconds", 0.0)),
+            float(item.get("end_seconds", 0.0)),
+            str(item.get("window_id") or ""),
+        ),
+    ):
+        duplicate = False
+        row_family = str(row.get("source_family") or "")
+        row_text = normalize_japanese(row.get("text"))
+        for existing in reversed(kept):
+            if str(existing.get("source_family") or "") != row_family:
+                continue
+            existing_text = normalize_japanese(existing.get("text"))
+            if not row_text or text_similarity(row_text, existing_text) < 0.8:
+                continue
+            overlap = max(
+                0.0,
+                min(float(row.get("end_seconds", 0.0)), float(existing.get("end_seconds", 0.0)))
+                - max(float(row.get("start_seconds", 0.0)), float(existing.get("start_seconds", 0.0))),
+            )
+            minimum_duration = max(
+                0.1,
+                min(
+                    float(row.get("end_seconds", 0.0)) - float(row.get("start_seconds", 0.0)),
+                    float(existing.get("end_seconds", 0.0)) - float(existing.get("start_seconds", 0.0)),
+                ),
+            )
+            if overlap / minimum_duration >= 0.5 and str(row.get("audio_sha256")) == str(existing.get("audio_sha256")) and str(row.get("model")) == str(existing.get("model")):
+                duplicate = True
+                break
+        if duplicate:
+            duplicates += 1
+        else:
+            kept.append(row)
+    return kept, duplicates
 
 
 def _deduplicate_overlapping_utterances(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -830,6 +1234,14 @@ def build_timestamped_utterance_evidence(
             )
     utterances = _deduplicate_overlapping_utterances(utterances)
     blocks, _, _ = parse_srt(structure_path)
+    attribution_by_utterance = {
+        str(utterance["utterance_id"]): _segment_block_attribution(
+            float(utterance["start_seconds"]),
+            float(utterance["end_seconds"]),
+            blocks,
+        )
+        for utterance in utterances
+    }
     block_records: list[dict[str, Any]] = []
     for block in blocks:
         matched = [
@@ -840,6 +1252,9 @@ def build_timestamped_utterance_evidence(
         ]
         transcripts: list[dict[str, Any]] = []
         for utterance in matched:
+            assignment = attribution_by_utterance.get(str(utterance["utterance_id"]), {}).get(block.number)
+            if assignment is None:
+                continue
             for item in utterance["transcripts"]:
                 transcripts.append(
                     {
@@ -849,8 +1264,9 @@ def build_timestamped_utterance_evidence(
                         "audio_sha256": utterance["audio_sha256"],
                         "start_seconds": utterance["start_seconds"],
                         "end_seconds": utterance["end_seconds"],
-                        "alignment_scope": "utterance-timestamp",
-                        "block_aligned": True,
+                        "alignment_scope": assignment["alignment_scope"],
+                        "block_aligned": assignment["block_aligned"],
+                        "attribution_status": assignment["attribution_status"],
                     }
                 )
         families = sorted({item["source_family"] for item in transcripts})
@@ -866,7 +1282,13 @@ def build_timestamped_utterance_evidence(
                     f"utterance:{item['utterance_id']}:{item['source_family']}" for item in transcripts
                 ),
                 "independent_source_families": families,
-                "block_alignment_status": "utterance-timestamp-aligned" if transcripts else "no-acoustic-evidence",
+                "block_alignment_status": (
+                    "utterance-timestamp-aligned"
+                    if any(bool(item.get("block_aligned")) for item in transcripts)
+                    else "multi-block-context"
+                    if transcripts
+                    else "no-acoustic-evidence"
+                ),
             }
         )
     block_records = [add_asr_fusion(record) for record in block_records]

@@ -21,6 +21,7 @@ from .graduated_recovery import (
     coherence_check,
     compatibility_status,
     graduated_source_status,
+    has_usable_dual_acoustic,
     needs_context_rerun,
 )
 from .utterance_routing import apply_utterance_route
@@ -324,7 +325,7 @@ def evaluate_evidence_ceiling(
         number
         for number in expected_blocks
         if source_quality[number].get("source_quality_status") == "trusted"
-        or len(set(acoustic[number].get("independent_source_families", []))) >= 2
+        or has_usable_dual_acoustic(acoustic[number])
     ]
     maximum_rate = len(eligible) / max(1, len(expected_blocks))
     gate = TITLE_GATES.get(title_id)
@@ -339,7 +340,7 @@ def evaluate_evidence_ceiling(
         "eligible_block_numbers": eligible,
         "maximum_possible_accepted_rate": round(maximum_rate, 6),
         "minimum_required_accepted_rate": minimum_rate,
-        "policy": "trusted Japanese or two block-local independent ASR families",
+        "policy": "trusted Japanese or downstream-compatible two block-local independent ASR families",
         "model_calls_allowed": maximum_rate >= minimum_rate,
         "human_equal": False,
         "human_final": False,
@@ -358,21 +359,51 @@ def run_codex_quality_title(
     provider: CodexExecProvider,
     prompt_dir: Path,
     schema_dir: Path,
+    evidence_repair_path: Path | None = None,
     max_scene_blocks: int = 20,
     maximum_scene_gap_seconds: float = 60.0,
     max_repairs: int = 2,
     force_cpu: bool = False,
     allow_model_download: bool = True,
     resume: bool = True,
+    local_asr_call_count: int = 0,
 ) -> dict[str, Any]:
     output_dir = output_dir.expanduser().resolve()
     manifest_path = output_dir / "manifest.json"
+    repair_cache_identity: str | None = None
+    if evidence_repair_path is not None and evidence_repair_path.is_file():
+        try:
+            repair_cache_identity = str(
+                json.loads(evidence_repair_path.read_text(encoding="utf-8")).get("cache_identity") or ""
+            ) or None
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            repair_cache_identity = None
     if manifest_path.is_file() and resume:
         existing = json.loads(manifest_path.read_text(encoding="utf-8"))
+        existing_repair = existing.get("inputs", {}).get("evidence_repair")
+        repair_matches = (
+            evidence_repair_path is None
+            and existing_repair is None
+        ) or (
+            evidence_repair_path is not None
+            and isinstance(existing_repair, dict)
+            and existing_repair.get("sha256") == _sha256(evidence_repair_path)
+        )
+        repair_mode_matches = (
+            (evidence_repair_path is None and existing.get("status") != "evidence-ceiling-failed-after-repair")
+            or (evidence_repair_path is not None and existing.get("status") == "evidence-ceiling-failed-after-repair")
+        )
+        repair_identity_matches = (
+            evidence_repair_path is None
+            or (repair_cache_identity is not None and existing.get("repair_cache_identity") == repair_cache_identity)
+        )
         if (
             existing.get("inputs", {}).get("structure", {}).get("sha256") == _sha256(structure_path)
             and existing.get("inputs", {}).get("source_quality_map", {}).get("sha256") == _sha256(source_quality_map_path)
             and existing.get("inputs", {}).get("acoustic_evidence", {}).get("sha256") == _sha256(acoustic_evidence_path)
+            and repair_matches
+            and repair_mode_matches
+            and repair_identity_matches
         ):
             return {**existing, "cache_hit": True, "output": str(output_dir)}
     if output_dir.exists() and any(output_dir.iterdir()) and not resume:
@@ -393,12 +424,17 @@ def run_codex_quality_title(
     if ceiling["status"] != "pass":
         ceiling_path = output_dir / "evidence-feasibility.json"
         _write_json(ceiling_path, ceiling)
+        failed_status = (
+            "evidence-ceiling-failed-after-repair"
+            if evidence_repair_path is not None
+            else "evidence-ceiling-failed"
+        )
         manifest = {
             "schema_name": "translation-forensics/codex-quality-manifest",
             "schema_version": "1",
             "title_id": title_id,
             "release_kind": "autonomous-quality-candidate",
-            "status": "evidence-ceiling-failed",
+            "status": failed_status,
             "inputs": {
                 "structure": _artifact(structure_path, output_dir),
                 "source_quality_map": _artifact(source_quality_map_path, output_dir),
@@ -407,12 +443,17 @@ def run_codex_quality_title(
             "evidence_feasibility": _artifact(ceiling_path, output_dir),
             "block_count": len(structure),
             "model_call_count": 0,
+            "semantic_model_call_count": 0,
+            "local_asr_call_count": int(local_asr_call_count),
+            "repair_cache_identity": repair_cache_identity,
             "all_model_calls_traceable": True,
             "api_key_used": False,
             "human_equal": False,
             "human_final": False,
             "final_promotion_allowed": False,
         }
+        if evidence_repair_path is not None:
+            manifest["inputs"]["evidence_repair"] = _artifact(evidence_repair_path, output_dir)
         _write_json(manifest_path, manifest)
         return {**manifest, "cache_hit": False, "output": str(output_dir)}
     scenes = build_scene_batches(
@@ -859,6 +900,9 @@ def run_codex_quality_title(
         "block_count": len(structure),
         "scene_count": len(scenes),
         "model_call_count": len(all_receipts),
+        "semantic_model_call_count": len(all_receipts),
+        "local_asr_call_count": int(local_asr_call_count),
+        "repair_cache_identity": repair_cache_identity,
         "all_model_calls_traceable": all(not validate_call_receipt(receipt) for receipt in all_receipts),
         "models": {"generation": "gpt-5.6-terra", "independent_critic": "gpt-5.6-sol"},
         "api_key_used": False,
@@ -894,12 +938,77 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
         errors.append("release_kind must be autonomous-quality-candidate")
     if any(manifest.get(field) is not False for field in ("human_equal", "human_final", "final_promotion_allowed")):
         errors.append("human/final claim boundary is invalid")
-    if manifest.get("status") == "evidence-ceiling-failed":
+    if manifest.get("status") in {"evidence-ceiling-failed", "evidence-ceiling-failed-after-repair"}:
         try:
             feasibility_path = _resolve_ref(package_dir, manifest["evidence_feasibility"])
             feasibility = json.loads(feasibility_path.read_text(encoding="utf-8"))
             if manifest["evidence_feasibility"].get("sha256") != _sha256(feasibility_path):
                 errors.append("evidence feasibility hash mismatch")
+            if manifest.get("status") == "evidence-ceiling-failed-after-repair":
+                repair_record = manifest.get("inputs", {}).get("evidence_repair")
+                if not isinstance(repair_record, dict):
+                    errors.append("post-repair ceiling failure lacks evidence repair artifact")
+                else:
+                    repair_path = _resolve_ref(package_dir, repair_record)
+                    if not repair_path.is_file() or repair_record.get("sha256") != _sha256(repair_path):
+                        errors.append("evidence repair artifact hash mismatch")
+                    else:
+                        repair_report = json.loads(repair_path.read_text(encoding="utf-8"))
+                        if not repair_report.get("cache_identity"):
+                            errors.append("repair cache identity is missing")
+                        elif manifest.get("repair_cache_identity") != repair_report.get("cache_identity"):
+                            errors.append("repair cache identity mismatch")
+                        lineage = repair_report.get("lineage") or {}
+                        structure_record = manifest.get("inputs", {}).get("structure", {})
+                        source_record = manifest.get("inputs", {}).get("source_quality_map", {})
+                        acoustic_record = manifest.get("inputs", {}).get("acoustic_evidence", {})
+                        structure_path = _resolve_ref(package_dir, structure_record)
+                        source_path = _resolve_ref(package_dir, source_record)
+                        acoustic_path = _resolve_ref(package_dir, acoustic_record)
+                        for label, record, path in (
+                            ("structure", structure_record, structure_path),
+                            ("source_quality_map", source_record, source_path),
+                            ("acoustic_evidence", acoustic_record, acoustic_path),
+                        ):
+                            if not path.is_file() or record.get("sha256") != _sha256(path):
+                                errors.append(f"artifact hash mismatch: {label}")
+                        if lineage.get("structure_sha256") and lineage.get("structure_sha256") != structure_record.get("sha256"):
+                            errors.append("repair lineage structure hash mismatch")
+                        if repair_report.get("merged_acoustic_sha256") and repair_report.get("merged_acoustic_sha256") != acoustic_record.get("sha256"):
+                            errors.append("repair lineage merged acoustic hash mismatch")
+                        if repair_report.get("regenerated_source_quality_sha256") and repair_report.get("regenerated_source_quality_sha256") != source_record.get("sha256"):
+                            errors.append("repair lineage regenerated source-quality hash mismatch")
+                        policy = repair_report.get("policy")
+                        if not isinstance(policy, dict) or not policy.get("policy_version"):
+                            errors.append("repair lineage policy is missing")
+                        repaired_evidence = repair_path.parent / str(
+                            repair_report.get("evidence_path") or "repaired-block-acoustic-evidence.jsonl"
+                        )
+                        if repair_report.get("evidence_sha256") and repaired_evidence.is_file() and repair_report.get("evidence_sha256") != _sha256(repaired_evidence):
+                            errors.append("repair evidence ledger hash mismatch")
+                        # A ceiling failure must never contain semantic Terra/Sol receipts.
+                        receipts_candidate = package_dir / "model-call-receipts.jsonl"
+                        if receipts_candidate.is_file() and _read_jsonl(receipts_candidate):
+                            errors.append("ceiling-failed package contains semantic model receipts")
+                        try:
+                            structure, _, _ = parse_srt(structure_path)
+                            expected = [block.number for block in structure]
+                            recomputed_source = _load_by_block(source_path, expected, "source quality")
+                            recomputed_acoustic = _load_by_block(acoustic_path, expected, "acoustic evidence")
+                            recomputed = evaluate_evidence_ceiling(
+                                title_id=title_id,
+                                expected_blocks=expected,
+                                source_quality=recomputed_source,
+                                acoustic=recomputed_acoustic,
+                            )
+                            for field in ("eligible_block_count", "eligible_block_numbers", "maximum_possible_accepted_rate", "status"):
+                                if recomputed.get(field) != feasibility.get(field):
+                                    errors.append(f"stored evidence ceiling disagrees with recomputed {field}")
+                            final_ceiling = repair_report.get("final_ceiling")
+                            if isinstance(final_ceiling, dict) and final_ceiling.get("eligible_block_numbers") != recomputed.get("eligible_block_numbers"):
+                                errors.append("repair final ceiling eligible block list mismatch")
+                        except (KeyError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+                            errors.append(f"repair ceiling recomputation failed: {exc}")
             if feasibility.get("status") != "fail" or feasibility.get("model_calls_allowed") is not False:
                 errors.append("evidence ceiling failure contract is invalid")
         except (KeyError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
