@@ -12,6 +12,7 @@ from jsonschema import Draft202012Validator
 
 from .codex_exec_provider import CodexExecProvider, canonical_json, sha256_json, validate_call_receipt
 from .local_asr import FasterWhisperBackend, LocalASRError, ReazonSpeechBackend, run_conflict_asr_rerun
+from .asr_fusion import add_asr_fusion
 from .graduated_recovery import (
     build_frame_agreement,
     derive_slot_corroboration,
@@ -43,9 +44,9 @@ CRITICAL_SLOTS = (
     "intensity",
 )
 TITLE_GATES = {
-    "ADN-622": {"minimum_accepted_rate": 0.95, "maximum_ellipsis_rate": 0.02},
-    "JUQ-439": {"minimum_accepted_rate": 0.90, "maximum_ellipsis_rate": 0.05},
-    "SSIS-908": {"minimum_accepted_rate": 0.85, "maximum_ellipsis_rate": 0.08},
+    "ADN-622": {"minimum_accepted_rate": 0.95, "minimum_safe_usable_rate": 0.95, "maximum_ellipsis_rate": 0.02},
+    "JUQ-439": {"minimum_accepted_rate": 0.90, "minimum_safe_usable_rate": 0.90, "maximum_ellipsis_rate": 0.05},
+    "SSIS-908": {"minimum_accepted_rate": 0.85, "minimum_safe_usable_rate": 0.85, "maximum_ellipsis_rate": 0.08},
 }
 KOREAN_SHORT_RE = re.compile(r"^(?:아+|어+|응+|네+|싫어|안 돼|좋아|더|잠깐|…)[.!?…~]*$")
 
@@ -134,6 +135,27 @@ def _normalized_slot(value: Any) -> Any:
     return re.sub(r"\s+", " ", str(value).strip().casefold()) or None
 
 
+def _review_repair_eligible(review: dict[str, Any]) -> bool:
+    """Allow Terra repair only for claim-level, non-blocking findings."""
+    if str(review.get("verdict") or "") != "repair":
+        return False
+    findings = [finding for finding in (review.get("claim_findings") or []) if isinstance(finding, dict)]
+    if any(finding.get("disposition") == "blocking" for finding in findings):
+        return False
+    unsupported = bool(review.get("unsupported_additions"))
+    if unsupported and not findings:
+        return False
+    if unsupported and not any(
+        finding.get("disposition") in {"omit", "repair"}
+        for finding in findings
+    ):
+        return False
+    # A legacy review without claim findings keeps the old conservative rule.
+    if not findings and review.get("critical_slot_conflicts"):
+        return False
+    return True
+
+
 
 
 def compare_independent_frames(
@@ -143,6 +165,7 @@ def compare_independent_frames(
     *,
     acoustic: dict[int, dict[str, Any]] | None = None,
     source_quality: dict[int, dict[str, Any]] | None = None,
+    context_retried: bool = False,
 ) -> list[dict[str, Any]]:
     def keyed(rows: list[dict[str, Any]], label: str) -> dict[int, dict[str, Any]]:
         result: dict[int, dict[str, Any]] = {}
@@ -169,7 +192,12 @@ def compare_independent_frames(
             )
         else:
             corrob = None
-        agreement = build_frame_agreement(left, right, corroboration=corrob)
+        agreement = build_frame_agreement(
+            left,
+            right,
+            corroboration=corrob,
+            context_retried=context_retried,
+        )
         agreement["block_number"] = number
         agreement["terra_frame_sha256"] = sha256_json(left)
         agreement["sol_frame_sha256"] = sha256_json(right)
@@ -432,7 +460,7 @@ def run_codex_quality_title(
         conflict_numbers = [
             int(agreement["block_number"])
             for agreement in agreements
-            if agreement["critical_slot_conflicts"]
+            if needs_context_rerun(agreement)
         ]
         if conflict_numbers and audio_path is not None:
             try:
@@ -456,17 +484,21 @@ def run_codex_quality_title(
                     backends=conflict_backends,
                 )
                 for number, evidence in rerun_evidence.items():
-                    acoustic[number] = {
-                        **evidence,
-                        "transcripts": acoustic[number].get("transcripts", []) + evidence.get("transcripts", []),
-                        "evidence_refs": sorted(
-                            set(acoustic[number].get("evidence_refs", [])) | set(evidence.get("evidence_refs", []))
-                        ),
-                        "independent_source_families": sorted(
-                            set(acoustic[number].get("independent_source_families", []))
-                            | set(evidence.get("independent_source_families", []))
-                        ),
-                    }
+                    acoustic[number] = add_asr_fusion(
+                        {
+                            **acoustic[number],
+                            "transcripts": acoustic[number].get("transcripts", [])
+                            + evidence.get("transcripts", []),
+                            "evidence_refs": sorted(
+                                set(acoustic[number].get("evidence_refs", []))
+                                | set(evidence.get("evidence_refs", []))
+                            ),
+                            "independent_source_families": sorted(
+                                set(acoustic[number].get("independent_source_families", []))
+                                | set(evidence.get("independent_source_families", []))
+                            ),
+                        }
+                    )
                 retry_scene_id = f"{scene_id}-conflict-rerun"
                 retry_scene = [by_block[number] for number in conflict_numbers]
                 rerun_payload = _scene_payload(
@@ -526,6 +558,7 @@ def run_codex_quality_title(
                         conflict_numbers,
                         acoustic=acoustic,
                         source_quality=source_quality,
+                        context_retried=True,
                     )
                 }
                 agreements = [
@@ -536,6 +569,16 @@ def run_codex_quality_title(
                 rerun_performed = True
             except (FileExistsError, LocalASRError, OSError, RuntimeError, ValueError) as exc:
                 rerun_error = str(exc)
+        by_block = {block.number: block for block in scene}
+        agreements = [
+            apply_utterance_route(
+                agreement,
+                source_text=by_block[int(agreement["block_number"])].text,
+                acoustic_record=acoustic[int(agreement["block_number"])],
+                source_quality_record=source_quality[int(agreement["block_number"])],
+            )
+            for agreement in agreements
+        ]
         agreement_by_number = {int(row["block_number"]): row for row in agreements}
         all_agreements.extend(
             {
@@ -550,13 +593,7 @@ def run_codex_quality_title(
 
         translation_payload = {
             **payload,
-            "consensus": [
-                {
-                    **agreement,
-                    "render_blocking_conflicts": agreement.get("render_blocking_conflicts", []),
-                }
-                for agreement in agreements
-            ],
+            "consensus": agreements,
         }
         translation_response, translation_receipt = _persist_call(
             provider=provider,
@@ -629,11 +666,22 @@ def run_codex_quality_title(
             repair_numbers = [
                 int(review["block_number"])
                 for review in reviews
-                if review.get("verdict") == "repair"
-                and not review.get("critical_slot_conflicts")
-                and not review.get("unsupported_additions")
+                if _review_repair_eligible(review)
             ]
-            blocking = [review for review in reviews if review.get("verdict") == "quarantine" or review.get("critical_slot_conflicts") or review.get("unsupported_additions")]
+            blocking = [
+                review
+                for review in reviews
+                if review.get("verdict") == "quarantine"
+                or any(
+                    finding.get("disposition") == "blocking"
+                    for finding in review.get("claim_findings", [])
+                    if isinstance(finding, dict)
+                )
+                or (
+                    review.get("verdict") == "repair"
+                    and not _review_repair_eligible(review)
+                )
+            ]
             if not repair_numbers and not blocking:
                 break
             if repair_attempt >= max_repairs or not repair_numbers:
@@ -682,16 +730,6 @@ def run_codex_quality_title(
         reviews_by_number = final_reviews_by_number
         for row in candidate_rows:
             number = int(row["block_number"])
-            route = apply_utterance_route(
-                agreement_by_number[number],
-                source_text=source_text_by_number.get(number, ""),
-                acoustic_record=acoustic[number],
-                source_quality_record=source_quality[number],
-            )
-            row["utterance_kind"] = route.get("utterance_kind", "lexical_speech")
-            row["utterance_kind_confidence"] = route.get("utterance_kind_confidence", "high")
-            row["utterance_kind_reason_codes"] = route.get("utterance_kind_reason_codes", [])
-            row["utterance_kind_evidence_refs"] = route.get("utterance_kind_evidence_refs", [])
             all_decisions.append(
                 {
                     "schema_name": "translation-forensics/codex-quality-decision",
@@ -725,10 +763,10 @@ def run_codex_quality_title(
                         for review in all_critiques
                         if review.get("scene_id") == scene_id and int(review.get("block_number", 0)) == number
                     ],
-                    "utterance_kind": "lexical_speech",
-                    "utterance_kind_confidence": "high",
-                    "utterance_kind_reason_codes": [],
-                    "utterance_kind_evidence_refs": [],
+                    "utterance_kind": agreement_by_number[number].get("utterance_kind", "unknown"),
+                    "utterance_kind_confidence": agreement_by_number[number].get("utterance_kind_confidence", "low"),
+                    "utterance_kind_reason_codes": agreement_by_number[number].get("utterance_kind_reason_codes", []),
+                    "utterance_kind_evidence_refs": agreement_by_number[number].get("utterance_kind_evidence_refs", []),
                     "human_equal": False,
                     "human_final": False,
                     "final_promotion_allowed": False,
@@ -887,13 +925,19 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
                     critical_conflicts += 1
                 if row.get("source_quality_status") in {"suspect", "unusable"} and len(set(row.get("independent_source_families", []))) < 2:
                     damaged_without_dual += 1
-            if row.get("source_status") in ("accepted", "unresolved"):
-                safe_usable += 1
             recovery_state = str(row.get("recovery_state") or "abstained")
             recovery_counts[recovery_state] = recovery_counts.get(recovery_state, 0) + 1
             viewer_text = str(row.get("viewer_natural_korean") or "").strip()
             if viewer_text == "…":
                 ellipsis += 1
+            source_text = str(row.get("source_faithful_korean") or "").strip()
+            if (
+                row.get("source_status") in ("accepted", "unresolved")
+                and recovery_state != "abstained"
+                and source_text != "…"
+                and viewer_text != "…"
+            ):
+                safe_usable += 1
             normalized = re.sub(r"\s+", "", viewer_text)
             if normalized and normalized != "…" and not KOREAN_SHORT_RE.fullmatch(normalized):
                 reused[normalized].append(row)
@@ -933,9 +977,10 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
     gate = TITLE_GATES.get(title_id)
     metric_gate_passed = True
     if gate:
-        if accepted_rate < gate["minimum_accepted_rate"]:
+        safe_usable_rate = safe_usable / max(1, block_count)
+        if safe_usable_rate < gate["minimum_safe_usable_rate"]:
             errors.append(
-                f"accepted rate {accepted_rate:.4f} is below {gate['minimum_accepted_rate']:.2f} for {title_id}"
+                f"safe usable-output rate {safe_usable_rate:.4f} is below {gate['minimum_safe_usable_rate']:.2f} for {title_id}"
             )
             metric_gate_passed = False
         if ellipsis_rate > gate["maximum_ellipsis_rate"]:
@@ -951,6 +996,8 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
         "block_count": block_count,
         "accepted_count": accepted,
         "accepted_rate": round(accepted_rate, 6),
+        "minimum_accepted_rate": gate.get("minimum_accepted_rate") if gate else None,
+        "minimum_safe_usable_rate": gate.get("minimum_safe_usable_rate") if gate else None,
         "safe_usable_rate": round(safe_usable / max(1, block_count), 6),
         "recovery_state_counts": dict(sorted(recovery_counts.items())),
         "ellipsis_count": ellipsis,

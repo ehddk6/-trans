@@ -4,6 +4,7 @@ import json
 
 from translation_forensics.codex_exec_provider import ROLE_POLICY
 from translation_forensics.codex_quality import (
+    _review_repair_eligible,
     build_scene_batches,
     compare_independent_frames,
     evaluate_evidence_ceiling,
@@ -11,6 +12,7 @@ from translation_forensics.codex_quality import (
     stratified_proxy_sample,
     validate_codex_quality,
 )
+from translation_forensics.asr_fusion import add_asr_fusion
 from translation_forensics.srt import SubtitleBlock
 
 
@@ -54,6 +56,40 @@ def test_missing_slot_is_coverage_gap_not_semantic_conflict():
     assert agreements[0]["critical_slot_conflicts"] == []
     assert agreements[0]["slot_coverage_gaps"] == ["question"]
     assert agreements[0]["consensus_frame"]["question"] is None
+
+
+def test_context_retry_is_recorded_for_nonblocking_conflict():
+    left = frame(1)
+    right = frame(1)
+    left["location"] = "room-a"
+    right["location"] = "room-b"
+    agreement = compare_independent_frames(
+        [left],
+        [right],
+        [1],
+        context_retried=True,
+    )[0]
+    assert agreement["render_blocking_conflicts"] == []
+    assert agreement["recovery_state"] == "recovered_context"
+
+
+def test_repair_requires_claim_level_removable_finding():
+    assert _review_repair_eligible(
+        {
+            "verdict": "repair",
+            "unsupported_additions": ["location"],
+            "claim_findings": [
+                {"slot": "location", "disposition": "omit", "reason": "unsupported"}
+            ],
+        }
+    )
+    assert not _review_repair_eligible(
+        {
+            "verdict": "repair",
+            "unsupported_additions": ["location"],
+            "claim_findings": [],
+        }
+    )
 
 
 def test_scene_batches_split_on_large_gap_and_size():
@@ -168,6 +204,59 @@ class FakeQualityProvider:
         return response, receipt
 
 
+class VocalizationQualityProvider(FakeQualityProvider):
+    def run_structured(self, *, role, title_id, call_id, prompt, payload, schema, resume=True):
+        if role.startswith("meaning-frame"):
+            model, effort = ROLE_POLICY[role]
+            scene_id = payload["scene_id"]
+            numbers = [row["block_number"] for row in payload["locked_blocks"]]
+            frames = []
+            for number in numbers:
+                row = frame(number)
+                row.update(
+                    {
+                        "speech_act": "vocalization",
+                        "question": None,
+                        "polarity": None,
+                        "command_strength": "none",
+                        "action": None,
+                        "intensity": None,
+                        "tense_aspect": None,
+                    }
+                )
+                frames.append(row | {"confidence": "high", "evidence_refs": [], "reason": "audible vocalization"})
+            response = {"scene_id": scene_id, "frames": frames}
+            receipt = {
+                "role": role,
+                "requested_model": model,
+                "reasoning_effort": effort,
+                "ephemeral": True,
+                "isolated_temporary_directory": True,
+                "requested_model_verified_by_cli_invocation": True,
+                "model_call_verified": True,
+                "api_key_used": False,
+                "sandbox": "read-only",
+                "exit_code": 0,
+                "thread_id": f"thread-{call_id}",
+                "codex_cli_version": "codex-cli test",
+                "request_sha256": "a" * 64,
+                "prompt_sha256": "b" * 64,
+                "evidence_sha256": "c" * 64,
+                "schema_sha256": "d" * 64,
+                "response_sha256": "e" * 64,
+            }
+            return response, receipt
+        return super().run_structured(
+            role=role,
+            title_id=title_id,
+            call_id=call_id,
+            prompt=prompt,
+            payload=payload,
+            schema=schema,
+            resume=resume,
+        )
+
+
 def test_end_to_end_quality_package_with_real_contracts(tmp_path):
     structure = tmp_path / "sample.ja.srt"
     structure.write_text(
@@ -219,3 +308,66 @@ def test_end_to_end_quality_package_with_real_contracts(tmp_path):
     assert validation["accepted_rate"] == 1.0
     assert validation["safe_usable_rate"] == 1.0
     assert validation["recovery_state_counts"] == {"accepted_consensus": 2}
+
+
+def test_end_to_end_vocalization_route_controls_rendering(tmp_path):
+    structure = tmp_path / "sample.ja.srt"
+    structure.write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\nあ\n\n",
+        encoding="utf-8",
+    )
+    source_map = tmp_path / "source-quality-map.jsonl"
+    source_map.write_text(
+        json.dumps({"block_number": 1, "source_quality_status": "trusted", "reason_codes": []}) + "\n",
+        encoding="utf-8",
+    )
+    acoustic = tmp_path / "block-acoustic-evidence.jsonl"
+    acoustic_row = add_asr_fusion(
+        {
+            "block_number": 1,
+            "start": "00:00:00,000",
+            "end": "00:00:01,000",
+            "transcripts": [
+                {
+                    "source_family": "whisper",
+                    "text": "あ",
+                    "utterance_id": "u1",
+                    "alignment_scope": "utterance-timestamp",
+                    "start_seconds": 0.0,
+                    "end_seconds": 1.0,
+                },
+                {
+                    "source_family": "reazon",
+                    "text": "あ",
+                    "utterance_id": "u2",
+                    "alignment_scope": "utterance-timestamp",
+                    "start_seconds": 0.0,
+                    "end_seconds": 1.0,
+                },
+            ],
+            "evidence_refs": ["utterance:u1:whisper", "utterance:u2:reazon"],
+            "independent_source_families": ["reazon", "whisper"],
+        }
+    )
+    acoustic.write_text(json.dumps(acoustic_row, ensure_ascii=False) + "\n", encoding="utf-8")
+    root = __import__("pathlib").Path(__file__).resolve().parents[2]
+    package = tmp_path / "package"
+    result = run_codex_quality_title(
+        title_id="SAMPLE",
+        structure_path=structure,
+        source_quality_map_path=source_map,
+        acoustic_evidence_path=acoustic,
+        audio_path=None,
+        output_dir=package,
+        provider=VocalizationQualityProvider(),
+        prompt_dir=root / "prompts",
+        schema_dir=root / "schemas",
+        max_scene_blocks=20,
+        max_repairs=0,
+        resume=False,
+    )
+    assert result["status"] == "quality-gates-passed"
+    decision = json.loads((package / "decisions.jsonl").read_text(encoding="utf-8").splitlines()[0])
+    assert decision["utterance_kind"] == "vocalization"
+    assert decision["recovery_state"] == "vocalization"
+    assert decision["viewer_natural_korean"] == "아…"

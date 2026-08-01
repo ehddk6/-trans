@@ -730,6 +730,25 @@ def apply_graduated_evidence_gate(
         )
 
         state = status["recovery_state"]
+        if state == "vocalization":
+            controlled = str(
+                agreement.get("controlled_nonlexical_korean") or ""
+            ).strip()
+            if controlled:
+                output.update(
+                    {
+                        "source_faithful_korean": controlled,
+                        "viewer_natural_korean": controlled,
+                        "source_status": "accepted",
+                        "viewer_status": "supported",
+                        "recovery_state": "vocalization",
+                        "rendered_slots": ["speech_act"],
+                        "reason": "controlled non-lexical rendering from routed acoustic evidence",
+                    }
+                )
+                enforced.append(output)
+                continue
+            state = "abstained"
         use_conservative = state == "minimal_speech_act"
         allowed_slots = set(agreement.get("rendered_slots", []))
         primary_slots = {
@@ -780,14 +799,6 @@ def apply_graduated_evidence_gate(
             conservative=use_conservative,
         )
         chosen_slots = fallback_slots if use_conservative else primary_slots
-        if state == "vocalization":
-            controlled = str(
-                agreement.get("controlled_nonlexical_korean") or ""
-            ).strip()
-            source_text = controlled
-            viewer_text = controlled
-            chosen_slots = {"speech_act"} if controlled else set()
-
         if state == "abstained" or not source_text or not viewer_text:
             output.update(
                 {
@@ -933,4 +944,3 @@ def apply_review_outcomes(
             }
         )
     return result
-
