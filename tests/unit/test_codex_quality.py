@@ -289,6 +289,46 @@ class ConflictRetryQualityProvider(FakeQualityProvider):
         )
 
 
+class RepairThenAcceptQualityProvider(FakeQualityProvider):
+    def __init__(self):
+        self.call_ids = []
+
+    def run_structured(self, *, role, title_id, call_id, prompt, payload, schema, resume=True):
+        self.call_ids.append(call_id)
+        response, receipt = super().run_structured(
+            role=role,
+            title_id=title_id,
+            call_id=call_id,
+            prompt=prompt,
+            payload=payload,
+            schema=schema,
+            resume=resume,
+        )
+        if role == "critique-sol" and call_id.endswith(".0"):
+            for review in response["reviews"]:
+                review.update(
+                    {
+                        "verdict": "repair",
+                        "unsupported_additions": ["location: unsupported detail"],
+                        "claim_findings": [
+                            {
+                                "slot": "location",
+                                "disposition": "omit",
+                                "reason": "location is unsupported",
+                            }
+                        ],
+                        "reason": "remove unsupported location claim",
+                    }
+                )
+        elif role == "repair-terra":
+            for block in response["blocks"]:
+                block["source_faithful_korean"] = f"수리된 멈춰 {block['block_number']}"
+                block["viewer_natural_korean"] = f"수리된 멈춰 {block['block_number']}"
+                block["conservative_source_faithful_korean"] = f"수리된 멈춰 {block['block_number']}"
+                block["conservative_viewer_natural_korean"] = f"수리된 멈춰 {block['block_number']}"
+        return response, receipt
+
+
 def test_end_to_end_quality_package_with_real_contracts(tmp_path):
     structure = tmp_path / "sample.ja.srt"
     structure.write_text(
@@ -507,3 +547,51 @@ def test_end_to_end_conflict_rerun_is_block_local_and_re_fused(tmp_path, monkeyp
     ]
     assert agreements[0]["boundary_expansion_asr_rerun"] is True
     assert agreements[1]["boundary_expansion_asr_rerun"] is False
+
+
+def test_end_to_end_repair_critique_runs_terra_repair_then_accept(tmp_path):
+    structure = tmp_path / "sample.ja.srt"
+    structure.write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\nやめて\n\n",
+        encoding="utf-8",
+    )
+    source_map = tmp_path / "source-quality-map.jsonl"
+    source_map.write_text(
+        json.dumps({"block_number": 1, "source_quality_status": "trusted", "reason_codes": []}) + "\n",
+        encoding="utf-8",
+    )
+    acoustic = tmp_path / "block-acoustic-evidence.jsonl"
+    acoustic.write_text(
+        json.dumps(
+            {
+                "block_number": 1,
+                "transcripts": [],
+                "evidence_refs": [],
+                "independent_source_families": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    provider = RepairThenAcceptQualityProvider()
+    root = __import__("pathlib").Path(__file__).resolve().parents[2]
+    package = tmp_path / "package"
+    result = run_codex_quality_title(
+        title_id="SAMPLE",
+        structure_path=structure,
+        source_quality_map_path=source_map,
+        acoustic_evidence_path=acoustic,
+        audio_path=None,
+        output_dir=package,
+        provider=provider,
+        prompt_dir=root / "prompts",
+        schema_dir=root / "schemas",
+        max_scene_blocks=20,
+        max_repairs=2,
+        resume=False,
+    )
+    assert result["status"] == "quality-gates-passed"
+    assert any("repair.terra.1" in call_id for call_id in provider.call_ids)
+    decision = json.loads((package / "decisions.jsonl").read_text(encoding="utf-8").splitlines()[0])
+    assert decision["sol_final_verdict"] == "accept"
+    assert len(decision["repair_history"]) == 2
