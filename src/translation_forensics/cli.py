@@ -1323,12 +1323,13 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                         for block in structure_blocks
                         if block.number not in set(initial_ceiling["eligible_block_numbers"])
                     ]
-                    repair_dir = quality_root / "pre-ceiling-repair-v3"
+                    repair_dir = quality_root / "pre-ceiling-repair-v4"
                     repair_lineage = {
                         "audio_sha256": _sha256_file(plan["audio"]),
                         "structure_sha256": _sha256_file(plan["structure"]),
                         "base_acoustic_sha256": _sha256_file(acoustic_path),
                         "base_source_quality_sha256": _sha256_file(source_map_path),
+                        "japanese_sha256": _sha256_file(plan["japanese"]),
                         "title_id": title,
                     }
                     repaired_rows = run_pre_ceiling_evidence_repair(
@@ -1344,15 +1345,38 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                         attribution_blocks=structure_blocks,
                     )
                     merged_acoustic_path = repair_dir / "block-acoustic-evidence-merged.jsonl"
-                    effective_acoustic_path = (
-                        merged_acoustic_path
-                        if args.resume and merged_acoustic_path.is_file()
-                        else merge_repaired_acoustic_evidence(
+                    repair_report_path = repair_dir / "repair-report.json"
+                    repair_report_for_merge = json.loads(repair_report_path.read_text(encoding="utf-8"))
+                    merge_identity = {
+                        "cache_identity": repair_report_for_merge.get("cache_identity"),
+                        "base_acoustic_sha256": _sha256_file(acoustic_path),
+                        "repaired_evidence_sha256": repair_report_for_merge.get("evidence_sha256"),
+                    }
+                    merge_meta_path = merged_acoustic_path.with_suffix(".meta.json")
+                    reusable_merge = False
+                    if args.resume and merged_acoustic_path.is_file() and merge_meta_path.is_file():
+                        try:
+                            reusable_merge = json.loads(merge_meta_path.read_text(encoding="utf-8")) == merge_identity
+                        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+                            reusable_merge = False
+                    if reusable_merge:
+                        effective_acoustic_path = merged_acoustic_path
+                    else:
+                        if merged_acoustic_path.exists():
+                            merged_acoustic_path = repair_dir / (
+                                f"block-acoustic-evidence-merged-{str(merge_identity['cache_identity'])[:12]}.jsonl"
+                            )
+                            merge_meta_path = merged_acoustic_path.with_suffix(".meta.json")
+                        effective_acoustic_path = merge_repaired_acoustic_evidence(
                             base_acoustic_path=acoustic_path,
                             repaired_rows=repaired_rows,
                             output_path=merged_acoustic_path,
                         )
-                    )
+                        merge_meta_path.write_text(
+                            json.dumps(merge_identity, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+                            encoding="utf-8",
+                            newline="\n",
+                        )
                     source_quality_dir = quality_root / "source-quality-v4-repaired"
                     effective_source_map_path = source_quality_dir / "source-quality-map.jsonl"
                     source_result = write_source_quality_audit(
@@ -1405,6 +1429,8 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                             ),
                             "merged_acoustic_path": effective_acoustic_path.name,
                             "merged_acoustic_sha256": _sha256_file(effective_acoustic_path),
+                            "merged_acoustic_meta_path": merge_meta_path.name,
+                            "merged_acoustic_meta_sha256": _sha256_file(merge_meta_path),
                             "regenerated_source_quality_path": effective_source_map_path.name,
                             "regenerated_source_quality_sha256": _sha256_file(effective_source_map_path),
                             "source_quality_audit_input": {
@@ -1429,7 +1455,7 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                 provider=provider,
                 prompt_dir=root / "prompts",
                 schema_dir=root / "schemas",
-                evidence_repair_path=(quality_root / "pre-ceiling-repair-v3" / "repair-report.json") if repair_result else None,
+                evidence_repair_path=(quality_root / "pre-ceiling-repair-v4" / "repair-report.json") if repair_result else None,
                 max_scene_blocks=args.max_scene_blocks,
                 maximum_scene_gap_seconds=args.max_scene_gap,
                 max_repairs=args.max_repairs,

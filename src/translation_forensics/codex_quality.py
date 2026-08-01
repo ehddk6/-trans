@@ -390,8 +390,8 @@ def run_codex_quality_title(
             and existing_repair.get("sha256") == _sha256(evidence_repair_path)
         )
         repair_mode_matches = (
-            (evidence_repair_path is None and existing.get("status") != "evidence-ceiling-failed-after-repair")
-            or (evidence_repair_path is not None and existing.get("status") == "evidence-ceiling-failed-after-repair")
+            (evidence_repair_path is None and existing_repair is None)
+            or (evidence_repair_path is not None and existing_repair is not None)
         )
         repair_identity_matches = (
             evidence_repair_path is None
@@ -971,13 +971,34 @@ def _validate_repair_lineage(
         if not isinstance(report.get("policy"), dict) or not report["policy"].get("policy_version"):
             errors.append("repair lineage policy is missing")
         audit_input = report.get("source_quality_audit_input")
-        if not isinstance(audit_input, dict) or audit_input.get("acoustic_sha256") != acoustic_record.get("sha256"):
+        if (
+            not isinstance(audit_input, dict)
+            or audit_input.get("acoustic_sha256") != acoustic_record.get("sha256")
+            or audit_input.get("japanese_sha256") != lineage.get("japanese_sha256")
+            or audit_input.get("audit_policy_version") != "source-quality-v4-repaired"
+        ):
             errors.append("source-quality audit input lineage is missing or stale")
         repaired_evidence = repair_path.parent / str(
             report.get("evidence_path") or "repaired-block-acoustic-evidence.jsonl"
         )
-        if report.get("evidence_sha256") and repaired_evidence.is_file() and report.get("evidence_sha256") != _sha256(repaired_evidence):
-            errors.append("repair evidence ledger hash mismatch")
+        if report.get("evidence_sha256"):
+            if not repaired_evidence.is_file() or report.get("evidence_sha256") != _sha256(repaired_evidence):
+                errors.append("repair evidence ledger hash mismatch")
+        merged_meta = repair_path.parent / str(report.get("merged_acoustic_meta_path") or "")
+        if report.get("merged_acoustic_meta_path"):
+            if not merged_meta.is_file() or report.get("merged_acoustic_meta_sha256") != _sha256(merged_meta):
+                errors.append("merged acoustic cache metadata hash mismatch")
+            else:
+                expected_meta = {
+                    "cache_identity": report.get("cache_identity"),
+                    "base_acoustic_sha256": lineage.get("base_acoustic_sha256"),
+                    "repaired_evidence_sha256": report.get("evidence_sha256"),
+                }
+                try:
+                    if json.loads(merged_meta.read_text(encoding="utf-8")) != expected_meta:
+                        errors.append("merged acoustic cache identity mismatch")
+                except (OSError, TypeError, ValueError, json.JSONDecodeError):
+                    errors.append("merged acoustic cache metadata is invalid")
         structure, _, _ = parse_srt(structure_path)
         expected = [block.number for block in structure]
         source_quality = _load_by_block(source_path, expected, "source quality")
@@ -989,10 +1010,14 @@ def _validate_repair_lineage(
             acoustic=acoustic,
         )
         final_ceiling = report.get("final_ceiling")
-        if isinstance(final_ceiling, dict):
+        if not isinstance(final_ceiling, dict):
+            errors.append("repair final ceiling is missing")
+        else:
             for field in ("eligible_block_count", "eligible_block_numbers", "maximum_possible_accepted_rate", "status"):
                 if final_ceiling.get(field) != ceiling.get(field):
                     errors.append(f"repair final ceiling disagrees with recomputed {field}")
+        if manifest.get("status") not in {"evidence-ceiling-failed", "evidence-ceiling-failed-after-repair"} and ceiling.get("status") != "pass":
+            errors.append("repair-bearing candidate has a failing evidence ceiling")
         return report
     except (KeyError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         errors.append(f"repair lineage validation failed: {exc}")
