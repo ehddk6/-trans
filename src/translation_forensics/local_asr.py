@@ -26,7 +26,7 @@ PRE_CEILING_REPAIR_POLICY = {
     "attribution_min_block_overlap_ratio": 0.2,
     "attribution_rule": "unique_centered_primary_block_or_multi_block_context_only",
 }
-PRE_CEILING_REPAIR_IMPLEMENTATION_ID = "timestamp-attribution-v2-dedup-fusion-policy-v2"
+PRE_CEILING_REPAIR_IMPLEMENTATION_ID = "timestamp-attribution-v2-global-parent-audio-dedup-v3"
 SILENCE_START_RE = re.compile(r"silence_start:\s*([0-9.]+)")
 SILENCE_END_RE = re.compile(r"silence_end:\s*([0-9.]+)")
 
@@ -618,6 +618,7 @@ def run_pre_ceiling_evidence_repair(
     resume: bool = True,
     backends: list[ASRBackend] | None = None,
     lineage: dict[str, Any] | None = None,
+    attribution_blocks: list[SubtitleBlock] | None = None,
 ) -> dict[int, dict[str, Any]]:
     """Repair only ineligible blocks with native timestamped dual-ASR evidence.
 
@@ -631,6 +632,21 @@ def run_pre_ceiling_evidence_repair(
     report_path = output_dir / "repair-report.json"
     evidence_path = output_dir / "repaired-block-acoustic-evidence.jsonl"
     requested_numbers = sorted(block.number for block in blocks)
+    attribution_scope = attribution_blocks or blocks
+    attribution_numbers = sorted(block.number for block in attribution_scope)
+    attribution_signature = hashlib.sha256(
+        json.dumps(
+            [
+                {
+                    "block_number": block.number,
+                    "start_seconds": block.start_seconds,
+                    "end_seconds": block.end_seconds,
+                }
+                for block in attribution_scope
+            ],
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
     base_signature = hashlib.sha256(
         json.dumps(
             {str(number): base_acoustic[number] for number in requested_numbers},
@@ -654,6 +670,8 @@ def run_pre_ceiling_evidence_repair(
                 "lineage": lineage or {},
                 "title_id": title_id,
                 "block_numbers": requested_numbers,
+                "attribution_block_numbers": attribution_numbers,
+                "attribution_signature": attribution_signature,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -665,6 +683,8 @@ def run_pre_ceiling_evidence_repair(
                 "audio_sha256": _sha256(audio_path),
                 "title_id": title_id,
                 "block_numbers": requested_numbers,
+                "attribution_block_numbers": attribution_numbers,
+                "attribution_signature": attribution_signature,
                 "base_acoustic_sha256": base_signature,
                 "policy": PRE_CEILING_REPAIR_POLICY,
                 "lineage": lineage or {},
@@ -720,6 +740,7 @@ def run_pre_ceiling_evidence_repair(
         return {}
 
     duration = probe_audio_duration(audio_path)
+    parent_audio_sha256 = _sha256(audio_path)
     planned = plan_conflict_rerun_windows(
         blocks,
         duration_seconds=duration,
@@ -773,7 +794,7 @@ def run_pre_ceiling_evidence_repair(
                 if end_seconds <= start_seconds:
                     continue
                 raw_transcript_count += 1
-                attribution = _segment_block_attribution(start_seconds, end_seconds, covered_blocks)
+                attribution = _segment_block_attribution(start_seconds, end_seconds, attribution_scope)
                 for block in covered_blocks:
                     assignment = attribution.get(block.number)
                     if assignment is None:
@@ -789,6 +810,7 @@ def run_pre_ceiling_evidence_repair(
                         "start_seconds": round(start_seconds, 3),
                         "end_seconds": round(end_seconds, 3),
                         "audio_sha256": _sha256(clip_path),
+                        "parent_audio_sha256": parent_audio_sha256,
                         "alignment_scope": assignment["alignment_scope"],
                         "block_aligned": assignment["block_aligned"],
                         "attribution_status": assignment["attribution_status"],
@@ -858,6 +880,8 @@ def run_pre_ceiling_evidence_repair(
         "status": "completed",
         "input_signature": input_signature,
         "requested_block_numbers": requested_numbers,
+        "attribution_block_numbers": attribution_numbers,
+        "attribution_signature": attribution_signature,
         "repaired_block_numbers": [row["block_number"] for row in repaired_rows],
         "planned_window_count": len(planned),
         "model_calls": model_call_count,
@@ -1074,7 +1098,11 @@ def _deduplicate_repair_transcripts(transcripts: list[dict[str, Any]]) -> tuple[
                     float(existing.get("end_seconds", 0.0)) - float(existing.get("start_seconds", 0.0)),
                 ),
             )
-            if overlap / minimum_duration >= 0.5 and str(row.get("audio_sha256")) == str(existing.get("audio_sha256")) and str(row.get("model")) == str(existing.get("model")):
+            same_parent_audio = (
+                str(row.get("parent_audio_sha256") or row.get("audio_sha256"))
+                == str(existing.get("parent_audio_sha256") or existing.get("audio_sha256"))
+            )
+            if overlap / minimum_duration >= 0.5 and same_parent_audio and str(row.get("model")) == str(existing.get("model")):
                 duplicate = True
                 break
         if duplicate:

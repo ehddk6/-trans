@@ -3,6 +3,7 @@ from __future__ import annotations
 from translation_forensics.local_asr import (
     AudioWindow,
     _deduplicate_overlapping_utterances,
+    _deduplicate_repair_transcripts,
     _segments_from_reazon_subwords,
     _split_reazon_by_whisper_segments,
     map_transcripts_to_blocks,
@@ -160,6 +161,32 @@ def test_overlap_deduplication_does_not_merge_independent_families():
     ]
     kept = _deduplicate_overlapping_utterances(rows)
     assert len(kept) == 2
+
+
+def test_repair_dedup_uses_parent_audio_across_overlapping_clips():
+    rows = [
+        {
+            "source_family": "family-a",
+            "model": "model-a",
+            "text": "same utterance",
+            "start_seconds": 10.0,
+            "end_seconds": 12.0,
+            "audio_sha256": "clip-a",
+            "parent_audio_sha256": "parent",
+        },
+        {
+            "source_family": "family-a",
+            "model": "model-a",
+            "text": "same utterance",
+            "start_seconds": 10.2,
+            "end_seconds": 12.1,
+            "audio_sha256": "clip-b",
+            "parent_audio_sha256": "parent",
+        },
+    ]
+    kept, duplicates = _deduplicate_repair_transcripts(rows)
+    assert len(kept) == 1
+    assert duplicates == 1
 
 
 def test_conflict_rerun_clusters_adjacent_blocks_into_shared_windows():

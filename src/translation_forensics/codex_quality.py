@@ -910,6 +910,8 @@ def run_codex_quality_title(
         "human_final": False,
         "final_promotion_allowed": False,
     }
+    if evidence_repair_path is not None:
+        manifest["inputs"]["evidence_repair"] = _artifact(evidence_repair_path, output_dir)
     _write_json(manifest_path, manifest)
     validation = validate_codex_quality(output_dir)
     _write_json(output_dir / "qa-report.json", validation)
@@ -924,6 +926,77 @@ def _resolve_ref(package_dir: Path, record: dict[str, Any]) -> Path:
     if not path.is_absolute():
         path = package_dir / path
     return path.resolve()
+
+
+def _validate_repair_lineage(
+    manifest: dict[str, Any],
+    package_dir: Path,
+    errors: list[str],
+) -> dict[str, Any] | None:
+    """Validate repair provenance for both ceiling-failed and success packages."""
+    record = manifest.get("inputs", {}).get("evidence_repair")
+    if not isinstance(record, dict):
+        errors.append("repair-enabled package lacks evidence repair artifact")
+        return None
+    try:
+        repair_path = _resolve_ref(package_dir, record)
+        if not repair_path.is_file() or record.get("sha256") != _sha256(repair_path):
+            errors.append("evidence repair artifact hash mismatch")
+            return None
+        report = json.loads(repair_path.read_text(encoding="utf-8"))
+        if not report.get("cache_identity"):
+            errors.append("repair cache identity is missing")
+        elif manifest.get("repair_cache_identity") != report.get("cache_identity"):
+            errors.append("repair cache identity mismatch")
+        lineage = report.get("lineage") or {}
+        structure_record = manifest.get("inputs", {}).get("structure", {})
+        source_record = manifest.get("inputs", {}).get("source_quality_map", {})
+        acoustic_record = manifest.get("inputs", {}).get("acoustic_evidence", {})
+        structure_path = _resolve_ref(package_dir, structure_record)
+        source_path = _resolve_ref(package_dir, source_record)
+        acoustic_path = _resolve_ref(package_dir, acoustic_record)
+        for label, artifact, path in (
+            ("structure", structure_record, structure_path),
+            ("source_quality_map", source_record, source_path),
+            ("acoustic_evidence", acoustic_record, acoustic_path),
+        ):
+            if not path.is_file() or artifact.get("sha256") != _sha256(path):
+                errors.append(f"artifact hash mismatch: {label}")
+        if lineage.get("structure_sha256") and lineage.get("structure_sha256") != structure_record.get("sha256"):
+            errors.append("repair lineage structure hash mismatch")
+        if report.get("merged_acoustic_sha256") and report.get("merged_acoustic_sha256") != acoustic_record.get("sha256"):
+            errors.append("repair lineage merged acoustic hash mismatch")
+        if report.get("regenerated_source_quality_sha256") and report.get("regenerated_source_quality_sha256") != source_record.get("sha256"):
+            errors.append("repair lineage regenerated source-quality hash mismatch")
+        if not isinstance(report.get("policy"), dict) or not report["policy"].get("policy_version"):
+            errors.append("repair lineage policy is missing")
+        audit_input = report.get("source_quality_audit_input")
+        if not isinstance(audit_input, dict) or audit_input.get("acoustic_sha256") != acoustic_record.get("sha256"):
+            errors.append("source-quality audit input lineage is missing or stale")
+        repaired_evidence = repair_path.parent / str(
+            report.get("evidence_path") or "repaired-block-acoustic-evidence.jsonl"
+        )
+        if report.get("evidence_sha256") and repaired_evidence.is_file() and report.get("evidence_sha256") != _sha256(repaired_evidence):
+            errors.append("repair evidence ledger hash mismatch")
+        structure, _, _ = parse_srt(structure_path)
+        expected = [block.number for block in structure]
+        source_quality = _load_by_block(source_path, expected, "source quality")
+        acoustic = _load_by_block(acoustic_path, expected, "acoustic evidence")
+        ceiling = evaluate_evidence_ceiling(
+            title_id=str(manifest.get("title_id") or ""),
+            expected_blocks=expected,
+            source_quality=source_quality,
+            acoustic=acoustic,
+        )
+        final_ceiling = report.get("final_ceiling")
+        if isinstance(final_ceiling, dict):
+            for field in ("eligible_block_count", "eligible_block_numbers", "maximum_possible_accepted_rate", "status"):
+                if final_ceiling.get(field) != ceiling.get(field):
+                    errors.append(f"repair final ceiling disagrees with recomputed {field}")
+        return report
+    except (KeyError, OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        errors.append(f"repair lineage validation failed: {exc}")
+        return None
 
 
 def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
@@ -1030,14 +1103,18 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
             "final_promotion_allowed": False,
         }
     try:
+        if manifest.get("inputs", {}).get("evidence_repair") is not None:
+            _validate_repair_lineage(manifest, package_dir, errors)
         structure_path = _resolve_ref(package_dir, manifest["inputs"]["structure"])
         decisions_path = _resolve_ref(package_dir, manifest["outputs"]["decisions"])
         source_path = _resolve_ref(package_dir, manifest["outputs"]["source_faithful"])
         viewer_path = _resolve_ref(package_dir, manifest["outputs"]["viewer_natural"])
+        acoustic_path = _resolve_ref(package_dir, manifest["inputs"]["acoustic_evidence"])
         receipts_path = _resolve_ref(package_dir, manifest["outputs"]["model_call_receipts"])
         structure, _, _ = parse_srt(structure_path)
         source, _, _ = parse_srt(source_path)
         viewer, _, _ = parse_srt(viewer_path)
+        acoustic = _load_by_block(acoustic_path, [block.number for block in structure], "acoustic evidence")
         if not compare_structure(structure, source)["pass"] or not compare_structure(structure, viewer)["pass"]:
             errors.append("locked SRT structure changed")
         decisions = _read_jsonl(decisions_path)
@@ -1065,7 +1142,7 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
                 accepted += 1
                 if row.get("render_blocking_conflicts"):
                     critical_conflicts += 1
-                if row.get("source_quality_status") in {"suspect", "unusable"} and len(set(row.get("independent_source_families", []))) < 2:
+                if row.get("source_quality_status") in {"suspect", "unusable"} and not has_usable_dual_acoustic(acoustic[number], allow_legacy_without_fusion=False):
                     damaged_without_dual += 1
             recovery_state = str(row.get("recovery_state") or "abstained")
             recovery_counts[recovery_state] = recovery_counts.get(recovery_state, 0) + 1
