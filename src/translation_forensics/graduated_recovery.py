@@ -706,6 +706,34 @@ def _candidate_text(row: Mapping[str, Any], *, conservative: bool) -> tuple[str,
     )
 
 
+_DUAL_FALLBACK_PROVENANCE = frozenset({"dual_agreement", "dual_compatible"})
+
+
+def _deterministic_fallback_state(
+    agreement: Mapping[str, Any],
+    current_state: str,
+    fallback_slots: set[str],
+) -> str:
+    """Derive fallback tier from deterministic arbitration, never model claims."""
+    if not fallback_slots:
+        return "abstained"
+    provenance = agreement.get("slot_provenance") or {}
+    if any(
+        str((provenance.get(slot) or {}).get("provenance"))
+        not in _DUAL_FALLBACK_PROVENANCE
+        for slot in fallback_slots
+    ):
+        return "abstained"
+    if current_state == "minimal_speech_act":
+        return "minimal_speech_act"
+    if current_state == "accepted_consensus":
+        fully_agreed = bool(agreement.get("fully_agreed"))
+        return "accepted_consensus" if fully_agreed else "accepted_partial"
+    if current_state in {"accepted_partial", "recovered_context"}:
+        return "accepted_partial"
+    return "abstained"
+
+
 def apply_graduated_evidence_gate(
     rows: Sequence[Mapping[str, Any]],
     agreements: Mapping[int, Mapping[str, Any]],
@@ -767,6 +795,11 @@ def apply_graduated_evidence_gate(
         requested_fallback_state = str(
             output.get("fallback_recovery_state") or "minimal_speech_act"
         )
+        deterministic_fallback_state = _deterministic_fallback_state(
+            agreement,
+            state,
+            fallback_slots,
+        )
         primary_missing_claims = (
             state not in {"vocalization", "abstained"} and not primary_slots
         )
@@ -781,6 +814,7 @@ def apply_graduated_evidence_gate(
         fallback_overclaims = (
             not fallback_slots.issubset(allowed_slots)
             or fallback_missing_claims
+            or deterministic_fallback_state == "abstained"
         )
         fallback_source, fallback_viewer = _candidate_text(
             output,
@@ -792,7 +826,7 @@ def apply_graduated_evidence_gate(
             and fallback_viewer
             and fallback_source != "…"
             and fallback_viewer != "…"
-            and requested_fallback_state != "abstained"
+            and deterministic_fallback_state != "abstained"
         )
         if fallback_overclaims:
             output.update(
@@ -805,7 +839,13 @@ def apply_graduated_evidence_gate(
                 }
             )
         else:
-            output["fallback_evidence_safe"] = fallback_evidence_safe
+            output.update(
+                {
+                    "fallback_recovery_state": deterministic_fallback_state,
+                    "fallback_rendered_slots": sorted(fallback_slots),
+                    "fallback_evidence_safe": fallback_evidence_safe,
+                }
+            )
 
         if primary_missing_claims:
             status["uncertainty_codes"] = sorted(
@@ -819,7 +859,7 @@ def apply_graduated_evidence_gate(
             )
             if not fallback_overclaims:
                 use_conservative = True
-                state = requested_fallback_state
+                state = deterministic_fallback_state
             else:
                 state = "abstained"
 

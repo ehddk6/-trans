@@ -338,6 +338,59 @@ def test_overclaiming_fallback_is_sanitized_even_when_primary_is_safe():
     assert reviewed["viewer_natural_korean"] == "…"
 
 
+def test_single_model_fallback_cannot_claim_consensus():
+    agreement = build_frame_agreement(
+        frame(polarity="positive"),
+        frame(polarity="negative"),
+        corroboration={
+            "polarity": {
+                "model": "sol",
+                "independent": True,
+                "evidence_refs": ["asr-fusion:block-1"],
+            }
+        },
+    )
+    row = {
+        "block_number": 1,
+        "source_faithful_korean": "주장을 번역",
+        "viewer_natural_korean": "자연스러운 번역",
+        "conservative_source_faithful_korean": "보수적 번역",
+        "conservative_viewer_natural_korean": "보수적 자연어",
+        "rendered_slots": list(agreement["rendered_slots"]),
+        "fallback_rendered_slots": ["speech_act", "action", "polarity"],
+        "fallback_recovery_state": "accepted_consensus",
+    }
+
+    [gated] = apply_graduated_evidence_gate(
+        [row],
+        {1: agreement},
+        {1: {"source_quality_status": "trusted"}},
+        {1: {"independent_source_families": ["terra", "sol"]}},
+    )
+
+    assert agreement["recovery_state"] == "recovered_single_model"
+    assert gated["fallback_recovery_state"] == "abstained"
+    assert gated["fallback_evidence_safe"] is False
+
+    [reviewed] = apply_review_outcomes(
+        [gated],
+        [
+            {
+                "block_number": 1,
+                "verdict": "repair",
+                "critical_slot_conflicts": [],
+                "unsupported_additions": [],
+                "claim_findings": [],
+                "fallback_blocking": False,
+                "reason": "primary rejected",
+            }
+        ],
+    )
+
+    assert reviewed["recovery_state"] == "abstained"
+    assert reviewed["viewer_natural_korean"] == "…"
+
+
 def test_controlled_vocalization_survives_review_fallback_selection():
     agreement = build_frame_agreement(
         frame(
