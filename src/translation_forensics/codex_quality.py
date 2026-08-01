@@ -993,6 +993,7 @@ def _validate_repair_lineage(
                     "cache_identity": report.get("cache_identity"),
                     "base_acoustic_sha256": lineage.get("base_acoustic_sha256"),
                     "repaired_evidence_sha256": report.get("evidence_sha256"),
+                    "merged_acoustic_sha256": report.get("merged_acoustic_sha256"),
                 }
                 try:
                     if json.loads(merged_meta.read_text(encoding="utf-8")) != expected_meta:
@@ -1036,6 +1037,8 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
         errors.append("release_kind must be autonomous-quality-candidate")
     if any(manifest.get(field) is not False for field in ("human_equal", "human_final", "final_promotion_allowed")):
         errors.append("human/final claim boundary is invalid")
+    if manifest.get("inputs", {}).get("evidence_repair") is not None:
+        _validate_repair_lineage(manifest, package_dir, errors)
     if manifest.get("status") in {"evidence-ceiling-failed", "evidence-ceiling-failed-after-repair"}:
         try:
             feasibility_path = _resolve_ref(package_dir, manifest["evidence_feasibility"])

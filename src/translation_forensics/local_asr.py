@@ -699,6 +699,10 @@ def run_pre_ceiling_evidence_repair(
     if resume and report_path.is_file() and evidence_path.is_file():
         report = json.loads(report_path.read_text(encoding="utf-8"))
         if report.get("input_signature") == input_signature:
+            if report.get("cache_identity") != cache_identity:
+                raise LocalASRError("Pre-ceiling repair cache identity mismatch")
+            if report.get("evidence_sha256") != _sha256(evidence_path):
+                raise LocalASRError("Pre-ceiling repair evidence hash mismatch")
             rows = [
                 json.loads(line)
                 for line in evidence_path.read_text(encoding="utf-8").splitlines()

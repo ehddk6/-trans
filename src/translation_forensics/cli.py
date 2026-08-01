@@ -1356,7 +1356,11 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                     reusable_merge = False
                     if args.resume and merged_acoustic_path.is_file() and merge_meta_path.is_file():
                         try:
-                            reusable_merge = json.loads(merge_meta_path.read_text(encoding="utf-8")) == merge_identity
+                            existing_merge_meta = json.loads(merge_meta_path.read_text(encoding="utf-8"))
+                            reusable_merge = (
+                                all(existing_merge_meta.get(key) == value for key, value in merge_identity.items())
+                                and existing_merge_meta.get("merged_acoustic_sha256") == _sha256_file(merged_acoustic_path)
+                            )
                         except (OSError, TypeError, ValueError, json.JSONDecodeError):
                             reusable_merge = False
                     if reusable_merge:
@@ -1372,6 +1376,7 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                             repaired_rows=repaired_rows,
                             output_path=merged_acoustic_path,
                         )
+                        merge_identity["merged_acoustic_sha256"] = _sha256_file(effective_acoustic_path)
                         merge_meta_path.write_text(
                             json.dumps(merge_identity, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
                             encoding="utf-8",
