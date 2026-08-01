@@ -739,10 +739,15 @@ def apply_graduated_evidence_gate(
                     {
                         "source_faithful_korean": controlled,
                         "viewer_natural_korean": controlled,
+                        "conservative_source_faithful_korean": controlled,
+                        "conservative_viewer_natural_korean": controlled,
                         "source_status": "accepted",
                         "viewer_status": "supported",
                         "recovery_state": "vocalization",
+                        "fallback_recovery_state": "vocalization",
                         "rendered_slots": ["speech_act"],
+                        "fallback_rendered_slots": ["speech_act"],
+                        "fallback_evidence_safe": True,
                         "reason": "controlled non-lexical rendering from routed acoustic evidence",
                     }
                 )
@@ -777,6 +782,30 @@ def apply_graduated_evidence_gate(
             not fallback_slots.issubset(allowed_slots)
             or fallback_missing_claims
         )
+        fallback_source, fallback_viewer = _candidate_text(
+            output,
+            conservative=True,
+        )
+        fallback_evidence_safe = bool(
+            not fallback_overclaims
+            and fallback_source
+            and fallback_viewer
+            and fallback_source != "…"
+            and fallback_viewer != "…"
+            and requested_fallback_state != "abstained"
+        )
+        if fallback_overclaims:
+            output.update(
+                {
+                    "conservative_source_faithful_korean": "…",
+                    "conservative_viewer_natural_korean": "…",
+                    "fallback_recovery_state": "abstained",
+                    "fallback_rendered_slots": [],
+                    "fallback_evidence_safe": False,
+                }
+            )
+        else:
+            output["fallback_evidence_safe"] = fallback_evidence_safe
 
         if primary_missing_claims:
             status["uncertainty_codes"] = sorted(
@@ -883,6 +912,7 @@ def apply_review_outcomes(
             and fallback_source != "…"
             and fallback_viewer != "…"
             and fallback_state != "abstained"
+            and row.get("fallback_evidence_safe") is True
             and (
                 bool(fallback_slots)
                 or fallback_state == "vocalization"

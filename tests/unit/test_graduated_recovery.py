@@ -205,6 +205,7 @@ def test_review_prefers_safe_fallback_over_whole_block_deletion():
             "fallback_recovery_state": "minimal_speech_act",
             "rendered_slots": ["speech_act", "action", "location"],
             "fallback_rendered_slots": ["speech_act", "action"],
+            "fallback_evidence_safe": True,
         }
     ]
     reviews = [
@@ -295,6 +296,106 @@ def test_vocalization_gate_uses_controlled_renderer_not_model_text():
     assert gated[0]["recovery_state"] == "vocalization"
     assert gated[0]["source_faithful_korean"] == "앗!"
     assert gated[0]["viewer_natural_korean"] == "앗!"
+
+
+def test_overclaiming_fallback_is_sanitized_even_when_primary_is_safe():
+    agreement = build_frame_agreement(frame(), frame())
+    row = {
+        "block_number": 1,
+        "source_faithful_korean": "멈춰",
+        "viewer_natural_korean": "멈춰",
+        "conservative_source_faithful_korean": "침대 안에서 멈춰",
+        "conservative_viewer_natural_korean": "침대 안에서 멈춰",
+        "recovery_state": "accepted_consensus",
+        "fallback_recovery_state": "accepted_partial",
+        "rendered_slots": ["speech_act", "action"],
+        "fallback_rendered_slots": ["speech_act", "action", "location"],
+    }
+    [gated] = apply_graduated_evidence_gate(
+        [row],
+        {1: agreement},
+        {1: {"source_quality_status": "trusted"}},
+        {1: {"independent_source_families": []}},
+    )
+    assert gated["fallback_evidence_safe"] is False
+    assert gated["fallback_recovery_state"] == "abstained"
+    assert gated["conservative_viewer_natural_korean"] == "…"
+    [reviewed] = apply_review_outcomes(
+        [gated],
+        [
+            {
+                "block_number": 1,
+                "verdict": "repair",
+                "critical_slot_conflicts": [],
+                "unsupported_additions": [],
+                "claim_findings": [],
+                "fallback_blocking": False,
+                "reason": "primary rejected",
+            }
+        ],
+    )
+    assert reviewed["recovery_state"] == "abstained"
+    assert reviewed["viewer_natural_korean"] == "…"
+
+
+def test_controlled_vocalization_survives_review_fallback_selection():
+    agreement = build_frame_agreement(
+        frame(
+            speech_act="vocalization",
+            question=None,
+            polarity=None,
+            command_strength=None,
+            actor=None,
+            action=None,
+            target=None,
+            tense_aspect=None,
+            direction=None,
+            intensity=None,
+        ),
+        frame(
+            speech_act="vocalization",
+            question=None,
+            polarity=None,
+            command_strength=None,
+            actor=None,
+            action=None,
+            target=None,
+            tense_aspect=None,
+            direction=None,
+            intensity=None,
+        ),
+    )
+    agreement["controlled_nonlexical_korean"] = "앗!"
+    [gated] = apply_graduated_evidence_gate(
+        [
+            {
+                "block_number": 1,
+                "source_faithful_korean": "모델 문장",
+                "viewer_natural_korean": "모델 문장",
+                "conservative_source_faithful_korean": "모델 fallback",
+                "conservative_viewer_natural_korean": "모델 fallback",
+            }
+        ],
+        {1: agreement},
+        {1: {"source_quality_status": "trusted"}},
+        {1: {"independent_source_families": ["a", "b"]}},
+    )
+    [reviewed] = apply_review_outcomes(
+        [gated],
+        [
+            {
+                "block_number": 1,
+                "verdict": "repair",
+                "critical_slot_conflicts": [],
+                "unsupported_additions": [],
+                "claim_findings": [],
+                "fallback_blocking": False,
+                "reason": "primary rejected",
+            }
+        ],
+    )
+    assert reviewed["recovery_state"] == "vocalization"
+    assert reviewed["viewer_natural_korean"] == "앗!"
 
 
 def fusion_record(*, state="dual_agreement", alignment="block-aligned"):
@@ -668,6 +769,7 @@ def test_review_fallback_replaces_actual_rendered_slots_and_status():
         "fallback_recovery_state": "accepted_partial",
         "rendered_slots": ["speech_act", "action", "location"],
         "fallback_rendered_slots": ["speech_act", "action"],
+        "fallback_evidence_safe": True,
         "uncertainty_codes": [],
     }
     review = {

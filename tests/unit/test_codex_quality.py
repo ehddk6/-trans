@@ -257,6 +257,38 @@ class VocalizationQualityProvider(FakeQualityProvider):
         )
 
 
+class ConflictRetryQualityProvider(FakeQualityProvider):
+    def __init__(self):
+        self.frame_call_ids = []
+
+    def run_structured(self, *, role, title_id, call_id, prompt, payload, schema, resume=True):
+        if role.startswith("meaning-frame"):
+            self.frame_call_ids.append(call_id)
+            response, receipt = super().run_structured(
+                role=role,
+                title_id=title_id,
+                call_id=call_id,
+                prompt=prompt,
+                payload=payload,
+                schema=schema,
+                resume=resume,
+            )
+            retry = "meaning-rerun" in call_id
+            for row in response["frames"]:
+                if int(row["block_number"]) == 1:
+                    row["polarity"] = "negative" if retry or role.endswith("sol") else "positive"
+            return response, receipt
+        return super().run_structured(
+            role=role,
+            title_id=title_id,
+            call_id=call_id,
+            prompt=prompt,
+            payload=payload,
+            schema=schema,
+            resume=resume,
+        )
+
+
 def test_end_to_end_quality_package_with_real_contracts(tmp_path):
     structure = tmp_path / "sample.ja.srt"
     structure.write_text(
@@ -371,3 +403,107 @@ def test_end_to_end_vocalization_route_controls_rendering(tmp_path):
     assert decision["utterance_kind"] == "vocalization"
     assert decision["recovery_state"] == "vocalization"
     assert decision["viewer_natural_korean"] == "아…"
+
+
+def test_end_to_end_conflict_rerun_is_block_local_and_re_fused(tmp_path, monkeypatch):
+    structure = tmp_path / "sample.ja.srt"
+    structure.write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\nやめて\n\n"
+        "2\n00:00:02,000 --> 00:00:03,000\n待って\n\n",
+        encoding="utf-8",
+    )
+    source_map = tmp_path / "source-quality-map.jsonl"
+    source_map.write_text(
+        "".join(
+            json.dumps({"block_number": number, "source_quality_status": "trusted", "reason_codes": []}) + "\n"
+            for number in (1, 2)
+        ),
+        encoding="utf-8",
+    )
+    acoustic = tmp_path / "block-acoustic-evidence.jsonl"
+    acoustic.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "block_number": number,
+                    "transcripts": [],
+                    "evidence_refs": [],
+                    "independent_source_families": [],
+                }
+            )
+            + "\n"
+            for number in (1, 2)
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_rerun(*, blocks, **kwargs):
+        result = {}
+        for block in blocks:
+            result[block.number] = add_asr_fusion(
+                {
+                    "block_number": block.number,
+                    "start": block.start,
+                    "end": block.end,
+                    "transcripts": [
+                        {
+                            "source_family": "whisper",
+                            "text": "やめて",
+                            "utterance_id": f"retry-{block.number}-w",
+                            "alignment_scope": "boundary-expanded-window-rerun",
+                        },
+                        {
+                            "source_family": "reazon",
+                            "text": "やめて",
+                            "utterance_id": f"retry-{block.number}-r",
+                            "alignment_scope": "boundary-expanded-window-rerun",
+                        },
+                    ],
+                    "evidence_refs": [
+                        f"asr:retry-{block.number}:whisper",
+                        f"asr:retry-{block.number}:reazon",
+                    ],
+                    "independent_source_families": ["reazon", "whisper"],
+                }
+            )
+        return result
+
+    monkeypatch.setattr("translation_forensics.codex_quality.run_conflict_asr_rerun", fake_rerun)
+    provider = ConflictRetryQualityProvider()
+    root = __import__("pathlib").Path(__file__).resolve().parents[2]
+    package = tmp_path / "package"
+    result = run_codex_quality_title(
+        title_id="SAMPLE",
+        structure_path=structure,
+        source_quality_map_path=source_map,
+        acoustic_evidence_path=acoustic,
+        audio_path=tmp_path / "dummy.wav",
+        output_dir=package,
+        provider=provider,
+        prompt_dir=root / "prompts",
+        schema_dir=root / "schemas",
+        max_scene_blocks=20,
+        max_repairs=0,
+        resume=False,
+    )
+    assert result["status"] == "quality-gates-passed"
+    assert sorted(call for call in provider.frame_call_ids if "meaning-rerun" in call) == [
+        "scene-0001.meaning-rerun.sol",
+        "scene-0001.meaning-rerun.terra",
+    ]
+    decisions = {
+        int(row["block_number"]): row
+        for row in (
+            json.loads(line)
+            for line in (package / "decisions.jsonl").read_text(encoding="utf-8").splitlines()
+        )
+    }
+    assert decisions[1]["recovery_state"] == "recovered_context"
+    assert decisions[1]["boundary_expansion_asr_rerun"] is True
+    assert decisions[2]["boundary_expansion_asr_rerun"] is False
+    agreements = [
+        json.loads(line)
+        for line in (package / "frame-agreements.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert agreements[0]["boundary_expansion_asr_rerun"] is True
+    assert agreements[1]["boundary_expansion_asr_rerun"] is False

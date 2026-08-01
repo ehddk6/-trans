@@ -142,14 +142,33 @@ def _review_repair_eligible(review: dict[str, Any]) -> bool:
     findings = [finding for finding in (review.get("claim_findings") or []) if isinstance(finding, dict)]
     if any(finding.get("disposition") == "blocking" for finding in findings):
         return False
-    unsupported = bool(review.get("unsupported_additions"))
+    unsupported_additions = [
+        str(value).strip()
+        for value in (review.get("unsupported_additions") or [])
+        if str(value).strip()
+    ]
+    unsupported = bool(unsupported_additions)
     if unsupported and not findings:
         return False
-    if unsupported and not any(
-        finding.get("disposition") in {"omit", "repair"}
-        for finding in findings
-    ):
-        return False
+    if unsupported:
+        repairable = {"omit", "repair"}
+        parsed_slots = {
+            addition.split(":", 1)[0].strip().casefold()
+            for addition in unsupported_additions
+        }
+        known_slots = set(CRITICAL_SLOTS) | {"translation"}
+        if parsed_slots <= known_slots:
+            for slot in parsed_slots:
+                if not any(
+                    str(finding.get("slot") or "").casefold() == slot
+                    and finding.get("disposition") in repairable
+                    for finding in findings
+                ):
+                    return False
+        elif not findings or not all(
+            finding.get("disposition") in repairable for finding in findings
+        ):
+            return False
     # A legacy review without claim findings keeps the old conservative rule.
     if not findings and review.get("critical_slot_conflicts"):
         return False
@@ -456,6 +475,7 @@ def run_codex_quality_title(
         sol_frames = _response_rows(sol_response, "frames", numbers, scene_id)
         agreements = compare_independent_frames(terra_frames, sol_frames, numbers, acoustic=acoustic, source_quality=source_quality)
         rerun_performed = False
+        rerun_numbers: set[int] = set()
         rerun_error = ""
         conflict_numbers = [
             int(agreement["block_number"])
@@ -567,6 +587,7 @@ def run_codex_quality_title(
                 ]
                 all_receipts.extend((terra_retry_receipt, sol_retry_receipt))
                 rerun_performed = True
+                rerun_numbers.update(conflict_numbers)
             except (FileExistsError, LocalASRError, OSError, RuntimeError, ValueError) as exc:
                 rerun_error = str(exc)
         by_block = {block.number: block for block in scene}
@@ -584,7 +605,7 @@ def run_codex_quality_title(
             {
                 **row,
                 "scene_id": scene_id,
-                "boundary_expansion_asr_rerun": rerun_performed,
+                "boundary_expansion_asr_rerun": int(row["block_number"]) in rerun_numbers,
                 "boundary_expansion_asr_rerun_error": rerun_error,
             }
             for row in agreements
@@ -737,6 +758,7 @@ def run_codex_quality_title(
                     "title_id": title_id,
                     "scene_id": scene_id,
                     "utterance_id": f"{scene_id}:u-{number:05d}",
+                    "boundary_expansion_asr_rerun": number in rerun_numbers,
                     **row,
                     "source_quality_status": source_quality[number]["source_quality_status"],
                     "source_quality_reason_codes": source_quality[number].get("reason_codes", []),
