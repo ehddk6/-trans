@@ -19,12 +19,20 @@ class FakeProvider:
     def run_structured(self, **kwargs):
         self.calls.append(kwargs)
         if kwargs["role"] == "translation-terra":
+            visual_repair = (
+                kwargs["payload"].get("contract")
+                == "source_bound_visual_slot_repair_not_final"
+            )
             return {
                 "translations": [
                     {
                         "unit_id": unit["unit_id"],
-                        "source_faithful_korean": "직역 " + unit["unit_id"],
-                        "viewer_natural_korean": "자연 " + unit["unit_id"],
+                        "source_faithful_korean": (
+                            "거기예요." if visual_repair else "직역 " + unit["unit_id"]
+                        ),
+                        "viewer_natural_korean": (
+                            "거기 있어요." if visual_repair else "자연 " + unit["unit_id"]
+                        ),
                         "confidence": "low" if unit["unit_id"] == "u2" else "high",
                         "uncertain_slots": ["addressee"] if unit["unit_id"] == "u2" else [],
                         "review_required_reasons": [],
@@ -93,6 +101,8 @@ def test_terra_translates_every_unit_even_when_source_is_suspect():
     assert decisions[1]["recovery_classification"] == "FUNCTIONAL_RECOVERY"
     assert decisions[0]["source_profile"] == "MIXED"
     assert len(receipts) == 2
+    assert provider.calls[0]["payload"]["units"][0]["next_source_japanese"] == "そこ。"
+    assert provider.calls[1]["payload"]["units"][0]["previous_source_japanese"] == "行く？"
 
 
 def test_terra_permits_unresolved_marker_only_for_unusable_unresolved_unit():
@@ -123,6 +133,30 @@ def test_terra_permits_unresolved_marker_only_for_unusable_unresolved_unit():
     assert decisions[0]["recovery_classification"] == "UNRESOLVED"
 
 
+def test_terra_rejects_unresolved_classification_with_invented_text():
+    class InventedUnresolvedProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            response["translations"][0].update(
+                {
+                    "source_faithful_korean": "좋아",
+                    "viewer_natural_korean": "좋아",
+                    "recovery_classification": "UNRESOLVED",
+                    "recovery_basis": [],
+                }
+            )
+            return response, receipt
+
+    units = [{
+        "unit_id": "u1", "start": 0.0, "end": 1.0,
+        "source_japanese": "ご視聴ありがとうございました", "quality_status": "unusable",
+    }]
+    with pytest.raises(ValueError, match="exactly"):
+        translate_units_with_terra(
+            InventedUnresolvedProvider(), title_id="TEST-001", units=units
+        )
+
+
 def test_terra_rejects_unresolved_marker_for_recoverable_source():
     class InvalidMarkerProvider(FakeProvider):
         def run_structured(self, **kwargs):
@@ -134,6 +168,47 @@ def test_terra_rejects_unresolved_marker_for_recoverable_source():
 
     with pytest.raises(ValueError, match="unresolved_marker"):
         translate_units_with_terra(InvalidMarkerProvider(), title_id="TEST-001", units=_units()[:1])
+
+
+def test_terra_rejects_unresolved_marker_embedded_in_other_text():
+    class MixedMarkerProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            response["translations"][0]["source_faithful_korean"] = "잘 [불명]"
+            return response, receipt
+
+    with pytest.raises(ValueError, match="entire_translation"):
+        translate_units_with_terra(
+            MixedMarkerProvider(), title_id="TEST-001", units=_units()[:1]
+        )
+
+
+def test_terra_rejects_missing_recovery_contract_fields_from_any_provider():
+    class MissingRecoveryProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            response["translations"][0].pop("recovery_classification")
+            return response, receipt
+
+    with pytest.raises(ValueError, match="schema error"):
+        translate_units_with_terra(
+            MissingRecoveryProvider(), title_id="TEST-001", units=_units()[:1]
+        )
+
+
+def test_terra_requires_basis_for_functional_recovery():
+    class MissingBasisProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            response["translations"][0]["recovery_classification"] = "FUNCTIONAL_RECOVERY"
+            response["translations"][0]["recovery_basis"] = []
+            return response, receipt
+
+    suspect = [{**_units()[1], "unit_id": "u1"}]
+    with pytest.raises(ValueError, match="schema error"):
+        translate_units_with_terra(
+            MissingBasisProvider(), title_id="TEST-001", units=suspect
+        )
 
 
 def test_terra_rejects_missing_batch_coverage():
@@ -154,9 +229,11 @@ def test_terra_drops_only_unrequested_extra_rows_and_records_warning():
                     "unit_id": "not-requested",
                     "source_faithful_korean": "범위 밖",
                     "viewer_natural_korean": "범위 밖",
-                    "confidence": "high",
-                    "uncertain_slots": [],
-                    "review_required_reasons": [],
+                        "confidence": "high",
+                        "uncertain_slots": [],
+                        "review_required_reasons": [],
+                        "recovery_classification": "RELIABLE",
+                        "recovery_basis": [],
                 }
             )
             return response, receipt
@@ -181,6 +258,30 @@ def test_sol_audit_returns_item_level_evidence_without_rewriting_translation():
     assert len(receipts) == len(records) == 2
     assert all(row["sol_audit_status"] == "completed" for row in records)
     assert all(row["audit_call_id"].endswith("translation-audit.sol") for row in records)
+    assert provider.calls[-2]["payload"]["units"][0]["next_source_japanese"] == "そこ。"
+    assert provider.calls[-1]["payload"]["units"][0]["previous_source_japanese"] == "行く？"
+
+
+def test_sol_pass_with_empty_backtranslation_or_low_score_is_fallback():
+    class WeakAuditProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            if kwargs["role"] == "translation-audit-sol":
+                response["audits"][0]["backtranslation_japanese"] = ""
+                response["audits"][0]["source_fidelity_score"] = 0.0
+            return response, receipt
+
+    provider = WeakAuditProvider()
+    decisions, _ = translate_units_with_terra(
+        provider, title_id="TEST-001", units=_units()[:1]
+    )
+    decisions[0]["automated_quality_status"] = "passed"
+    updated, _, records = audit_translations_with_sol(
+        provider, title_id="TEST-001", decisions=decisions
+    )
+    assert updated[0]["automated_quality_status"] == "fallback"
+    assert records[0]["model_verdict"] == "fail"
+    assert "sol_backtranslation_empty" in records[0]["reasons"]
 
 
 def test_visual_review_is_bounded_and_records_transfer(tmp_path):
@@ -195,10 +296,14 @@ def test_visual_review_is_bounded_and_records_transfer(tmp_path):
         units_by_id={row["unit_id"]: row for row in _units()},
         frames_by_unit={"u2": [image]},
     )
-    assert updated[1]["viewer_natural_korean"] == "수정 자연"
+    assert updated[1]["viewer_natural_korean"] == "거기 있어요."
+    assert updated[1]["visual_repair_terra_call_id"] == "u2.visual-repair.terra"
+    assert records[0]["verdict"] == "repair-applied-pending-independent-audit"
+    assert [call["role"] for call in provider.calls[-2:]] == ["critique-sol", "translation-terra"]
+    assert len(receipts) == 2
     assert receipts[0]["image_attachments"][0]["sha256"] == "hash-frame.jpg"
     assert records[0]["allowed_visual_slots"]["addressee"] == ["한 명"]
-    visual_call = provider.calls[-1]
+    visual_call = provider.calls[-2]
     assert visual_call["allow_image_transfer"] is True
     assert visual_call["image_paths"] == [image.resolve()]
 
@@ -226,7 +331,9 @@ def test_visual_review_does_not_repair_suspect_asr_lexical_content(tmp_path):
     assert updated[1]["viewer_natural_korean"] == original
     assert "visual_text_repair_not_applied_asr_inference_or_unusable_source" in updated[1]["review_required_reasons"]
     assert records[0]["model_verdict"] == "repair"
-    assert records[0]["verdict"] == "escalate"
+    assert records[0]["verdict"] == "machine-uncertain"
+    assert "critical_visual_context_requires_machine_uncertain" in updated[1]["review_required_reasons"]
+    assert "critical_visual_context_requires_human_review" not in updated[1]["review_required_reasons"]
 
 
 def test_visual_review_rejects_more_than_three_frames(tmp_path):

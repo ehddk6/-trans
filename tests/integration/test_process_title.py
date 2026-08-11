@@ -3,13 +3,16 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+import os
 import shutil
+import subprocess
+import wave
 from pathlib import Path
 
 import pytest
 
 from translation_forensics.codex_exec_provider import CodexUsageLimitError
-from translation_forensics.integrated_pipeline import BundleBlockedError
+from translation_forensics.integrated_pipeline import BundleBlockedError, TranslationUnit
 from translation_forensics.process_title import (
     ProcessTitleConfig,
     choose_subtitle_backend,
@@ -17,6 +20,7 @@ from translation_forensics.process_title import (
 )
 from translation_forensics.srt import parse_srt
 from translation_forensics.visual_context import sha256_file
+from subtitle_pipeline.media import build_media_binding
 
 
 process_title_module = importlib.import_module("translation_forensics.process_title")
@@ -40,6 +44,10 @@ class FakeProvider:
                         "confidence": "low" if ambiguous else "high",
                         "uncertain_slots": ["addressee", "deictic_location"] if ambiguous else [],
                         "review_required_reasons": [],
+                        "recovery_classification": (
+                            "FUNCTIONAL_RECOVERY" if ambiguous else "RELIABLE"
+                        ),
+                        "recovery_basis": ["neighboring_turns"] if ambiguous else [],
                     }
                 )
             return {"translations": translations}, self._receipt(kwargs)
@@ -134,7 +142,11 @@ def _make_existing_bundle(
     tmp_path: Path, *, accepted: bool = False, media_suffix: str = ".mp4"
 ) -> tuple[Path, Path, Path]:
     media = tmp_path / f"ADN-622{media_suffix}"
-    media.write_bytes(b"test-media")
+    with wave.open(str(media), "wb") as handle:
+        handle.setnchannels(1)
+        handle.setsampwidth(2)
+        handle.setframerate(8_000)
+        handle.writeframes(b"\x00\x00" * 24_000)
     bundle = tmp_path / "ADN-622" / "ensemble_qwen_whisper"
     bundle.mkdir(parents=True)
     source = (
@@ -210,6 +222,7 @@ def _make_existing_bundle(
     (bundle / "review_report.html").write_text(
         "이 검수 구간 영상 재생\n이 검수 구간 영상 재생\n", encoding="utf-8"
     )
+    _write_json(bundle / "source_media.json", build_media_binding(media))
     _write_json(
         bundle / "bundle_verification.json",
         {
@@ -239,6 +252,7 @@ def test_process_title_packages_complete_draft_but_holds_unaccepted_bundle_candi
             legacy_captures=captures,
             visual_policy="targeted",
             max_visual_units=2,
+            quality_policy="legacy",
             resume=True,
         ),
         provider=provider,
@@ -266,9 +280,10 @@ def test_process_title_packages_complete_draft_but_holds_unaccepted_bundle_candi
             media=media,
             japanese_bundle=bundle,
             legacy_captures=captures,
-            visual_policy="targeted",
-            max_visual_units=2,
-            resume=True,
+                visual_policy="targeted",
+                max_visual_units=2,
+                quality_policy="legacy",
+                resume=True,
         ),
         provider=provider,
     )
@@ -298,6 +313,16 @@ def test_automated_quality_policy_replaces_human_holds_with_safe_fallback(tmp_pa
     assert result["pending_review_count"] == 0
     assert result["candidate_units"] == 2
     assert result["status"] == "machine-uncertain"
+    assert result["human_final_allowed"] is False
+    assert result["final_promotion_allowed"] is False
+    run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    assert run_manifest["machine_final_allowed"] is False
+    assert run_manifest["final_promotion_allowed"] is False
+    assert run_manifest["human_reviewed"] is False
+    qa_report = json.loads((run_dir / "qa_report.json").read_text(encoding="utf-8"))
+    assert qa_report["human_reviewed"] is False
+    assert qa_report["human_final_allowed"] is False
+    assert qa_report["final_promotion_allowed"] is False
     assert all("검수 보류" not in block.text for block in complete + faithful)
     assert faithful[1].text == "당신은 거기 있나요?"
     audits = [
@@ -376,6 +401,249 @@ def test_photo_less_title_auto_captures_selected_visual_units_and_indexes_them(t
     assert manifest["visual_capture"]["mode"] == "legacy_or_auto_generated"
 
 
+def test_generated_frame_write_is_atomic_bounded_and_repairs_partial_jpeg(tmp_path, monkeypatch):
+    media = tmp_path / "ADN-622.mp4"
+    media.write_bytes(b"video")
+    output = tmp_path / "frames"
+    output.mkdir()
+    stale = output / "frame_01_0.500s.jpg"
+    stale.write_bytes(b"")
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        Path(command[-1]).write_bytes(b"\xff\xd8frame\xff\xd9")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(process_title_module.subprocess, "run", fake_run)
+    unit = TranslationUnit(
+        unit_id="utt_000001",
+        start=0.0,
+        end=1.0,
+        text_raw="そこ",
+        source_segment_ids=(1,),
+        words=(),
+        asr_warnings=("review_required",),
+        quality_status="suspect",
+        evidence_ids=("transcript:utt_000001",),
+    )
+    frames = process_title_module._extract_unit_frames(media, output, unit, 1)
+    assert frames[0].path == stale.resolve()
+    assert stale.read_bytes() == b"\xff\xd8frame\xff\xd9"
+    assert calls[0][1]["timeout"] == 60
+    assert "-y" in calls[0][0]
+    assert not list(output.glob("*.partial.jpg"))
+
+
+def test_generated_frame_end_anchor_stays_inside_cue_to_avoid_eof_seek(tmp_path, monkeypatch):
+    media = tmp_path / "ADN-622.mp4"
+    media.write_bytes(b"video")
+    seeks = []
+
+    def fake_run(command, **kwargs):
+        seeks.append(float(command[command.index("-ss") + 1]))
+        Path(command[-1]).write_bytes(b"\xff\xd8frame\xff\xd9")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(process_title_module.subprocess, "run", fake_run)
+    unit = TranslationUnit(
+        unit_id="utt_000001",
+        start=0.0,
+        end=2.0,
+        text_raw="そこ",
+        source_segment_ids=(1,),
+        words=(),
+        asr_warnings=("review_required",),
+        quality_status="suspect",
+        evidence_ids=("transcript:utt_000001",),
+    )
+    frames = process_title_module._extract_unit_frames(
+        media, tmp_path / "frames", unit, 2
+    )
+    assert len(frames) == 2
+    assert seeks[0] == 0.0
+    assert 1.9 < seeks[1] < unit.end
+
+
+def test_partial_resume_repairs_tampered_output_and_missing_audit_receipts(tmp_path, monkeypatch):
+    media, bundle, _ = _make_existing_bundle(tmp_path, accepted=True)
+    original_promote = process_title_module.promote_staged_run
+
+    def interrupt_promotion(*args, **kwargs):
+        raise RuntimeError("simulated interruption before promotion")
+
+    monkeypatch.setattr(process_title_module, "promote_staged_run", interrupt_promotion)
+    config = ProcessTitleConfig(
+        project_root=tmp_path / "project",
+        title_id="ADN-622",
+        media=media,
+        japanese_bundle=bundle,
+        visual_policy="off",
+        resume=True,
+    )
+    with pytest.raises(RuntimeError, match="simulated interruption"):
+        process_title(config, provider=FakeProvider())
+
+    partials = list(
+        (tmp_path / "project" / "workspaces" / "ADN-622" / "integrated" / ".partial").iterdir()
+    )
+    assert len(partials) == 1
+    stage = partials[0]
+    viewer = stage / "outputs" / "viewer_complete_ko.srt"
+    viewer.write_text(
+        viewer.read_text(encoding="utf-8").replace(
+            "00:00:00,000 --> 00:00:01,000",
+            "00:00:09,000 --> 00:00:10,000",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    (stage / "model_call_receipts.jsonl").write_text("", encoding="utf-8")
+
+    monkeypatch.setattr(process_title_module, "promote_staged_run", original_promote)
+    result = process_title(config, provider=FakeProvider())
+    run_dir = Path(result["run_dir"])
+    blocks, _, _ = parse_srt(run_dir / "outputs" / "viewer_complete_ko.srt")
+    assert blocks[0].start_seconds == 0.0
+    receipts = [
+        json.loads(line)
+        for line in (run_dir / "model_call_receipts.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    audits = [
+        json.loads(line)
+        for line in (run_dir / "automated_quality.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    receipt_ids = {row["call_id"] for row in receipts}
+    assert {row["audit_call_id"] for row in audits} <= receipt_ids
+
+
+def test_existing_bundle_is_rejected_after_same_path_media_content_changes(tmp_path):
+    media, bundle, _ = _make_existing_bundle(tmp_path, accepted=True)
+    with media.open("r+b") as handle:
+        handle.seek(44)
+        original = handle.read(1)
+        handle.seek(44)
+        handle.write(b"\x01" if original != b"\x01" else b"\x02")
+    with pytest.raises(BundleBlockedError, match="source_media_sha256_mismatch"):
+        process_title(
+            ProcessTitleConfig(
+                project_root=tmp_path / "project",
+                title_id="ADN-622",
+                media=media,
+                japanese_bundle=bundle,
+                visual_policy="off",
+                resume=True,
+            ),
+            provider=FakeProvider(),
+        )
+
+
+def test_promoted_resume_rehashes_same_size_media_even_when_mtime_is_preserved(tmp_path):
+    media, bundle, _ = _make_existing_bundle(tmp_path, accepted=True)
+    config = ProcessTitleConfig(
+        project_root=tmp_path / "project",
+        title_id="ADN-622",
+        media=media,
+        japanese_bundle=bundle,
+        visual_policy="off",
+        resume=True,
+    )
+    process_title(config, provider=FakeProvider())
+    original_stat = media.stat()
+    with media.open("r+b") as handle:
+        handle.seek(44)
+        original = handle.read(1)
+        handle.seek(44)
+        handle.write(b"\x03" if original != b"\x03" else b"\x04")
+    os.utime(
+        media,
+        ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns),
+    )
+    with pytest.raises(BundleBlockedError, match="source_media_sha256_mismatch"):
+        process_title(config, provider=FakeProvider())
+
+
+def test_automated_policy_rejects_human_review_decisions_at_config_boundary(tmp_path):
+    decision_path = tmp_path / "review.jsonl"
+    decision_path.write_text("{}\n", encoding="utf-8")
+    config = ProcessTitleConfig(
+        project_root=tmp_path,
+        title_id="ADN-622",
+        media=tmp_path / "ADN-622.mp4",
+        review_decisions=decision_path,
+    )
+    assert config.quality_policy == "automated"
+    with pytest.raises(ValueError, match="cannot be combined"):
+        config.validate()
+
+
+def test_audit_attempt_creates_superseding_run_after_usage_limit(tmp_path):
+    media, bundle, _ = _make_existing_bundle(tmp_path, accepted=True)
+
+    class AuditLimitedProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            if kwargs["role"] == "translation-audit-sol":
+                raise CodexUsageLimitError(
+                    "limited",
+                    role="translation-audit-sol",
+                    call_id=kwargs["call_id"],
+                    retry_after="later",
+                )
+            return super().run_structured(**kwargs)
+
+    base = dict(
+        project_root=tmp_path / "project",
+        title_id="ADN-622",
+        media=media,
+        japanese_bundle=bundle,
+        visual_policy="off",
+        resume=True,
+    )
+    limited = process_title(
+        ProcessTitleConfig(**base, audit_attempt=0), provider=AuditLimitedProvider()
+    )
+    retried = process_title(
+        ProcessTitleConfig(**base, audit_attempt=1), provider=FakeProvider()
+    )
+    assert limited["run_id"] != retried["run_id"]
+    assert limited["audit_attempt"] == 0
+    assert retried["audit_attempt"] == 1
+    retry_records = [
+        json.loads(line)
+        for line in (Path(retried["run_dir"]) / "automated_quality.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    ]
+    assert all(row.get("sol_audit_status") == "completed" for row in retry_records)
+
+
+def test_promoted_manifest_tamper_is_rejected_before_latest_repair(tmp_path):
+    media, bundle, _ = _make_existing_bundle(tmp_path, accepted=True)
+    config = ProcessTitleConfig(
+        project_root=tmp_path / "project",
+        title_id="ADN-622",
+        media=media,
+        japanese_bundle=bundle,
+        visual_policy="off",
+        resume=True,
+    )
+    result = process_title(config, provider=FakeProvider())
+    run_dir = Path(result["run_dir"])
+    manifest_path = run_dir / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["created_at"] = "tampered"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    latest_path = run_dir.parent / "latest.json"
+    latest_path.write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not bound to run-state"):
+        process_title(config, provider=FakeProvider())
+    assert json.loads(latest_path.read_text(encoding="utf-8")) == {}
+
+
 def test_reference_requires_explicit_approval_and_missing_reference_uses_ensemble(tmp_path):
     reference = tmp_path / "ADN-622.ja.srt"
     reference.write_text("1\n00:00:00,000 --> 00:00:01,000\nこんにちは\n", encoding="utf-8")
@@ -417,6 +685,7 @@ def test_visual_quota_block_still_packages_machine_draft(tmp_path):
     visual = json.loads((run_dir / "visual_context.jsonl").read_text(encoding="utf-8").splitlines()[0])
     assert visual["external_transfer_receipt"]["external_transfer"] is False
     assert visual["external_transfer_receipt"]["pixel_transfer_count"] == 0
+    assert visual["verdict"] == "machine-uncertain-not-sent"
 
 
 def test_review_decisions_are_snapshotted_and_change_the_run_identity(tmp_path):
@@ -442,6 +711,7 @@ def test_review_decisions_are_snapshotted_and_change_the_run_identity(tmp_path):
         media=media,
         japanese_bundle=bundle,
         visual_policy="off",
+        quality_policy="legacy",
         review_decisions=review_path,
         resume=True,
     )
@@ -557,7 +827,7 @@ def test_process_title_rejects_cross_title_reference(tmp_path):
         )
 
 
-def test_viewer_complete_japanese_residual_fails_integrated_qa(tmp_path):
+def test_automated_policy_replaces_japanese_residual_with_machine_uncertain_marker(tmp_path):
     media, bundle, _ = _make_existing_bundle(tmp_path)
 
     class JapaneseResidualProvider(FakeProvider):
@@ -569,18 +839,22 @@ def test_viewer_complete_japanese_residual_fails_integrated_qa(tmp_path):
                     row["viewer_natural_korean"] = "こんにちは"
             return response, receipt
 
-    with pytest.raises(BundleBlockedError, match="viewer_complete_contains_japanese_residual"):
-        process_title(
-            ProcessTitleConfig(
-                project_root=tmp_path / "project",
-                title_id="ADN-622",
-                media=media,
-                japanese_bundle=bundle,
-                visual_policy="off",
-                resume=True,
-            ),
-            provider=JapaneseResidualProvider(),
-        )
+    result = process_title(
+        ProcessTitleConfig(
+            project_root=tmp_path / "project",
+            title_id="ADN-622",
+            media=media,
+            japanese_bundle=bundle,
+            visual_policy="off",
+            resume=True,
+        ),
+        provider=JapaneseResidualProvider(),
+    )
+    run_dir = Path(result["run_dir"])
+    assert result["status"] == "machine-uncertain"
+    for name in ("viewer_complete_ko.srt", "source_faithful_ko.srt", "viewer_natural_ko.srt"):
+        blocks, _, _ = parse_srt(run_dir / "outputs" / name)
+        assert all(block.text == "[원문 불명확]" for block in blocks)
 
 
 def test_existing_bundle_is_independently_reverified_and_bound_to_media(tmp_path):

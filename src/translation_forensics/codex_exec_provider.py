@@ -4,10 +4,12 @@ import hashlib
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
 import tempfile
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -41,6 +43,83 @@ class CodexUsageLimitError(CodexExecError):
         self.role = role
         self.call_id = call_id
         self.retry_after = retry_after
+
+
+class CodexTimeoutError(CodexExecError):
+    """A Codex model call exceeded its configured wall-clock timeout."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        role: str,
+        call_id: str,
+        timeout_seconds: int,
+    ) -> None:
+        super().__init__(message)
+        self.role = role
+        self.call_id = call_id
+        self.timeout_seconds = timeout_seconds
+
+
+def _run_with_process_tree_timeout(
+    command: list[str],
+    *,
+    input: str | None = None,
+    capture_output: bool = False,
+    text: bool = False,
+    encoding: str | None = None,
+    errors: str | None = None,
+    check: bool = False,
+    timeout: float | None = None,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run a command and terminate its whole process tree on timeout."""
+
+    creationflags = 0
+    start_new_session = False
+    if os.name == "nt":
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        start_new_session = True
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE if input is not None else None,
+        stdout=subprocess.PIPE if capture_output else None,
+        stderr=subprocess.PIPE if capture_output else None,
+        text=text,
+        encoding=encoding,
+        errors=errors,
+        env=env,
+        creationflags=creationflags,
+        start_new_session=start_new_session,
+    )
+    try:
+        stdout, stderr = process.communicate(input=input, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        if os.name == "nt":
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                capture_output=True,
+                check=False,
+            )
+        else:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        if process.poll() is None:
+            process.kill()
+        stdout, stderr = process.communicate()
+        raise subprocess.TimeoutExpired(
+            command, timeout, output=stdout, stderr=stderr
+        ) from exc
+    completed = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+    if check and completed.returncode:
+        raise subprocess.CalledProcessError(
+            completed.returncode, command, output=stdout, stderr=stderr
+        )
+    return completed
 
 
 def _usage_limit_retry_after(output: str) -> str | None:
@@ -122,7 +201,9 @@ class CodexExecProvider:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.codex_executable = codex_executable
         self.timeout_seconds = max(1, int(timeout_seconds))
-        self._runner = runner
+        self._runner = (
+            _run_with_process_tree_timeout if runner is subprocess.run else runner
+        )
         self._version: str | None = None
 
     def _cli_version(self) -> str:
@@ -166,14 +247,24 @@ class CodexExecProvider:
         return root / "response.json", root / "receipt.json"
 
     @staticmethod
-    def _read_cache(response_path: Path, receipt_path: Path) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    def _read_cache(
+        response_path: Path,
+        receipt_path: Path,
+        *,
+        expected_request_sha256: str,
+    ) -> tuple[dict[str, Any], dict[str, Any]] | None:
         if not response_path.is_file() or not receipt_path.is_file():
             return None
-        response = json.loads(response_path.read_text(encoding="utf-8"))
-        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        try:
+            response = json.loads(response_path.read_text(encoding="utf-8"))
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            return None
         if not isinstance(response, dict) or not isinstance(receipt, dict):
             return None
         if receipt.get("status") != "succeeded" or receipt.get("model_call_verified") is not True:
+            return None
+        if receipt.get("request_sha256") != expected_request_sha256:
             return None
         if receipt.get("response_sha256") != sha256_json(response):
             return None
@@ -235,14 +326,32 @@ class CodexExecProvider:
             "api_key_used": False,
         }
         if image_attachments:
-            request_contract["image_attachments"] = image_attachments
+            request_contract["image_attachments"] = [
+                {
+                    "name": attachment["name"],
+                    "sha256": attachment["sha256"],
+                    "size_bytes": attachment["size_bytes"],
+                }
+                for attachment in image_attachments
+            ]
             request_contract["pixel_external_transfer"] = True
         request_sha256 = sha256_json(request_contract)
         response_cache, receipt_cache = self._cache_paths(request_sha256)
         if resume:
-            cached = self._read_cache(response_cache, receipt_cache)
+            cached = self._read_cache(
+                response_cache,
+                receipt_cache,
+                expected_request_sha256=request_sha256,
+            )
             if cached is not None:
-                return cached
+                response, receipt = cached
+                if image_attachments:
+                    receipt = {
+                        **receipt,
+                        "image_attachments": image_attachments,
+                        "cache_replay_pixel_external_transfer_count": 0,
+                    }
+                return response, receipt
 
         started_at = _utc_now()
         started = time.monotonic()
@@ -305,7 +414,12 @@ class CodexExecProvider:
                     env=env,
                 )
             except subprocess.TimeoutExpired as exc:
-                raise CodexExecError(f"Codex call timed out for {call_id} after {self.timeout_seconds}s") from exc
+                raise CodexTimeoutError(
+                    f"Codex call timed out for {call_id} after {self.timeout_seconds}s",
+                    role=role,
+                    call_id=call_id,
+                    timeout_seconds=self.timeout_seconds,
+                ) from exc
 
             thread_id, usage, event_message = _parse_events(completed.stdout)
             raw_response = output_path.read_text(encoding="utf-8").strip() if output_path.is_file() else event_message.strip()
@@ -377,14 +491,24 @@ class CodexExecProvider:
             "cache_hit": False,
             "stderr_sha256": sha256_bytes(completed.stderr.encode("utf-8")),
         }
-        response_cache.parent.mkdir(parents=True, exist_ok=True)
-        response_cache.write_text(
-            json.dumps(response, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n"
-        )
-        receipt_cache.write_text(
-            json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n"
-        )
+        _write_json_atomic(response_cache, response)
+        _write_json_atomic(receipt_cache, receipt)
         return response, receipt
+
+
+def _write_json_atomic(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    try:
+        temporary.write_text(
+            json.dumps(value, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
 
 
 def validate_call_receipt(receipt: dict[str, Any], *, expected_role: str | None = None) -> list[str]:

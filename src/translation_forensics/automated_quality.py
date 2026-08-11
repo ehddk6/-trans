@@ -37,11 +37,39 @@ _UNIT_GROUPS = {
 }
 _JAPANESE_STOP_RE = re.compile(r"(?:やめて|やめろ|やめなさい|止めて|止めろ)")
 _KOREAN_STOP_RE = re.compile(r"(?:그만|멈춰|중단|하지\s*마)")
-_JAPANESE_CONTINUE_RE = re.compile(r"(?:続けて|続けろ|続けなさい)")
-_KOREAN_CONTINUE_RE = re.compile(r"(?:계속|이어가)")
+_JAPANESE_CONTINUE_RE = re.compile(r"(?:続けて|続けろ|続けなさい|もっと)")
+_KOREAN_CONTINUE_RE = re.compile(r"(?:계속|이어가|더(?:\s|[.!?！？…]|$))")
 _JAPANESE_REFUSAL_RE = re.compile(r"(?:できない|無理|だめ|駄目|いや)")
 _KOREAN_REFUSAL_RE = re.compile(r"(?:못|불가|안\s*돼|안돼|싫|아니)")
-_SHORT_VOCALIZATION_RE = re.compile(r"^[ぁ-ゖァ-ヺー]+$")
+_JAPANESE_PERMISSION_RE = re.compile(
+    r"(?:ても|でも)\s*(?:いい|良い|よい|構わない|かまわない)|"
+    r"(?:て|で)\s*いい|(?:いい|良い|よい)\s*よ\s*[。.!！…]*$|許(?:す|して)"
+)
+_KOREAN_PERMISSION_RE = re.compile(
+    r"(?:(?:아도|어도|해도)\s*(?:돼|괜찮|좋)|허락|가능|"
+    r"(?:^|\s)(?:돼|괜찮아|괜찮아요|좋아|좋아요)\s*[.!?！？…]*$)"
+)
+_JAPANESE_REQUEST_COMMAND_RE = re.compile(
+    r"(?:ください|下さい|くれ|ちょうだい|なさい)\s*[。.!！…]*$|"
+    r"^(?:やって|して|入れて|出して|見て|来て|聞いて|待って|早く|ゆっくり)\s*[。.!！…]*$"
+)
+_KOREAN_REQUEST_COMMAND_RE = re.compile(
+    r"(?:해(?:\s*줘)?|해라|하세요|줘|주세요|넣어|빼|봐|보세요|와|오세요|가|가세요|"
+    r"기다려|기다리세요|빨리|천천히)\s*[.!?！？…]*$"
+)
+_JAPANESE_DEICTIC_LOCATION_RE = re.compile(
+    r"(?:ここ|そこ|あそこ|こちら|そちら|あちら|こっち|そっち|あっち|どこ|どちら|どっち)"
+)
+_KOREAN_DEICTIC_LOCATION_RE = re.compile(r"(?:여기|거기|저기|이쪽|그쪽|저쪽|어디)")
+# Compression may be harmless for a short breath/moan, but kana-only is much
+# too broad: lexical cues such as ここ, もっと, and やって are also kana-only.
+# Keep this deliberately closed to non-lexical vowel/nasal vocalizations.
+_SHORT_VOCALIZATION_RE = re.compile(
+    r"^(?:[あぁ]+っ?|[うぅ]+っ?|[えぇ]+っ?|[おぉ]+っ?|ん+っ?|"
+    r"は[ぁあ]+|ふ[ぅう]+|ひ[ぃい]+|く[ぅう]+|"
+    r"[アァ]+ッ?|[ウゥ]+ッ?|[エェ]+ッ?|[オォ]+ッ?|ン+ッ?|"
+    r"ハ[ァア]+|フ[ゥウ]+|ヒ[ィイ]+|ク[ゥウ]+)$"
+)
 _VOCALIZATION_PUNCTUATION_RE = re.compile(r"[\s\u3000。、！？!?…・･ー\-~～]+")
 _RECOVERY_CLASSIFICATIONS = frozenset({"RELIABLE", "FUNCTIONAL_RECOVERY", "UNRESOLVED"})
 
@@ -133,6 +161,18 @@ def audit_translation_decision(
         faithful_hard_failures.append("refusal_not_preserved")
     if _JAPANESE_REFUSAL_RE.search(source) and not _KOREAN_REFUSAL_RE.search(natural):
         natural_hard_failures.append("refusal_not_preserved")
+    if _JAPANESE_PERMISSION_RE.search(source) and not _KOREAN_PERMISSION_RE.search(faithful):
+        faithful_hard_failures.append("permission_not_preserved")
+    if _JAPANESE_PERMISSION_RE.search(source) and not _KOREAN_PERMISSION_RE.search(natural):
+        natural_hard_failures.append("permission_not_preserved")
+    if _JAPANESE_REQUEST_COMMAND_RE.search(source) and not _KOREAN_REQUEST_COMMAND_RE.search(faithful):
+        faithful_hard_failures.append("request_command_not_preserved")
+    if _JAPANESE_REQUEST_COMMAND_RE.search(source) and not _KOREAN_REQUEST_COMMAND_RE.search(natural):
+        natural_hard_failures.append("request_command_not_preserved")
+    if _JAPANESE_DEICTIC_LOCATION_RE.search(source) and not _KOREAN_DEICTIC_LOCATION_RE.search(faithful):
+        faithful_hard_failures.append("deictic_location_not_preserved")
+    if _JAPANESE_DEICTIC_LOCATION_RE.search(source) and not _KOREAN_DEICTIC_LOCATION_RE.search(natural):
+        natural_hard_failures.append("deictic_location_not_preserved")
     hard_failures.extend([*faithful_hard_failures, *natural_hard_failures])
 
     semantic_guard_present = any(
@@ -143,6 +183,9 @@ def audit_translation_decision(
             bool(_JAPANESE_STOP_RE.search(source)),
             bool(_JAPANESE_CONTINUE_RE.search(source)),
             bool(_JAPANESE_REFUSAL_RE.search(source)),
+            bool(_JAPANESE_PERMISSION_RE.search(source)),
+            bool(_JAPANESE_REQUEST_COMMAND_RE.search(source)),
+            bool(_JAPANESE_DEICTIC_LOCATION_RE.search(source)),
         )
     )
     suppressed_warnings: list[str] = []
@@ -152,6 +195,8 @@ def audit_translation_decision(
 
     if source_quality_status == "unusable":
         warnings.append("unusable_source_quality")
+    elif source_quality_status != "trusted":
+        warnings.append("source_quality_not_independently_resolved")
     if recovery != "RELIABLE":
         warnings.append("recovery_classification_requires_machine_uncertain")
     if confidence == "low":
@@ -184,6 +229,12 @@ def audit_translation_decision(
         "question_preserved": not "question_force_not_preserved" in hard_failures,
         "negation_preserved": not "negation_not_preserved" in hard_failures,
         "numeric_tokens_preserved": not "numeric_token_not_preserved" in hard_failures,
+        "stop_command_preserved": not "stop_command_not_preserved" in hard_failures,
+        "continue_command_preserved": not "continue_command_not_preserved" in hard_failures,
+        "refusal_preserved": not "refusal_not_preserved" in hard_failures,
+        "permission_preserved": not "permission_not_preserved" in hard_failures,
+        "request_command_preserved": not "request_command_not_preserved" in hard_failures,
+        "deictic_location_preserved": not "deictic_location_not_preserved" in hard_failures,
         "source_quality_status": source_quality_status,
         "confidence": confidence,
         "recovery_classification": recovery,

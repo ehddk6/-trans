@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+import threading
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
+import translation_forensics.integrated_pipeline as integrated_pipeline
 
 from translation_forensics.integrated_pipeline import (
     CACHE_SCHEMA_VERSION,
@@ -527,3 +531,154 @@ def test_promotion_requires_declared_artifacts(tmp_path: Path) -> None:
             verification_passed=True,
             required_artifacts=("translation_units_ja.jsonl",),
         )
+
+
+def test_same_run_id_is_exclusively_locked_until_promotion(tmp_path: Path) -> None:
+    identity = build_cache_identity(
+        code_version="commit-a",
+        schema_version=INTEGRATION_SCHEMA_VERSION,
+        media_sha256=MEDIA_HASH,
+        options={},
+    )
+    stage_run(tmp_path, "run-locked", cache_identity=identity)
+    errors: list[BaseException] = []
+
+    def attempt_concurrent_resume() -> None:
+        try:
+            stage_run(
+                tmp_path,
+                "run-locked",
+                cache_identity=identity,
+                resume=True,
+            )
+        except BaseException as exc:  # captured for assertion in the test thread
+            errors.append(exc)
+
+    worker = threading.Thread(target=attempt_concurrent_resume)
+    worker.start()
+    worker.join(timeout=5)
+
+    assert not worker.is_alive()
+    assert len(errors) == 1
+    assert isinstance(errors[0], ResumeRejected)
+    assert "locked" in str(errors[0])
+    child = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import json, sys\n"
+                "from pathlib import Path\n"
+                "from translation_forensics.integrated_pipeline import "
+                "ResumeRejected, stage_run\n"
+                "try:\n"
+                "    stage_run(Path(sys.argv[1]), 'run-locked', "
+                "cache_identity=json.loads(sys.argv[2]), resume=True)\n"
+                "except ResumeRejected:\n"
+                "    raise SystemExit(0)\n"
+                "raise SystemExit(1)\n"
+            ),
+            str(tmp_path),
+            json.dumps(identity),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert child.returncode == 0, child.stderr
+    promoted = promote_staged_run(
+        tmp_path,
+        "run-locked",
+        verification_passed=True,
+    )
+    assert promoted == tmp_path / "run-locked"
+
+
+def test_verified_partial_can_resume_after_directory_rename_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    identity = build_cache_identity(
+        code_version="commit-a",
+        schema_version=INTEGRATION_SCHEMA_VERSION,
+        media_sha256=MEDIA_HASH,
+        options={},
+    )
+    staged = stage_run(tmp_path, "run-rename-fault", cache_identity=identity)
+    final_dir = tmp_path / "run-rename-fault"
+    original_replace = integrated_pipeline.os.replace
+
+    def fail_directory_rename(source: Path, destination: Path) -> None:
+        if Path(source) == staged and Path(destination) == final_dir:
+            raise OSError("injected directory rename failure")
+        original_replace(source, destination)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(integrated_pipeline.os, "replace", fail_directory_rename)
+        with pytest.raises(OSError, match="injected"):
+            promote_staged_run(
+                tmp_path,
+                "run-rename-fault",
+                verification_passed=True,
+                stage="machine-draft",
+                pending_review_count=3,
+            )
+
+    state = json.loads((staged / "run-state.json").read_text(encoding="utf-8"))
+    assert state["status"] == "verified"
+    assert stage_run(
+        tmp_path,
+        "run-rename-fault",
+        cache_identity=identity,
+        resume=True,
+    ) == staged
+    assert promote_staged_run(
+        tmp_path,
+        "run-rename-fault",
+        verification_passed=True,
+        stage="machine-draft",
+        pending_review_count=3,
+    ) == final_dir
+
+
+def test_promote_repairs_latest_after_post_rename_write_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    identity = build_cache_identity(
+        code_version="commit-a",
+        schema_version=INTEGRATION_SCHEMA_VERSION,
+        media_sha256=MEDIA_HASH,
+        options={},
+    )
+    stage_run(tmp_path, "run-latest-fault", cache_identity=identity)
+    final_dir = tmp_path / "run-latest-fault"
+    original_atomic_write_json = integrated_pipeline._atomic_write_json
+
+    def fail_latest(path: Path, value: dict[str, object]) -> None:
+        if Path(path).name == "latest.json":
+            raise OSError("injected latest write failure")
+        original_atomic_write_json(path, value)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(integrated_pipeline, "_atomic_write_json", fail_latest)
+        with pytest.raises(OSError, match="injected"):
+            promote_staged_run(
+                tmp_path,
+                "run-latest-fault",
+                verification_passed=True,
+                stage="machine-draft",
+                pending_review_count=1,
+            )
+
+    assert final_dir.is_dir()
+    assert not (tmp_path / "latest.json").exists()
+    assert promote_staged_run(
+        tmp_path,
+        "run-latest-fault",
+        verification_passed=True,
+        stage="machine-draft",
+        pending_review_count=1,
+    ) == final_dir
+    latest = json.loads((tmp_path / "latest.json").read_text(encoding="utf-8"))
+    assert latest["run_id"] == "run-latest-fault"
+    assert latest["pending_review_count"] == 1

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
+from .media import build_media_binding, validate_media_binding
 from .reference import reference_language_diagnostics
 from .srt import read_srt_rows
 from .text import normalize_japanese
@@ -21,6 +23,7 @@ REQUIRED_ARTIFACTS = (
     "review_manifest.json",
     "review_report.html",
 )
+MEDIA_BINDING_ARTIFACT = "source_media.json"
 
 
 def _read_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
@@ -98,10 +101,6 @@ def _verify_source_transcript(
     source_rows: list[dict[str, object]], transcript_rows: list[dict[str, Any]], errors: list[str],
 ) -> None:
     """Require the machine-readable transcript to prove the source SRT."""
-    transcript_rows = [
-        row for row in transcript_rows
-        if normalize_japanese(str(row.get("text_raw", row.get("text_normalized", ""))), "strict")
-    ]
     if len(source_rows) != len(transcript_rows):
         errors.append("source_transcript_cue_count_mismatch")
     for index, (source, transcript) in enumerate(zip(source_rows, transcript_rows), 1):
@@ -122,6 +121,106 @@ def _verify_source_transcript(
             or abs(float(source["end"]) - expected_end) > 1e-9
         ):
             errors.append(f"source_transcript_timing_mismatch:{index}")
+
+
+def _timeline_structure(
+    rows: list[dict[str, Any]] | list[dict[str, object]], *, text_key: str,
+) -> dict[str, int]:
+    result = {
+        "empty": 0,
+        "non_positive": 0,
+        "overlap": 0,
+        "non_finite": 0,
+    }
+    previous_end = -math.inf
+    for row in rows:
+        if not str(row.get(text_key, "")).strip():
+            result["empty"] += 1
+        try:
+            start, end = float(row["start"]), float(row["end"])
+        except (KeyError, TypeError, ValueError):
+            result["non_finite"] += 1
+            continue
+        if not math.isfinite(start) or not math.isfinite(end):
+            result["non_finite"] += 1
+            continue
+        if end <= start:
+            result["non_positive"] += 1
+        if start < previous_end - 1e-9:
+            result["overlap"] += 1
+        previous_end = max(previous_end, end)
+    return result
+
+
+def _verify_transcript_identity(
+    transcript_rows: list[dict[str, Any]], errors: list[str],
+) -> None:
+    identifiers = [str(row.get("utterance_id") or "") for row in transcript_rows]
+    if any(not identifier for identifier in identifiers):
+        errors.append("transcript_missing_utterance_id")
+    if len(set(identifiers)) != len(identifiers):
+        errors.append("transcript_duplicate_utterance_id")
+
+
+def _verify_media_binding(
+    output_dir: Path,
+    errors: list[str],
+    *,
+    expected_video_path: Path | None,
+    expected_media_sha256: str | None,
+    expected_media_duration: float | None,
+    require_media_binding: bool,
+) -> dict[str, Any] | None:
+    path = output_dir / MEDIA_BINDING_ARTIFACT
+    required = require_media_binding or expected_media_sha256 is not None or expected_media_duration is not None
+    if not path.is_file():
+        if required:
+            errors.append(f"missing_artifact:{MEDIA_BINDING_ARTIFACT}")
+        return None
+    binding = _read_json(path, errors, "source_media")
+    errors.extend(validate_media_binding(binding))
+    if errors and not binding:
+        return binding
+
+    expected_path = Path(expected_video_path).resolve() if expected_video_path is not None else None
+    if expected_path is None and require_media_binding and binding.get("path"):
+        expected_path = Path(str(binding["path"])).expanduser().resolve()
+    current: dict[str, Any] | None = None
+    if expected_path is not None:
+        if not expected_path.is_file():
+            errors.append("source_media_file_missing")
+        else:
+            try:
+                # Re-hash at final verification even when the caller supplies the
+                # hash computed during prepare.  This closes the prepare/finalize
+                # time-of-check/time-of-use gap required by the bundle contract.
+                current = build_media_binding(expected_path)
+            except (OSError, RuntimeError, ValueError) as exc:
+                errors.append(f"source_media_probe_failed:{exc}")
+    expected_digest = expected_media_sha256 or (str(current["sha256"]) if current else None)
+    expected_duration = (
+        expected_media_duration
+        if expected_media_duration is not None
+        else float(current["duration_seconds"]) if current else None
+    )
+    if expected_digest is not None and str(binding.get("sha256")) != str(expected_digest).lower():
+        errors.append("source_media_sha256_mismatch")
+    if (
+        expected_media_sha256 is not None
+        and current is not None
+        and str(current.get("sha256")) != str(expected_media_sha256).lower()
+    ):
+        errors.append("source_media_changed_during_run")
+    if expected_duration is not None:
+        try:
+            bound_duration = float(binding.get("duration_seconds"))
+            expected_duration_value = float(expected_duration)
+        except (TypeError, ValueError):
+            errors.append("invalid_source_media_metrics")
+        else:
+            if abs(bound_duration - expected_duration_value) > 0.10:
+                errors.append("source_media_duration_mismatch")
+    return binding
 
 
 def _verify_qwen_manifest(output_dir: Path, report: dict[str, Any], errors: list[str]) -> None:
@@ -207,6 +306,9 @@ def verify_artifact_bundle(
     expected_review_windows: int = 30,
     require_source_match: bool = False,
     require_passed_gate: bool = False,
+    expected_media_sha256: str | None = None,
+    expected_media_duration: float | None = None,
+    require_media_binding: bool = False,
 ) -> dict[str, Any]:
     """Return an evidence-rich verification result without mutating the bundle.
 
@@ -246,15 +348,19 @@ def verify_artifact_bundle(
     if not source_language["compatible"]:
         errors.append("source_language_hangul_dominant")
     _verify_source_transcript(source_rows, transcript_rows, errors)
+    _verify_transcript_identity(transcript_rows, errors)
     _verify_qwen_manifest(output_dir, report, errors)
 
-    structural = {
-        "empty": sum(not str(row["text"]).strip() for row in viewer_rows),
-        "non_positive": sum(float(row["end"]) <= float(row["start"]) for row in viewer_rows),
-        "overlap": sum(float(right["start"]) < float(left["end"]) for left, right in zip(viewer_rows, viewer_rows[1:])),
-    }
-    if structural != {"empty": 0, "non_positive": 0, "overlap": 0}:
+    viewer_timeline = _timeline_structure(viewer_rows, text_key="text")
+    source_structural = _timeline_structure(source_rows, text_key="text")
+    transcript_structural = _timeline_structure(transcript_rows, text_key="text_raw")
+    structural = {name: viewer_timeline[name] for name in ("empty", "non_positive", "overlap")}
+    if any(viewer_timeline.values()):
         errors.append("viewer_structural_error")
+    if any(source_structural.values()):
+        errors.append("source_structural_error")
+    if any(transcript_structural.values()):
+        errors.append("transcript_structural_error")
     _verify_viewer_audit(viewer_rows, audit_rows, errors)
     reported_total = report.get("total_cues")
     if not isinstance(reported_total, int) or isinstance(reported_total, bool):
@@ -297,6 +403,25 @@ def verify_artifact_bundle(
     elif expected_video is not None:
         errors.append("review_video_controls_missing")
 
+    source_media = _verify_media_binding(
+        output_dir,
+        errors,
+        expected_video_path=expected_video_path,
+        expected_media_sha256=expected_media_sha256,
+        expected_media_duration=expected_media_duration,
+        require_media_binding=require_media_binding,
+    )
+    if source_media is not None:
+        try:
+            bound_duration = float(source_media["duration_seconds"])
+        except (KeyError, TypeError, ValueError):
+            pass
+        else:
+            if any(float(row["end"]) > bound_duration + 0.10 for row in source_rows):
+                errors.append("source_timeline_outside_media")
+            if any(float(row["end"]) > bound_duration + 0.10 for row in viewer_rows):
+                errors.append("viewer_timeline_outside_media")
+
     source_matches_reference: bool | None = None
     if reference_srt is not None:
         try:
@@ -329,6 +454,9 @@ def verify_artifact_bundle(
         "source_cue_count": len(source_rows),
         "source_language": source_language,
         "structural": structural,
+        "source_structural": source_structural,
+        "transcript_structural": transcript_structural,
+        "source_media": source_media,
         "review_window_count": len(windows) if isinstance(windows, list) else None,
         "review_video_path": manifest_video,
         "source_matches_reference": source_matches_reference,

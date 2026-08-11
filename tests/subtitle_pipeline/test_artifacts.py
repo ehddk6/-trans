@@ -35,6 +35,26 @@ def test_qc_counts_propagated_source_warnings_once_per_segment():
     assert reasons["possible_silence_hallucination"] == 1
 
 
+def test_qc_does_not_accept_high_compression_or_engine_disagreement_as_clean():
+    segments = [
+        SourceSegment(1, 0.0, 1.0, "ああ", warnings=["high_compression_ratio"]),
+        SourceSegment(2, 1.0, 2.0, "違う", warnings=["engine_disagreement", "review_required"]),
+    ]
+    cues = [
+        Cue(1, 0.0, 1.0, "ああ", "ああ", [1]),
+        Cue(2, 1.0, 2.0, "違う", "違う", [2]),
+    ]
+
+    report = qc_report(cues, segments, 2.0)
+    reasons = {item["code"]: item["count"] for item in report["content_quality_gate"]["reasons"]}
+
+    assert report["content_quality_gate"]["status"] == "review_required"
+    assert report["high_compression_asr_segments"] == 1
+    assert report["engine_disagreement_segments"] == 1
+    assert reasons["high_compression_ratio"] == 1
+    assert reasons["engine_disagreement"] == 1
+
+
 def test_qc_keeps_viewer_only_exceptions_per_final_cue():
     segment = SourceSegment(1, 0.0, 2.0, "source", warnings=["possible_repetition"])
     viewer_warnings = [

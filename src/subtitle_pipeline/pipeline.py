@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import shutil
 import subprocess
 import tempfile
@@ -10,6 +11,7 @@ from pathlib import Path
 from .artifacts import cue_audit, qc_report, reference_comparison, write_comparison_report, write_jsonl
 from .checks import annotate_asr_warnings
 from .ensemble import EnsembleResult, transcribe_ensemble
+from .media import build_media_binding, write_media_binding
 from .models import Cue, SourceSegment, Utterance, Word
 from .optimizer import segments_to_utterances, source_faithful_cues, viewer_cues
 from .profiles import get_profile
@@ -40,6 +42,7 @@ def _write_bundle_verification(
     video_path: Path | None,
     review_samples: int,
     require_source_match: bool = False,
+    media_binding: dict | None = None,
 ) -> dict:
     """Persist an independent post-write validation beside every bundle."""
 
@@ -51,6 +54,9 @@ def _write_bundle_verification(
         expected_video_path=video_path,
         expected_review_windows=review_samples,
         require_source_match=require_source_match,
+        expected_media_sha256=str(media_binding["sha256"]) if media_binding else None,
+        expected_media_duration=float(media_binding["duration_seconds"]) if media_binding else None,
+        require_media_binding=media_binding is not None,
     )
     (output_dir / "bundle_verification.json").write_text(
         json.dumps(verification, ensure_ascii=False, indent=2, default=_json_default), encoding="utf-8"
@@ -60,12 +66,41 @@ def _write_bundle_verification(
     return verification
 
 
+def _validate_reference_media_timeline(
+    segments: list[SourceSegment], media_duration: float, *, tolerance: float = 0.10,
+) -> None:
+    """Reject a supplied reference whose cue timeline cannot belong to the media."""
+
+    if not math.isfinite(media_duration) or media_duration <= 0:
+        raise ValueError("reference media duration must be finite and positive")
+    outside = [
+        segment.id
+        for segment in segments
+        if not math.isfinite(segment.start)
+        or not math.isfinite(segment.end)
+        or segment.start < 0
+        or segment.end <= segment.start
+        or segment.end > media_duration + tolerance
+    ]
+    if outside:
+        preview = ", ".join(str(value) for value in outside[:10])
+        suffix = "..." if len(outside) > 10 else ""
+        raise ValueError(
+            "Reference SRT contains cues outside the bound media duration "
+            f"({media_duration:.3f}s): {preview}{suffix}"
+        )
+
+
 def _clip_input(input_path: Path, max_duration: float | None) -> tuple[Path, tempfile.TemporaryDirectory[str] | None]:
     if not max_duration:
         return input_path, None
     temporary = tempfile.TemporaryDirectory(prefix="subtitle_pipeline_")
     clip = Path(temporary.name) / "sample.wav"
-    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(input_path), "-t", str(max_duration), "-vn", "-ac", "1", "-ar", "16000", str(clip)], check=True)
+    subprocess.run(
+        ["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(input_path), "-t", str(max_duration), "-vn", "-ac", "1", "-ar", "16000", str(clip)],
+        check=True,
+        timeout=max(60, min(7_200, int(max_duration * 3 + 120))),
+    )
     return clip, temporary
 
 
@@ -78,6 +113,7 @@ def run_pipeline(
     reference_srt: Path | None = None, review_samples: int = 30, reuse_qwen_cache: bool = True,
     qwen_audit_samples: int = 4,
     normalized_audio_path: Path | None = None,
+    media_sha256: str | None = None,
 ) -> dict:
     if language != "ja":
         raise ValueError("This pipeline is intentionally Japanese-only; use --language ja.")
@@ -98,6 +134,11 @@ def run_pipeline(
     output_dir.mkdir(parents=True, exist_ok=True)
     qwen_alignment_cache = output_dir / "qwen_targeted_alignment_ja.jsonl"
     review_video_path = input_path if input_path and input_path.is_file() else None
+    media_binding = (
+        build_media_binding(review_video_path, known_sha256=media_sha256)
+        if review_video_path
+        else None
+    )
     external_reference = read_srt_rows(reference_srt) if reference_srt else None
     reference_language = require_japanese_reference(external_reference) if external_reference is not None else None
     ensemble_result: EnsembleResult | None = None
@@ -110,6 +151,10 @@ def run_pipeline(
         # ASR hallucination/repetition heuristics to it would turn legitimate text
         # into a false model-quality warning.
         duration = max((segment.end for segment in segments), default=0.0)
+        if media_binding is not None:
+            _validate_reference_media_timeline(
+                segments, float(media_binding["duration_seconds"]),
+            )
     else:
         assert input_path is not None
         original_input = input_path
@@ -129,6 +174,7 @@ def run_pipeline(
                     input_path, qwen_runtime, language=language, alignment_cache_path=qwen_alignment_cache,
                     reuse_alignment_cache=reuse_qwen_cache,
                     cache_identity_path=original_input,
+                    cache_identity_sha256=media_sha256,
                 )
             else:
                 ensemble_result = transcribe_ensemble(
@@ -137,6 +183,7 @@ def run_pipeline(
                     alignment_cache_path=qwen_alignment_cache, reuse_alignment_cache=reuse_qwen_cache,
                     audit_samples=qwen_audit_samples,
                     cache_identity_path=original_input,
+                    cache_identity_sha256=media_sha256,
                 )
                 segments, duration = ensemble_result.segments, ensemble_result.duration
         finally:
@@ -154,10 +201,15 @@ def run_pipeline(
     write_srt(output_dir / "viewer_ja.srt", viewer)
     write_jsonl(output_dir / "transcript_ja.jsonl", [utterance.json() for utterance in utterances])
     write_jsonl(output_dir / "subtitle_audit.jsonl", cue_audit(viewer))
-    report = qc_report(
-        viewer, segments, duration if duration == duration else (max_duration or 0), source_cues=source,
-    )
+    if media_binding is not None:
+        review_duration = float(media_binding["duration_seconds"])
+    elif duration == duration:
+        review_duration = duration
+    else:
+        review_duration = max_duration or 0
+    report = qc_report(viewer, segments, review_duration, source_cues=source)
     report["backend"] = backend
+    report["source_media"] = media_binding
     report["qwen_source_segments"] = sum(segment.metadata.get("backend") == "qwen" for segment in segments)
     report["qwen_recoveries"] = sum(segment.metadata.get("decision") == "qwen_recovery" for segment in segments)
     report["viewer_runaway_compactions"] = sum(
@@ -244,16 +296,19 @@ def run_pipeline(
     write_review_artifacts(
         output_dir / "review_manifest.json", output_dir / "review_report.html", viewer, source_evidence,
         whisper_evidence, disagreements, external_reference,
-        video_duration=duration, video_path=review_video_path, source_evidence_label=source_evidence_label,
+        video_duration=review_duration, video_path=review_video_path, source_evidence_label=source_evidence_label,
         quality_gate=report["content_quality_gate"],
         target_windows=review_samples,
     )
+    if media_binding is not None:
+        write_media_binding(output_dir / "source_media.json", media_binding)
     _write_bundle_verification(
         output_dir,
         reference_srt=reference_srt,
         video_path=review_video_path,
         review_samples=review_samples,
         require_source_match=backend == "reference",
+        media_binding=media_binding,
     )
     return report
 
@@ -276,6 +331,7 @@ def rebuild_presentation_from_transcript(
         require_japanese_reference(external_reference)
     if video_path is not None and not video_path.is_file():
         raise ValueError(f"Review video does not exist: {video_path}")
+    media_binding = build_media_binding(video_path) if video_path is not None else None
     for line in transcript_path.read_text(encoding="utf-8").splitlines():
         row = json.loads(line)
         words = [Word(**word) for word in row.get("words", [])]
@@ -299,6 +355,10 @@ def rebuild_presentation_from_transcript(
     for segment in segments:
         segment.warnings = [warning for warning in segment.warnings if warning not in asr_warning_codes]
     annotate_asr_warnings(segments)
+    if media_binding is not None:
+        _validate_reference_media_timeline(
+            segments, float(media_binding["duration_seconds"]),
+        )
     for utterance, segment in zip(utterances, segments):
         utterance.warnings = list(segment.warnings)
     # The JSONL text_raw field is the authoritative transcript.  Rebuilds may
@@ -334,10 +394,14 @@ def rebuild_presentation_from_transcript(
     if transcript_path.resolve() != rebuilt_transcript.resolve():
         shutil.copyfile(transcript_path, rebuilt_transcript)
     write_jsonl(output_dir / "subtitle_audit.jsonl", cue_audit(viewer))
-    report = qc_report(
-        viewer, segments, max((segment.end for segment in segments), default=0.0), source_cues=source,
+    review_duration = (
+        float(media_binding["duration_seconds"])
+        if media_binding is not None
+        else max((segment.end for segment in segments), default=0.0)
     )
+    report = qc_report(viewer, segments, review_duration, source_cues=source)
     report["backend"] = "rebuild"
+    report["source_media"] = media_binding
     report["rebuild"] = {
         "source_transcript": str(transcript_path),
         "reference_supplied": external_reference is not None,
@@ -360,15 +424,18 @@ def rebuild_presentation_from_transcript(
     write_review_artifacts(
         output_dir / "review_manifest.json", output_dir / "review_report.html", viewer, segments,
         external_reference=external_reference,
-        video_duration=max((segment.end for segment in segments), default=0.0), video_path=video_path,
+        video_duration=review_duration, video_path=video_path,
         source_evidence_label="ASR 원문 (재분할)",
         quality_gate=report["content_quality_gate"],
         target_windows=review_samples,
     )
+    if media_binding is not None:
+        write_media_binding(output_dir / "source_media.json", media_binding)
     _write_bundle_verification(
         output_dir,
         reference_srt=reference_srt,
         video_path=video_path,
         review_samples=review_samples,
+        media_binding=media_binding,
     )
     return report

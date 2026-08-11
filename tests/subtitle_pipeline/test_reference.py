@@ -76,6 +76,17 @@ def test_reference_backend_rejects_hangul_dominant_translation(tmp_path):
         run_pipeline(None, tmp_path / "output", backend="reference", reference_srt=reference)
 
 
+def test_reference_backend_rejects_a_short_all_hangul_translation(tmp_path):
+    reference = tmp_path / "short-translated.srt"
+    reference.write_text(
+        "1\n00:00:01,000 --> 00:00:03,000\n한국어 번역입니다\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Hangul-dominant"):
+        run_pipeline(None, tmp_path / "output", backend="reference", reference_srt=reference)
+
+
 def test_reference_language_checker_supports_batch_fallback(tmp_path):
     project_root = Path(__file__).resolve().parents[2]
     script = project_root / "scripts" / "check_reference_language.py"

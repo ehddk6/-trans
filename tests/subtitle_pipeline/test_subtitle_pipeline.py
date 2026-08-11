@@ -309,7 +309,8 @@ def test_container_audio_is_normalized_before_whisper(monkeypatch, tmp_path):
     ffmpeg_calls = []
     whisper_inputs = []
 
-    def fake_run(args, check):
+    def fake_run(args, check, timeout):
+        assert timeout == 7_200
         ffmpeg_calls.append(args)
         Path(args[-1]).write_bytes(b"wav")
 

@@ -26,6 +26,8 @@ _DISPLAY_CODE_LABELS = {
 }
 
 _SOURCE_WARNING_CODES = {
+    "engine_disagreement",
+    "high_compression_ratio",
     "low_asr_confidence",
     "possible_repetition",
     "possible_periodic_repetition",
@@ -153,6 +155,8 @@ def qc_report(
     hallucination_suspicions = source_warning_counts["possible_silence_hallucination"]
     repetition_suspicions = source_warning_counts["possible_repetition"]
     periodic_repetition_suspicions = source_warning_counts["possible_periodic_repetition"]
+    high_compression_suspicions = source_warning_counts["high_compression_ratio"]
+    engine_disagreements = source_warning_counts["engine_disagreement"]
     remaining_viewer_runaways = sum(has_runaway_repetition(cue.normalized_text) for cue in cues)
     line_limit_exceptions = sum("line_limit_unavoidable" in cue.warnings for cue in cues)
     duration_limit_exceptions = sum("duration_limit_unavoidable" in cue.warnings for cue in cues)
@@ -173,6 +177,8 @@ def qc_report(
         ("possible_silence_hallucination", hallucination_suspicions),
         ("possible_repetition", repetition_suspicions),
         ("possible_periodic_repetition", periodic_repetition_suspicions),
+        ("high_compression_ratio", high_compression_suspicions),
+        ("engine_disagreement", engine_disagreements),
         ("line_limit_unavoidable", line_limit_exceptions),
         ("duration_limit_unavoidable", duration_limit_exceptions),
         ("short_duration_review_required", short_duration_exceptions),
@@ -199,6 +205,8 @@ def qc_report(
         "runaway_repetition_suspicions": runaway_suspicions,
         "hallucination_suspicions": hallucination_suspicions,
         "low_confidence_asr_segments": source_warning_counts["low_asr_confidence"],
+        "high_compression_asr_segments": high_compression_suspicions,
+        "engine_disagreement_segments": engine_disagreements,
         "speaker_mixing_suspicions": 0,
         "word_alignment_health": alignment_health,
         "source_segment_to_final_cue_ratio": len(cues) / len(segments) if segments else 0,

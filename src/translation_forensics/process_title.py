@@ -11,7 +11,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
-from .codex_exec_provider import CodexExecProvider, CodexUsageLimitError, validate_call_receipt
+from .codex_exec_provider import (
+    CodexExecProvider,
+    CodexTimeoutError,
+    CodexUsageLimitError,
+    validate_call_receipt,
+)
 from .integrated_pipeline import (
     BundleBlockedError,
     GateResult,
@@ -41,12 +46,13 @@ from .visual_context import (
     VisualFrame,
     build_visual_context_record,
     index_legacy_captures,
+    prepare_model_attachments,
     sha256_file,
     title_code_matches,
 )
 
 
-PROCESS_SCHEMA_VERSION = "1"
+PROCESS_SCHEMA_VERSION = "2"
 _HASHED_RUN_ARTIFACTS = (
     "input_manifest.json",
     "capture_index.jsonl",
@@ -54,9 +60,14 @@ _HASHED_RUN_ARTIFACTS = (
     "translation-input/translation_ja.srt",
     "translation-input/translation_units_ja.jsonl",
     "translation_decisions.jsonl",
+    "translation_draft_decisions.jsonl",
     "automated_quality.jsonl",
     "model_call_receipts.jsonl",
+    "translation_draft_receipts.jsonl",
     "visual_context.jsonl",
+    "translation-stage.json",
+    "quality-stage.json",
+    "packaging-stage.json",
     "review_queue.jsonl",
     "review_decisions.jsonl",
     "outputs/viewer_complete_ko.srt",
@@ -87,12 +98,13 @@ class ProcessTitleConfig:
     max_visual_units: int = 20
     max_frames_per_unit: int = 3
     auto_capture_frames: bool = True
-    quality_policy: str = "legacy"
+    quality_policy: str = "automated"
     translation_batch_size: int = 40
     qwen_root: Path | None = None
     review_decisions: Path | None = None
     resume: bool = False
     codex_timeout_seconds: int = 600
+    audit_attempt: int = 0
     output_root: Path | None = None
 
     def validate(self) -> None:
@@ -110,8 +122,14 @@ class ProcessTitleConfig:
             raise ValueError("auto_capture_frames must be a boolean")
         if self.quality_policy not in {"legacy", "automated"}:
             raise ValueError("quality_policy must be legacy or automated")
+        if self.quality_policy == "automated" and self.review_decisions is not None:
+            raise ValueError(
+                "review_decisions cannot be combined with the automated quality policy"
+            )
         if self.translation_batch_size < 1:
             raise ValueError("translation_batch_size must be positive")
+        if self.audit_attempt < 0:
+            raise ValueError("audit_attempt must be non-negative")
         if self.reference_ja is not None and not self.reference_ja_approved:
             raise ValueError("--reference-ja requires --reference-ja-approved")
         if self.reference_ja_approved and self.reference_ja is None:
@@ -192,6 +210,7 @@ def ensure_normalized_audio(media: Path, cache_root: Path, media_sha256: str) ->
                 str(temporary),
             ],
             check=True,
+            timeout=7_200,
         )
         os.replace(temporary, audio_path)
     finally:
@@ -293,6 +312,7 @@ def process_title(
             "auto_capture_frames": config.auto_capture_frames,
             "quality_policy": config.quality_policy,
             "translation_batch_size": config.translation_batch_size,
+            "audit_attempt": config.audit_attempt,
             "qwen_root": str(Path(config.qwen_root).expanduser().resolve()) if config.qwen_root else None,
             "review_decisions_sha256": review_decisions_sha256,
         },
@@ -308,7 +328,16 @@ def process_title(
         if manifest.get("cache_identity") != cache_identity:
             raise ValueError("existing integrated run has a different cache identity")
         _verify_promoted_run(final_dir, manifest)
-        _bundle_from_manifest(_read_json(final_dir / "japanese_bundle.json"), base_dir=final_dir)
+        recovered = stage_run(
+            output_root, run_id, cache_identity=cache_identity, resume=True
+        )
+        if recovered != final_dir:
+            raise ValueError("promoted run recovery returned an unexpected path")
+        _bundle_from_manifest(
+            _read_json(final_dir / "japanese_bundle.json"),
+            base_dir=final_dir,
+            expected_media_sha256=media_sha256,
+        )
         return {**manifest, "cache_hit": True, "run_dir": str(final_dir)}
 
     stage = stage_run(output_root, run_id, cache_identity=cache_identity, resume=config.resume)
@@ -330,6 +359,8 @@ def process_title(
             "scope": "selected_visual_units_only",
         },
         "quality_policy": config.quality_policy,
+        "audit_attempt": config.audit_attempt,
+        "prompt_contracts": _prompt_contract_inventory(),
         "review_decisions": (
             _file_record(review_decisions_path) if review_decisions_path else None
         ),
@@ -364,7 +395,11 @@ def process_title(
     if bundle_manifest_path.is_file():
         if not config.resume:
             raise FileExistsError(bundle_manifest_path)
-        bundle = _bundle_from_manifest(_read_json(bundle_manifest_path), base_dir=stage)
+        bundle = _bundle_from_manifest(
+            _read_json(bundle_manifest_path),
+            base_dir=stage,
+            expected_media_sha256=media_sha256,
+        )
     else:
         if existing_bundle is not None:
             bundle = load_japanese_bundle(
@@ -405,6 +440,7 @@ def process_title(
                 reuse_qwen_cache=True,
                 qwen_audit_samples=4,
                 normalized_audio_path=normalized_audio,
+                media_sha256=media_sha256,
             )
             bundle_dir = subtitle_root / ("reference_primary" if backend == "reference" else "ensemble_qwen_whisper")
             bundle = load_japanese_bundle(
@@ -443,11 +479,17 @@ def process_title(
     decisions_path = stage / "translation_decisions.jsonl"
     automated_quality_path = stage / "automated_quality.jsonl"
     receipts_path = stage / "model_call_receipts.jsonl"
-    if decisions_path.is_file():
-        if not config.resume:
-            raise FileExistsError(decisions_path)
-        decisions = _read_jsonl(decisions_path)
-        receipts = _read_jsonl(receipts_path)
+    translation_checkpoint_path = stage / "translation-stage.json"
+    translation_stage_artifacts = (
+        "translation_draft_decisions.jsonl",
+        "translation_draft_receipts.jsonl",
+        "visual_context.jsonl",
+    )
+    if _checkpoint_is_valid(
+        stage, translation_checkpoint_path, translation_stage_artifacts
+    ):
+        decisions = _read_jsonl(stage / "translation_draft_decisions.jsonl")
+        receipts = _read_jsonl(stage / "translation_draft_receipts.jsonl")
     else:
         model_units = [_unit_for_model(unit) for unit in inputs.units]
         decisions, receipts = translate_units_with_terra(
@@ -494,7 +536,13 @@ def process_title(
                 )
                 record["requested_visual_slots"] = sorted(requested_slots)
                 base_visual_records[unit_id] = record
-                frames_by_unit[unit_id] = [Path(row["path"]) for row in record["frames"]]
+                if config.visual_policy == "targeted":
+                    attachments = prepare_model_attachments(record)
+                    frames_by_unit[unit_id] = [
+                        Path(row["path"]) for row in attachments
+                    ]
+                else:
+                    frames_by_unit[unit_id] = []
             if config.visual_policy == "targeted" and frames_by_unit:
                 before = {row["unit_id"]: dict(row) for row in decisions}
                 decisions, visual_receipts, reviewed = review_translation_with_visuals(
@@ -513,13 +561,16 @@ def process_title(
                         for slot in ALLOWED_VISUAL_SLOTS
                     }
                     receipt = review["model_call_receipt"]
+                    cache_replay = bool(receipt.get("cache_hit"))
+                    attachment_hashes = [
+                        item.get("sha256") for item in receipt.get("image_attachments", [])
+                    ]
                     base["external_transfer_receipt"] = {
-                        "status": receipt.get("status", "succeeded"),
-                        "external_transfer": receipt.get("external_transfer", True),
-                        "pixel_transfer_count": receipt.get("pixel_external_transfer_count", len(base["frames"])),
-                        "transferred_frame_sha256": [
-                            item.get("sha256") for item in receipt.get("image_attachments", [])
-                        ],
+                        "status": "cache-replay" if cache_replay else receipt.get("status", "succeeded"),
+                        "external_transfer": False if cache_replay else receipt.get("external_transfer", True),
+                        "pixel_transfer_count": 0 if cache_replay else receipt.get("pixel_external_transfer_count", len(base["frames"])),
+                        "transferred_frame_sha256": [] if cache_replay else attachment_hashes,
+                        "cache_origin_frame_sha256": attachment_hashes if cache_replay else [],
                         "provider": receipt.get("provider", "codex-cli"),
                         "request_id": receipt.get("request_sha256") or receipt.get("call_id"),
                     }
@@ -555,22 +606,40 @@ def process_title(
                             "request_id": None,
                             "retry_after": blocked_receipt.get("retry_after"),
                         }
-                        base["verdict"] = "pending-human-review"
+                        base["verdict"] = "machine-uncertain-not-sent"
                 _write_json_atomic(
                     stage / "visual_ab_report.json",
                     _visual_ab_report(before, {row["unit_id"]: row for row in decisions}, reviewed),
                 )
             receipts.extend(visual_receipts)
+        _make_generated_frame_paths_portable(
+            stage, base_visual_records.values(), receipts
+        )
         _write_jsonl_atomic(stage / "visual_context.jsonl", base_visual_records.values())
         _write_jsonl_atomic(decisions_path, decisions)
         _write_jsonl_atomic(receipts_path, receipts)
+        _write_jsonl_atomic(stage / "translation_draft_decisions.jsonl", decisions)
+        _write_jsonl_atomic(stage / "translation_draft_receipts.jsonl", receipts)
+        _write_checkpoint(
+            stage, translation_checkpoint_path, translation_stage_artifacts
+        )
 
     visual_context_rows = _read_jsonl(stage / "visual_context.jsonl")
     _ensure_capture_index(stage, visual_context_rows, resume=config.resume)
     automated_quality_records: list[dict[str, Any]] = []
+    quality_checkpoint_path = stage / "quality-stage.json"
+    quality_stage_artifacts = (
+        "translation_decisions.jsonl",
+        "automated_quality.jsonl",
+        "model_call_receipts.jsonl",
+    )
     if config.quality_policy == "automated":
-        if automated_quality_path.is_file():
+        if _checkpoint_is_valid(
+            stage, quality_checkpoint_path, quality_stage_artifacts
+        ):
+            decisions = _read_jsonl(decisions_path)
             automated_quality_records = _read_jsonl(automated_quality_path)
+            receipts = _read_jsonl(receipts_path)
         else:
             decisions, automated_quality_records = audit_translation_decisions(
                 [_unit_for_model(unit) for unit in inputs.units], decisions
@@ -591,9 +660,12 @@ def process_title(
                     base = deterministic_by_id[str(model_record["unit_id"])]
                     base.update(model_record)
                 automated_quality_records = list(deterministic_by_id.values())
-            except CodexUsageLimitError as exc:
+            except (CodexUsageLimitError, CodexTimeoutError) as exc:
                 # A service quota must not resurrect a human gate.  Mark the
                 # deterministic result uncertain and preserve a safe fallback.
+                blocked_reason = (
+                    "usage-limit" if isinstance(exc, CodexUsageLimitError) else "timeout"
+                )
                 for decision in decisions:
                     decision["automated_quality_status"] = "fallback"
                     decision["automated_quality_call_id"] = None
@@ -601,23 +673,25 @@ def process_title(
                         dict.fromkeys(
                             [
                                 *decision.get("automated_quality_reasons", []),
-                                "sol_independent_audit_usage_limit",
+                                f"sol_independent_audit_{blocked_reason}",
                             ]
                         )
                     )
                 for record in automated_quality_records:
                     record["status"] = "fallback"
                     record["model_status"] = "blocked"
-                    record["model_block_reason"] = "usage-limit"
-                    record["retry_after"] = exc.retry_after
+                    record["model_block_reason"] = blocked_reason
+                    record["retry_after"] = getattr(exc, "retry_after", None)
             # Visual review writes its pre-audit decisions first; the audited
             # decisions replace them atomically before packaging.
             _write_jsonl_atomic(decisions_path, decisions)
             _write_jsonl_atomic(automated_quality_path, automated_quality_records)
+            _write_jsonl_atomic(receipts_path, receipts)
     else:
-        _write_jsonl_once_or_match(
-            automated_quality_path, (), resume=config.resume
-        )
+        _write_jsonl_atomic(decisions_path, decisions)
+        _write_jsonl_atomic(receipts_path, receipts)
+        _write_jsonl_atomic(automated_quality_path, ())
+    _write_checkpoint(stage, quality_checkpoint_path, quality_stage_artifacts)
     visual_status_counts: dict[str, int] = {}
     for row in visual_context_rows:
         status = str(row.get("external_transfer_receipt", {}).get("status") or "unknown")
@@ -629,7 +703,18 @@ def process_title(
         inputs.units, decisions, bundle, review_decisions, automated_quality=automated
     )
     output_dir = stage / "outputs"
-    if not (output_dir / "translation_qa.json").is_file():
+    packaging_checkpoint_path = stage / "packaging-stage.json"
+    packaging_stage_artifacts = (
+        "translation_decisions.jsonl",
+        "automated_quality.jsonl",
+        "outputs/viewer_complete_ko.srt",
+        "outputs/source_faithful_ko.srt",
+        "outputs/viewer_natural_ko.srt",
+        "outputs/translation_qa.json",
+    )
+    if not _checkpoint_is_valid(
+        stage, packaging_checkpoint_path, packaging_stage_artifacts
+    ):
         packaged = package_dual_outputs(
             inputs.units,
             unit_translations,
@@ -637,6 +722,7 @@ def process_title(
             review_decisions=review_decisions,
             bundle=bundle,
             automated_quality=automated,
+            replace_existing=output_dir.exists(),
         )
     else:
         qa = _read_json(output_dir / "translation_qa.json")
@@ -650,9 +736,13 @@ def process_title(
             automated_quality_records,
             resume=config.resume,
         )
+        _write_checkpoint(stage, quality_checkpoint_path, quality_stage_artifacts)
+    _write_checkpoint(
+        stage, packaging_checkpoint_path, packaging_stage_artifacts
+    )
 
     review_queue = [] if automated else _review_queue(inputs.units, decisions, bundle, review_decisions)
-    _write_jsonl_once_or_match(stage / "review_queue.jsonl", review_queue, resume=config.resume)
+    _write_jsonl_atomic(stage / "review_queue.jsonl", review_queue)
     qa_report = _integrated_qa(
         inputs,
         decisions,
@@ -663,14 +753,22 @@ def process_title(
         review_queue=review_queue,
         quality_policy=config.quality_policy,
         automated_quality_records=automated_quality_records,
+        visual_context_records=visual_context_rows,
     )
-    _write_once_or_match(stage / "qa_report.json", qa_report, resume=config.resume)
+    _write_json_atomic(stage / "qa_report.json", qa_report)
     verification_passed = bool(qa_report["verification_passed"])
     if not verification_passed:
         raise BundleBlockedError("integrated QA failed: " + ", ".join(qa_report["errors"]))
 
-    machine_uncertain = any(
-        row.get("status") == "fallback" for row in automated_quality_records
+    all_automated_passed = bool(automated_quality_records) and all(
+        row.get("status") == "passed" for row in automated_quality_records
+    )
+    unresolved_bundle_gate = any(
+        gate.status != "passed"
+        for gate in (bundle.recognition, bundle.alignment, bundle.presentation)
+    ) or not bundle.accepted
+    machine_uncertain = automated and (
+        not all_automated_passed or unresolved_bundle_gate
     )
     run_stage = (
         "machine-uncertain" if automated and machine_uncertain
@@ -697,6 +795,7 @@ def process_title(
         "candidate_units": packaged.candidate_units,
         "pending_review_count": len(review_queue),
         "quality_policy": config.quality_policy,
+        "audit_attempt": config.audit_attempt,
         "automated_quality_units": len(automated_quality_records),
         "automated_quality_fallback_units": sum(
             row.get("status") == "fallback" for row in automated_quality_records
@@ -717,11 +816,17 @@ def process_title(
         ),
         "visual_status_counts": visual_status_counts,
         "external_image_transfer_count": sum(
-            int(receipt.get("pixel_external_transfer_count", 0) or 0) for receipt in receipts
+            0
+            if receipt.get("cache_hit")
+            else int(receipt.get("pixel_external_transfer_count", 0) or 0)
+            for receipt in receipts
         ),
+        "human_reviewed": False,
         "human_final_allowed": False,
+        "human_reference_equality": "unidentifiable",
+        "100_percent_equal": False,
         "machine_final_allowed": automated and not machine_uncertain,
-        "final_promotion_allowed": automated and not machine_uncertain,
+        "final_promotion_allowed": False,
         "verification_status": (
             "machine-uncertain" if automated and machine_uncertain
             else "machine-verified" if automated
@@ -732,7 +837,7 @@ def process_title(
             name: stream_sha256(stage / name) for name in _HASHED_RUN_ARTIFACTS
         },
     }
-    _write_once_or_match(stage / "run_manifest.json", run_manifest, resume=config.resume)
+    _write_json_atomic(stage / "run_manifest.json", run_manifest)
     promoted = promote_staged_run(
         output_root,
         run_id,
@@ -740,6 +845,7 @@ def process_title(
         stage=run_stage,
         pending_review_count=len(review_queue),
         required_artifacts=_REQUIRED_RUN_ARTIFACTS,
+        manifest_sha256=stream_sha256(stage / "run_manifest.json"),
     )
     return {**run_manifest, "cache_hit": False, "run_dir": str(promoted)}
 
@@ -771,6 +877,7 @@ def load_japanese_bundle(
         "review_manifest.json",
         "review_report.html",
         "bundle_verification.json",
+        "source_media.json",
     )
     missing = [name for name in required if not (bundle_dir / name).is_file()]
     if missing:
@@ -785,6 +892,8 @@ def load_japanese_bundle(
         bundle_dir,
         expected_video_path=Path(expected_media).resolve() if expected_media else None,
         expected_review_windows=expected_windows,
+        expected_media_sha256=media_sha256,
+        require_media_binding=True,
     )
     if not verification.get("valid"):
         raise BundleBlockedError(
@@ -804,7 +913,19 @@ def load_japanese_bundle(
         tuple(value for value in errors if "structur" in value.lower()),
     )
     recognition_reasons = tuple(
-        code for code in reasons if any(token in code for token in ("repetition", "halluc", "asr", "confidence", "language"))
+        code
+        for code in reasons
+        if any(
+            token in code
+            for token in (
+                "repetition",
+                "halluc",
+                "asr",
+                "confidence",
+                "language",
+                "compression",
+            )
+        )
     )
     alignment_reasons = tuple(code for code in reasons if any(token in code for token in ("alignment", "word_text", "engine_disagreement")))
     presentation_reasons = tuple(
@@ -874,7 +995,9 @@ def _bundle_manifest(bundle: JapaneseSubtitleBundle, *, run_root: Path) -> dict[
     }
 
 
-def _bundle_from_manifest(manifest: Mapping[str, Any], *, base_dir: Path) -> JapaneseSubtitleBundle:
+def _bundle_from_manifest(
+    manifest: Mapping[str, Any], *, base_dir: Path, expected_media_sha256: str
+) -> JapaneseSubtitleBundle:
     gates = manifest["gates"]
     artifacts = {
         name: (Path(path) if Path(path).is_absolute() else Path(base_dir) / Path(path)).resolve()
@@ -892,9 +1015,14 @@ def _bundle_from_manifest(manifest: Mapping[str, Any], *, base_dir: Path) -> Jap
         alignment=GateResult(**gates["alignment"]),
         presentation=GateResult(**gates["presentation"]),
     )
+    if bundle.media_sha256 != expected_media_sha256:
+        raise ValueError("Japanese bundle media SHA-256 changed during resume")
     for name, path in bundle.artifacts.items():
         if not Path(path).is_file() or stream_sha256(Path(path)) != manifest["artifact_sha256"][name]:
             raise ValueError(f"Japanese bundle artifact changed during resume: {name}")
+    source_media = _read_json(Path(bundle.artifacts["source_media.json"]))
+    if source_media.get("sha256") != expected_media_sha256:
+        raise ValueError("Japanese bundle source_media binding changed during resume")
     return bundle
 
 
@@ -961,7 +1089,7 @@ def _visual_candidate_ids(
             or bool(decision.get("review_required_reasons"))
             or unit.quality_status != "trusted"
         )
-        if not ambiguous or not slots:
+        if not ambiguous:
             continue
         priority = (
             0 if decision.get("confidence") == "low" else 1,
@@ -991,37 +1119,63 @@ def _visual_selection_reasons(
 def _extract_unit_frames(
     media: Path, output_dir: Path, unit: TranslationUnit, max_frames: int
 ) -> list[VisualFrame]:
-    anchors = [unit.start + (unit.end - unit.start) / 2]
+    duration = unit.end - unit.start
+    midpoint = unit.start + duration / 2
+    end_epsilon = min(0.05, duration / 2)
+    safe_end = max(unit.start, unit.end - end_epsilon)
+    anchors = [midpoint]
     if max_frames >= 2:
-        anchors = [unit.start, unit.end]
+        anchors = [unit.start, safe_end]
         if max_frames >= 3:
-            anchors = [unit.start, unit.start + (unit.end - unit.start) / 2, unit.end]
+            anchors = [unit.start, midpoint, safe_end]
+    anchors = list(dict.fromkeys(round(value, 6) for value in anchors))
     output_dir.mkdir(parents=True, exist_ok=True)
     frames: list[VisualFrame] = []
     for index, seconds in enumerate(anchors, 1):
         path = output_dir / f"frame_{index:02d}_{seconds:.3f}s.jpg"
-        if not path.is_file() or path.stat().st_size == 0:
-            subprocess.run(
-                [
-                    "ffmpeg",
-                    "-nostdin",
-                    "-hide_banner",
-                    "-loglevel",
-                    "error",
-                    "-ss",
-                    f"{seconds:.3f}",
-                    "-i",
-                    str(media),
-                    "-frames:v",
-                    "1",
-                    "-q:v",
-                    "2",
-                    str(path),
-                ],
-                check=True,
-            )
+        if not _is_complete_jpeg(path):
+            temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.partial.jpg")
+            try:
+                subprocess.run(
+                    [
+                        "ffmpeg",
+                        "-nostdin",
+                        "-hide_banner",
+                        "-loglevel",
+                        "error",
+                        "-y",
+                        "-ss",
+                        f"{seconds:.3f}",
+                        "-i",
+                        str(media),
+                        "-frames:v",
+                        "1",
+                        "-q:v",
+                        "2",
+                        str(temporary),
+                    ],
+                    check=True,
+                    timeout=60,
+                )
+                if not _is_complete_jpeg(temporary):
+                    raise ValueError(f"ffmpeg produced an invalid JPEG frame: {temporary}")
+                os.replace(temporary, path)
+            finally:
+                if temporary.exists():
+                    temporary.unlink()
         frames.append(VisualFrame(path.resolve(), seconds, sha256_file(path)))
     return frames
+
+
+def _is_complete_jpeg(path: Path) -> bool:
+    path = Path(path)
+    if not path.is_file() or path.stat().st_size < 4:
+        return False
+    with path.open("rb") as handle:
+        start = handle.read(2)
+        handle.seek(-2, os.SEEK_END)
+        end = handle.read(2)
+    return start == b"\xff\xd8" and end == b"\xff\xd9"
 
 
 def _ensure_capture_index(
@@ -1065,6 +1219,32 @@ def _ensure_capture_index(
     if current and resume:
         raise ValueError(f"capture index changed while resuming: {path}")
     _write_jsonl_atomic(path, rows)
+
+
+def _make_generated_frame_paths_portable(
+    stage: Path,
+    visual_records: Iterable[dict[str, Any]],
+    receipts: Iterable[dict[str, Any]],
+) -> None:
+    """Replace paths inside the staged run with run-relative portable paths."""
+
+    stage = Path(stage).resolve()
+
+    def portable(value: object) -> str:
+        path = Path(str(value)).expanduser()
+        try:
+            return path.resolve().relative_to(stage).as_posix()
+        except ValueError:
+            return str(path.resolve())
+
+    for record in visual_records:
+        for frame in record.get("frames", []):
+            if isinstance(frame, dict) and frame.get("path"):
+                frame["path"] = portable(frame["path"])
+    for receipt in receipts:
+        for attachment in receipt.get("image_attachments", []):
+            if isinstance(attachment, dict) and attachment.get("path"):
+                attachment["path"] = portable(attachment["path"])
 
 
 def _attach_automated_render_hashes(
@@ -1150,18 +1330,23 @@ def _package_translations(
         if automated_quality and decision.get("automated_quality_status") == "fallback":
             # Never promote an unverified natural rewrite over the faithful
             # draft when the local semantic invariants disagree.
-            viewer_natural = (
+            faithful_safe = bool(decision.get("automated_quality_faithful_safe", False))
+            source_faithful = (
                 str(decision.get("source_faithful_korean") or "[원문 불명확]")
-                if decision.get("automated_quality_faithful_safe", False)
+                if faithful_safe
                 else "[원문 불명확]"
             )
+            viewer_natural = source_faithful
+            if not faithful_safe:
+                evidence = ()
         else:
+            source_faithful = str(decision["source_faithful_korean"])
             viewer_natural = str(decision["viewer_natural_korean"])
         result.append(
             UnitTranslation(
                 unit_id=unit_id,
                 viewer_complete_ko=viewer_natural,
-                source_faithful_ko=str(decision["source_faithful_korean"]),
+                source_faithful_ko=source_faithful,
                 viewer_natural_ko=viewer_natural,
                 evidence_ids=tuple(evidence),
             )
@@ -1222,6 +1407,7 @@ def _integrated_qa(
     review_queue: list[dict[str, Any]],
     quality_policy: str = "legacy",
     automated_quality_records: Iterable[Mapping[str, Any]] = (),
+    visual_context_records: Iterable[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     errors: list[str] = []
     unit_ids = [unit.unit_id for unit in inputs.units]
@@ -1242,6 +1428,14 @@ def _integrated_qa(
         }
         if len(blocks) != len(inputs.units) or outputs[name]["empty"]:
             errors.append(f"invalid_output_coverage:{name}")
+        for index, (block, unit) in enumerate(zip(blocks, inputs.units), 1):
+            if block.number != index:
+                errors.append(f"output_number_mismatch:{name}:{unit.unit_id}")
+            if (
+                abs(block.start_seconds - unit.start) > 0.001
+                or abs(block.end_seconds - unit.end) > 0.001
+            ):
+                errors.append(f"output_timing_mismatch:{name}:{unit.unit_id}")
     if outputs["viewer_complete_ko.srt"]["ellipsis_only"]:
         errors.append("viewer_complete_contains_ellipsis_only_units")
     if outputs["viewer_complete_ko.srt"]["japanese_residual"]:
@@ -1249,10 +1443,17 @@ def _integrated_qa(
     automated_records = [dict(row) for row in automated_quality_records]
     automated_statuses = {str(row.get("status") or "") for row in automated_records}
     if quality_policy == "automated":
-        if len(automated_records) != len(inputs.units):
+        automated_ids = [str(row.get("unit_id") or "") for row in automated_records]
+        expected_ids = [unit.unit_id for unit in inputs.units]
+        if automated_ids != expected_ids or len(set(automated_ids)) != len(automated_ids):
             errors.append("automated_quality_coverage_mismatch")
-        if outputs["viewer_complete_ko.srt"]["hold_markers"]:
-            errors.append("automated_output_contains_human_hold_marker")
+        if not automated_statuses.issubset({"passed", "fallback"}) or not automated_statuses:
+            errors.append("automated_quality_status_invalid")
+        for name, metrics in outputs.items():
+            if metrics["hold_markers"]:
+                errors.append(f"automated_output_contains_human_hold_marker:{name}")
+            if metrics["japanese_residual"]:
+                errors.append(f"automated_output_contains_japanese_residual:{name}")
         faithful_blocks, _, _ = parse_srt(output_dir / "source_faithful_ko.srt")
         natural_blocks, _, _ = parse_srt(output_dir / "viewer_natural_ko.srt")
         complete_blocks, _, _ = parse_srt(output_dir / "viewer_complete_ko.srt")
@@ -1275,6 +1476,25 @@ def _integrated_qa(
                 errors.append(f"automated_quality_render_hash_mismatch:{unit.unit_id}")
             if record.get("render_binding") != "unit_order_and_unit_id":
                 errors.append(f"automated_quality_render_binding_missing:{unit.unit_id}")
+        dual_qa = _read_json(output_dir / "translation_qa.json")
+        if automated_statuses == {"passed"} and int(dual_qa.get("candidate_units", -1)) != len(inputs.units):
+            errors.append("machine_verified_candidate_coverage_mismatch")
+    for record in visual_context_records:
+        frames = record.get("frames", [])
+        indexed_hashes = [
+            str(frame.get("sha256") or "")
+            for frame in frames
+            if isinstance(frame, Mapping)
+        ]
+        transfer = record.get("external_transfer_receipt", {})
+        if not isinstance(transfer, Mapping):
+            errors.append(f"invalid_visual_transfer_receipt:{record.get('unit_id')}")
+            continue
+        transferred = [str(value or "") for value in transfer.get("transferred_frame_sha256", [])]
+        if transfer.get("external_transfer") is True and transferred != indexed_hashes:
+            errors.append(f"visual_frame_receipt_hash_mismatch:{record.get('unit_id')}")
+        if transfer.get("external_transfer") is not True and int(transfer.get("pixel_transfer_count", 0) or 0):
+            errors.append(f"visual_nontransfer_has_pixel_count:{record.get('unit_id')}")
     receipt_errors = []
     receipts_by_call_id: dict[str, dict[str, Any]] = {}
     for receipt in receipts:
@@ -1297,14 +1517,18 @@ def _integrated_qa(
         else:
             expected_calls[terra_call_id] = "translation-terra"
         sol_call_id = str(decision.get("sol_call_id") or "")
-        blocked_visual = "visual_review_blocked_usage_limit" in decision.get(
-            "review_required_reasons", []
+        blocked_visual = any(
+            str(reason).startswith("visual_review_blocked_")
+            for reason in decision.get("review_required_reasons", [])
         )
         if sol_call_id and not blocked_visual:
             expected_calls[sol_call_id] = "critique-sol"
         audit_call_id = str(decision.get("automated_quality_call_id") or "")
         if audit_call_id:
             expected_calls[audit_call_id] = "translation-audit-sol"
+        visual_repair_call_id = str(decision.get("visual_repair_terra_call_id") or "")
+        if visual_repair_call_id:
+            expected_calls[visual_repair_call_id] = "translation-terra"
     for call_id, role in expected_calls.items():
         receipt = receipts_by_call_id.get(call_id)
         if receipt is None:
@@ -1319,6 +1543,10 @@ def _integrated_qa(
         for row in decisions
     )
     source_negations = sum(bool(_NEGATION_RE.search(unit.text_raw)) for unit in inputs.units)
+    bundle_machine_ready = bundle.accepted and all(
+        gate.status == "passed"
+        for gate in (bundle.structural, bundle.recognition, bundle.alignment, bundle.presentation)
+    )
     return {
         "schema_name": "translation-forensics/integrated-qa",
         "schema_version": PROCESS_SCHEMA_VERSION,
@@ -1348,19 +1576,28 @@ def _integrated_qa(
             "fallback": sum(row.get("status") == "fallback" for row in automated_records),
             "statuses": sorted(automated_statuses),
         },
+        "human_reviewed": False,
         "human_final_allowed": False,
+        "human_reference_equality": "unidentifiable",
+        "100_percent_equal": False,
         "machine_final_allowed": (
             quality_policy == "automated"
             and not errors
             and bool(automated_records)
             and all(row.get("status") == "passed" for row in automated_records)
+            and bundle_machine_ready
         ),
         "verification_status": (
             "machine-uncertain"
-            if quality_policy == "automated" and any(row.get("status") == "fallback" for row in automated_records)
+            if quality_policy == "automated"
+            and (
+                any(row.get("status") == "fallback" for row in automated_records)
+                or not bundle_machine_ready
+            )
             else "machine-verified" if quality_policy == "automated" and not errors
             else "not-demonstrated"
         ),
+        "final_promotion_allowed": False,
     }
 
 
@@ -1442,6 +1679,35 @@ def _verify_promoted_run(run_dir: Path, manifest: Mapping[str, Any]) -> None:
         or manifest.get("schema_version") != PROCESS_SCHEMA_VERSION
     ):
         raise ValueError("existing integrated run has an unsupported manifest version")
+    policy_expectations = {
+        "human_reviewed": False,
+        "human_final_allowed": False,
+        "human_reference_equality": "unidentifiable",
+        "100_percent_equal": False,
+        "final_promotion_allowed": False,
+    }
+    for field, expected in policy_expectations.items():
+        if manifest.get(field) != expected:
+            raise ValueError(f"existing integrated run violates policy field: {field}")
+    status = str(manifest.get("status") or "")
+    machine_final_allowed = manifest.get("machine_final_allowed")
+    if status not in {
+        "machine-verified",
+        "machine-uncertain",
+        "machine-draft-not-demonstrated",
+    }:
+        raise ValueError("existing integrated run has an invalid status")
+    if machine_final_allowed is not (status == "machine-verified"):
+        raise ValueError("existing integrated run has inconsistent machine-final status")
+    state = _read_json(Path(run_dir) / "run-state.json")
+    if (
+        state.get("schema_name") != "translation-forensics/integrated-run"
+        or state.get("status") != "verified"
+        or state.get("run_id") != manifest.get("run_id")
+        or state.get("cache_identity") != manifest.get("cache_identity")
+        or state.get("manifest_sha256") != stream_sha256(Path(run_dir) / "run_manifest.json")
+    ):
+        raise ValueError("existing integrated run manifest is not bound to run-state")
     hashes = manifest.get("artifact_sha256")
     if not isinstance(hashes, Mapping):
         raise ValueError("existing integrated run lacks current artifact hashes")
@@ -1458,49 +1724,44 @@ def _verify_promoted_run(run_dir: Path, manifest: Mapping[str, Any]) -> None:
     qa = _read_json(Path(run_dir) / "qa_report.json")
     if qa.get("verification_passed") is not True:
         raise ValueError("existing integrated run no longer has passing QA")
+    _verify_promoted_frame_artifacts(Path(run_dir))
+
+
+def _verify_promoted_frame_artifacts(run_dir: Path) -> None:
+    run_dir = Path(run_dir).resolve()
+    records = [
+        *_read_jsonl(run_dir / "capture_index.jsonl"),
+        *(
+            frame
+            for record in _read_jsonl(run_dir / "visual_context.jsonl")
+            for frame in record.get("frames", [])
+            if isinstance(frame, Mapping)
+        ),
+    ]
+    checked: set[tuple[str, str]] = set()
+    for record in records:
+        raw_path = str(record.get("path") or "")
+        expected = str(record.get("sha256") or "")
+        key = (raw_path, expected)
+        if key in checked:
+            continue
+        checked.add(key)
+        path = Path(raw_path)
+        if not path.is_absolute():
+            path = run_dir / path
+        if not path.is_file():
+            raise ValueError(f"promoted visual frame is missing: {raw_path}")
+        if not re.fullmatch(r"[0-9a-f]{64}", expected) or stream_sha256(path) != expected:
+            raise ValueError(f"promoted visual frame changed: {raw_path}")
 
 
 def _resolve_media_sha256(
     project_root: Path, title_id: str, media: Path
 ) -> tuple[str, dict[str, Any]]:
-    """Reuse an earlier full-file hash only when immutable file facts still match."""
+    """Bind every run to the current media bytes, never path/mtime metadata alone."""
 
+    del project_root, title_id
     media = Path(media).resolve()
-    stat = media.stat()
-    candidates = [
-        Path(project_root) / "workspaces" / title_id / "metadata" / "project-manifest.json",
-    ]
-    for manifest_path in candidates:
-        if not manifest_path.is_file():
-            continue
-        try:
-            manifest = _read_json(manifest_path)
-        except (OSError, ValueError, json.JSONDecodeError):
-            continue
-        for row in manifest.get("inputs", []):
-            if not isinstance(row, Mapping) or row.get("role") != "video":
-                continue
-            try:
-                row_path = Path(str(row["path"])).expanduser().resolve()
-                row_size = int(row["size_bytes"])
-                row_mtime = datetime.fromisoformat(str(row["modified_at"])).timestamp()
-                digest = str(row["sha256"]).lower()
-            except (KeyError, TypeError, ValueError, OSError):
-                continue
-            if (
-                os.path.normcase(str(row_path)) == os.path.normcase(str(media))
-                and row_size == stat.st_size
-                and abs(row_mtime - stat.st_mtime) < 1.0
-                and re.fullmatch(r"[0-9a-f]{64}", digest)
-            ):
-                return digest, {
-                    "method": "verified-project-manifest-cache",
-                    "manifest_path": str(manifest_path.resolve()),
-                    "matched_path": True,
-                    "matched_size": True,
-                    "matched_mtime": True,
-                    "full_hash_recomputed": False,
-                }
     return stream_sha256(media), {
         "method": "streamed-full-file",
         "manifest_path": None,
@@ -1538,10 +1799,16 @@ def _capture_inventory(captures: Path | None, frames: Iterable[VisualFrame]) -> 
 
 def _existing_bundle_identity(bundle_dir: Path) -> str:
     names = (
-        "bundle_verification.json",
-        "qc_report.json",
-        "transcript_ja.jsonl",
         "source_faithful_ja.srt",
+        "viewer_ja.srt",
+        "transcript_ja.jsonl",
+        "subtitle_audit.jsonl",
+        "qc_report.json",
+        "comparison_report.html",
+        "review_manifest.json",
+        "review_report.html",
+        "bundle_verification.json",
+        "source_media.json",
     )
     digest = hashlib.sha256()
     for name in names:
@@ -1554,8 +1821,10 @@ def _existing_bundle_identity(bundle_dir: Path) -> str:
 
 
 def _code_version() -> str:
+    repository_root = Path(__file__).resolve().parents[2]
     roots = [
         Path(__file__),
+        Path(__file__).with_name("automated_quality.py"),
         Path(__file__).with_name("codex_exec_provider.py"),
         Path(__file__).with_name("integrated_pipeline.py"),
         Path(__file__).with_name("integrated_translation.py"),
@@ -1564,12 +1833,42 @@ def _code_version() -> str:
     ]
     subtitle_root = Path(__file__).parents[1] / "subtitle_pipeline"
     roots.extend(sorted(subtitle_root.glob("*.py")))
+    roots.extend(
+        repository_root / relative
+        for relative in (
+            "references/translation-prompt-v6.txt",
+            "prompts/batch-adult-srt-translation-run.md",
+            "prompts/terra-semantic-translation-v1.md",
+            "prompts/integrated-noisy-asr-recovery-v1.md",
+        )
+    )
     digest = hashlib.sha256()
     for path in roots:
         if path.is_file():
-            digest.update(path.name.encode("utf-8"))
+            try:
+                identity = path.resolve().relative_to(repository_root).as_posix()
+            except ValueError:
+                identity = str(path.resolve())
+            digest.update(identity.encode("utf-8"))
             digest.update(path.read_bytes())
     return digest.hexdigest()
+
+
+def _prompt_contract_inventory() -> list[dict[str, str]]:
+    repository_root = Path(__file__).resolve().parents[2]
+    relative_paths = (
+        "references/translation-prompt-v6.txt",
+        "prompts/batch-adult-srt-translation-run.md",
+        "prompts/terra-semantic-translation-v1.md",
+        "prompts/integrated-noisy-asr-recovery-v1.md",
+    )
+    records: list[dict[str, str]] = []
+    for relative in relative_paths:
+        path = repository_root / relative
+        if not path.is_file():
+            raise FileNotFoundError(f"missing prompt contract: {path}")
+        records.append({"path": relative, "sha256": stream_sha256(path)})
+    return records
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -1589,6 +1888,59 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
             raise ValueError(f"expected JSON object at {path}:{line_number}")
         result.append(value)
     return result
+
+
+def _checkpoint_is_valid(
+    stage: Path, checkpoint_path: Path, artifact_names: Iterable[str]
+) -> bool:
+    if not checkpoint_path.is_file():
+        return False
+    try:
+        checkpoint = _read_json(checkpoint_path)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+    names = list(artifact_names)
+    if (
+        checkpoint.get("schema_name") != "translation-forensics/stage-checkpoint"
+        or checkpoint.get("schema_version") != PROCESS_SCHEMA_VERSION
+        or checkpoint.get("status") != "complete"
+        or checkpoint.get("artifacts") != names
+    ):
+        return False
+    hashes = checkpoint.get("artifact_sha256")
+    if not isinstance(hashes, Mapping):
+        return False
+    for name in names:
+        path = Path(stage) / name
+        expected = str(hashes.get(name) or "")
+        if (
+            not path.is_file()
+            or not re.fullmatch(r"[0-9a-f]{64}", expected)
+            or stream_sha256(path) != expected
+        ):
+            return False
+    return True
+
+
+def _write_checkpoint(
+    stage: Path, checkpoint_path: Path, artifact_names: Iterable[str]
+) -> None:
+    names = list(artifact_names)
+    missing = [name for name in names if not (Path(stage) / name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"stage checkpoint artifacts are missing: {missing}")
+    _write_json_atomic(
+        checkpoint_path,
+        {
+            "schema_name": "translation-forensics/stage-checkpoint",
+            "schema_version": PROCESS_SCHEMA_VERSION,
+            "status": "complete",
+            "artifacts": names,
+            "artifact_sha256": {
+                name: stream_sha256(Path(stage) / name) for name in names
+            },
+        },
+    )
 
 
 def _write_json_atomic(path: Path, value: Mapping[str, Any]) -> None:

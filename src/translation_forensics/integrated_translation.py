@@ -4,7 +4,9 @@ import re
 from pathlib import Path
 from typing import Any, Iterable, Protocol
 
-from .codex_exec_provider import CodexUsageLimitError
+from jsonschema import Draft202012Validator
+
+from .codex_exec_provider import CodexTimeoutError, CodexUsageLimitError
 
 
 _JAPANESE_RE = re.compile(r"[\u3040-\u30ff]")
@@ -41,6 +43,19 @@ specific recovery_basis and uncertainty instead of inventing facts. Images are n
 present in this pass.
 """
 
+
+def _terra_translation_prompt() -> str:
+    """Load the versioned process-title contract and append the runtime constraints."""
+
+    contract_path = (
+        Path(__file__).resolve().parents[2]
+        / "prompts"
+        / "integrated-noisy-asr-recovery-v1.md"
+    )
+    if not contract_path.is_file():
+        raise FileNotFoundError(f"missing Terra prompt contract: {contract_path}")
+    return contract_path.read_text(encoding="utf-8") + "\n\n## Runtime addendum\n\n" + TERRA_TRANSLATION_PROMPT
+
 SOL_VISUAL_REVIEW_PROMPT = """\
 Independently review one Japanese-to-Korean subtitle decision using only the given
 Japanese text, neighboring transcript context, the draft translations, and up to
@@ -48,8 +63,20 @@ three attached timestamp frames. Pixels may resolve only these slots: speaker,
 addressee, deictic_location, on_screen_text, and scene_continuity. Never add an
 action, body part, relationship, or spoken proposition merely because it is visible.
 If a visual observation would materially change a critical semantic slot, set
-critical_visual_impact=true and escalate for human review. Keep or repair the Korean
-text only when it remains licensed by the Japanese source.
+critical_visual_impact=true and mark the unit machine-uncertain without replacing
+the source-faithful fallback. Keep or repair the Korean text only when it remains
+licensed by the Japanese source.
+"""
+
+VISUAL_BOUND_REPAIR_PROMPT = """\
+Create one revised Japanese-to-Korean subtitle decision from the Japanese source,
+neighboring turns, the existing machine draft, and a bounded visual observation
+record produced by an independent critic. The visual record may resolve only
+speaker, addressee, deictic_location, on_screen_text, or scene_continuity. It is not
+evidence that a visible action, body part, relationship, emotion, consent state, or
+result was spoken. Preserve source force, polarity, target, tense, direction, and
+intensity. Return the normal Terra translation schema. This is a machine candidate
+that will be checked again; never claim final status.
 """
 
 AUTOMATED_AUDIT_PROMPT = """\
@@ -94,6 +121,19 @@ TRANSLATION_BATCH_SCHEMA: dict[str, Any] = {
                     },
                     "recovery_basis": {"type": "array", "items": {"type": "string"}},
                 },
+                "allOf": [
+                    {
+                        "if": {
+                            "properties": {
+                                "recovery_classification": {"const": "FUNCTIONAL_RECOVERY"}
+                            },
+                            "required": ["recovery_classification"],
+                        },
+                        "then": {
+                            "properties": {"recovery_basis": {"minItems": 1}}
+                        },
+                    }
+                ],
                 "additionalProperties": False,
             },
         }
@@ -187,6 +227,20 @@ class StructuredProvider(Protocol):
     def run_structured(self, **kwargs: Any) -> tuple[dict[str, Any], dict[str, Any]]: ...
 
 
+def _validate_structured_response(
+    response: object, schema: dict[str, Any], *, call_id: str
+) -> dict[str, Any]:
+    if not isinstance(response, dict):
+        raise ValueError(f"structured response must be an object: {call_id}")
+    error = next(iter(Draft202012Validator(schema).iter_errors(response)), None)
+    if error is not None:
+        location = ".".join(str(part) for part in error.absolute_path) or "<root>"
+        raise ValueError(
+            f"structured response schema error for {call_id} at {location}: {error.message}"
+        )
+    return response
+
+
 def _chunks(
     units: list[dict[str, Any]], *, batch_size: int, max_source_characters: int
 ) -> Iterable[list[dict[str, Any]]]:
@@ -228,13 +282,17 @@ def _source_profile(units: Iterable[dict[str, Any]]) -> str:
 
 def _recovery_classification(value: object, *, source_quality_status: str) -> str:
     classification = str(value or "").strip().upper()
-    if classification in _RECOVERY_CLASSIFICATIONS:
-        return classification
-    if source_quality_status == "unusable":
-        return "UNRESOLVED"
-    if source_quality_status == "suspect":
-        return "FUNCTIONAL_RECOVERY"
-    return "RELIABLE"
+    if classification not in _RECOVERY_CLASSIFICATIONS:
+        raise ValueError(f"unsupported recovery classification: {value!r}")
+    if classification == "UNRESOLVED" and source_quality_status != "unusable":
+        raise ValueError(
+            "unresolved_marker classification requires source_quality_status=unusable"
+        )
+    if classification == "FUNCTIONAL_RECOVERY" and source_quality_status == "trusted":
+        raise ValueError("FUNCTIONAL_RECOVERY cannot replace a trusted source")
+    if classification == "RELIABLE" and source_quality_status == "unusable":
+        raise ValueError("RELIABLE cannot be claimed for an unusable source")
+    return classification
 
 
 def _complete_text(
@@ -250,8 +308,11 @@ def _complete_text(
             raise ValueError("empty_or_ellipsis_translation_without_unresolved_authorization")
         text = _UNRESOLVED_MARKER
         reasons.append("unresolved_marker_inserted")
-    if text == _UNRESOLVED_MARKER and not unresolved_marker_allowed:
-        raise ValueError("unresolved_marker_without_unusable_source_and_unresolved_classification")
+    if _UNRESOLVED_MARKER in text:
+        if text != _UNRESOLVED_MARKER:
+            raise ValueError("unresolved_marker_must_be_the_entire_translation")
+        if not unresolved_marker_allowed:
+            raise ValueError("unresolved_marker_without_unusable_source_and_unresolved_classification")
     if _JAPANESE_RE.search(text):
         reasons.append("japanese_residual")
     if not source.strip():
@@ -284,11 +345,13 @@ def translate_units_with_terra(
     decisions: list[dict[str, Any]] = []
     receipts: list[dict[str, Any]] = []
     source_profile = _source_profile(units)
+    global_index = {str(unit["unit_id"]): index for index, unit in enumerate(units)}
     for batch_index, batch in enumerate(
         _chunks(units, batch_size=batch_size, max_source_characters=max_source_characters), 1
     ):
         compact_units: list[dict[str, Any]] = []
-        for index, unit in enumerate(batch):
+        for unit in batch:
+            index = global_index[str(unit["unit_id"])]
             compact_units.append(
                 {
                     "unit_id": unit["unit_id"],
@@ -296,17 +359,18 @@ def translate_units_with_terra(
                     "end": unit.get("end"),
                     "source_japanese": unit.get("source_japanese", unit.get("text_raw", "")),
                     "previous_source_japanese": (
-                        batch[index - 1].get("source_japanese", batch[index - 1].get("text_raw", ""))
+                        units[index - 1].get("source_japanese", units[index - 1].get("text_raw", ""))
                         if index > 0
                         else ""
                     ),
                     "next_source_japanese": (
-                        batch[index + 1].get("source_japanese", batch[index + 1].get("text_raw", ""))
-                        if index + 1 < len(batch)
+                        units[index + 1].get("source_japanese", units[index + 1].get("text_raw", ""))
+                        if index + 1 < len(units)
                         else ""
                     ),
                     "source_quality_status": unit.get("quality_status", "suspect"),
                     "asr_warnings": unit.get("asr_warnings", unit.get("warnings", [])),
+                    "evidence_ids": unit.get("evidence_ids", unit.get("evidence_refs", [])),
                 }
             )
         call_id = f"batch-{batch_index:04d}.translation.terra"
@@ -314,7 +378,7 @@ def translate_units_with_terra(
             role="translation-terra",
             title_id=title_id,
             call_id=call_id,
-            prompt=TERRA_TRANSLATION_PROMPT,
+            prompt=_terra_translation_prompt(),
             payload={
                 "title_id": title_id,
                 "contract": "complete_machine_draft_not_final",
@@ -323,6 +387,9 @@ def translate_units_with_terra(
             },
             schema=TRANSLATION_BATCH_SCHEMA,
             resume=resume,
+        )
+        response = _validate_structured_response(
+            response, TRANSLATION_BATCH_SCHEMA, call_id=call_id
         )
         rows = response.get("translations")
         if not isinstance(rows, list):
@@ -365,6 +432,18 @@ def translate_units_with_terra(
                 translated.get("recovery_classification"),
                 source_quality_status=source_quality_status,
             )
+            recovery_basis = [
+                str(value).strip()
+                for value in translated.get("recovery_basis", [])
+                if str(value).strip()
+            ]
+            if classification == "FUNCTIONAL_RECOVERY" and not recovery_basis:
+                raise ValueError("FUNCTIONAL_RECOVERY requires a concrete recovery_basis")
+            if classification == "UNRESOLVED" and any(
+                str(translated.get(field) or "").strip() != _UNRESOLVED_MARKER
+                for field in ("source_faithful_korean", "viewer_natural_korean")
+            ):
+                raise ValueError("UNRESOLVED requires both translations to be exactly [불명]")
             unresolved_marker_allowed = (
                 source_quality_status == "unusable" and classification == "UNRESOLVED"
             )
@@ -401,7 +480,7 @@ def translate_units_with_terra(
                     "source_quality_status": source_quality_status,
                     "source_profile": source_profile,
                     "recovery_classification": classification,
-                    "recovery_basis": [str(value) for value in translated.get("recovery_basis", [])],
+                    "recovery_basis": recovery_basis,
                     "evidence_ids": unit.get("evidence_ids", unit.get("evidence_refs", [])),
                     "translation_status": "machine_draft",
                     "terra_call_id": call_id,
@@ -433,11 +512,16 @@ def audit_translations_with_sol(
         raise ValueError("automated translation audit requires unique unit IDs")
     receipts: list[dict[str, Any]] = []
     records: list[dict[str, Any]] = []
+    decision_index = {
+        str(row["unit_id"]): index for index, row in enumerate(updated)
+    }
     for batch_index, batch in enumerate(
         _chunks(updated, batch_size=batch_size, max_source_characters=12_000), 1
     ):
-        payload_units = [
-            {
+        payload_units = []
+        for row in batch:
+            index = decision_index[str(row["unit_id"])]
+            payload_units.append({
                 "unit_id": row["unit_id"],
                 "source_japanese": row.get("source_japanese", ""),
                 "source_faithful_korean": row.get("source_faithful_korean", ""),
@@ -446,9 +530,15 @@ def audit_translations_with_sol(
                 "source_profile": row.get("source_profile", "NOT_VERIFIED"),
                 "recovery_classification": row.get("recovery_classification", "RELIABLE"),
                 "recovery_basis": row.get("recovery_basis", []),
-            }
-            for row in batch
-        ]
+                "previous_source_japanese": (
+                    updated[index - 1].get("source_japanese", "") if index > 0 else ""
+                ),
+                "next_source_japanese": (
+                    updated[index + 1].get("source_japanese", "")
+                    if index + 1 < len(updated)
+                    else ""
+                ),
+            })
         call_id = f"batch-{batch_index:04d}.translation-audit.sol"
         response, receipt = provider.run_structured(
             role="translation-audit-sol",
@@ -458,6 +548,9 @@ def audit_translations_with_sol(
             payload={"title_id": title_id, "units": payload_units},
             schema=AUTOMATED_AUDIT_SCHEMA,
             resume=resume,
+        )
+        response = _validate_structured_response(
+            response, AUTOMATED_AUDIT_SCHEMA, call_id=call_id
         )
         rows = response.get("audits")
         if not isinstance(rows, list):
@@ -512,17 +605,21 @@ def audit_translations_with_sol(
             if bool(audit.get("meaning_flip")):
                 model_verdict = "fail"
                 reasons.append("sol_meaning_flip")
+            backtranslation = str(audit.get("backtranslation_japanese") or "").strip()
+            fidelity_score = float(audit.get("source_fidelity_score") or 0.0)
+            if not backtranslation:
+                model_verdict = "fail"
+                reasons.append("sol_backtranslation_empty")
+            if model_verdict == "pass" and fidelity_score < 0.8:
+                model_verdict = "fail"
+                reasons.append("sol_source_fidelity_below_threshold")
             existing_status = str(row.get("automated_quality_status") or "fallback")
             final_status = "passed" if existing_status == "passed" and model_verdict == "pass" else "fallback"
             decision = by_id[unit_id]
             decision["automated_quality_status"] = final_status
             decision["automated_quality_call_id"] = call_id
-            decision["automated_quality_backtranslation_japanese"] = str(
-                audit.get("backtranslation_japanese") or ""
-            )
-            decision["automated_quality_model_score"] = float(
-                audit.get("source_fidelity_score") or 0.0
-            )
+            decision["automated_quality_backtranslation_japanese"] = backtranslation
+            decision["automated_quality_model_score"] = fidelity_score
             decision["automated_quality_reasons"] = list(
                 dict.fromkeys([*decision.get("automated_quality_reasons", []), *reasons])
             )
@@ -558,6 +655,10 @@ def review_translation_with_visuals(
     updated = {str(row["unit_id"]): dict(row) for row in decisions}
     receipts: list[dict[str, Any]] = []
     visual_records: list[dict[str, Any]] = []
+    ordered_units = sorted(
+        units_by_id.values(), key=lambda row: (float(row.get("start", 0.0)), str(row.get("unit_id", "")))
+    )
+    unit_index = {str(row["unit_id"]): index for index, row in enumerate(ordered_units)}
     for unit_id, frame_paths in frames_by_unit.items():
         if unit_id not in updated or unit_id not in units_by_id:
             raise ValueError(f"Unknown visual-review unit_id: {unit_id}")
@@ -568,6 +669,7 @@ def review_translation_with_visuals(
             raise ValueError(f"Visual review for {unit_id} exceeds the 3-frame limit")
         decision = updated[unit_id]
         unit = units_by_id[unit_id]
+        index = unit_index[unit_id]
         call_id = f"{unit_id}.visual.critique.sol"
         try:
             response, receipt = provider.run_structured(
@@ -583,6 +685,16 @@ def review_translation_with_visuals(
                         "end": unit.get("end"),
                         "source_japanese": unit.get("source_japanese", unit.get("text_raw", "")),
                         "asr_warnings": unit.get("asr_warnings", unit.get("warnings", [])),
+                        "previous_source_japanese": (
+                            ordered_units[index - 1].get("source_japanese", "")
+                            if index > 0
+                            else ""
+                        ),
+                        "next_source_japanese": (
+                            ordered_units[index + 1].get("source_japanese", "")
+                            if index + 1 < len(ordered_units)
+                            else ""
+                        ),
                     },
                     "draft": {
                         "source_faithful_korean": decision["source_faithful_korean"],
@@ -603,12 +715,16 @@ def review_translation_with_visuals(
                 image_paths=frames,
                 allow_image_transfer=True,
             )
-        except CodexUsageLimitError as exc:
+        except (CodexUsageLimitError, CodexTimeoutError) as exc:
+            block_reason = (
+                "usage-limit" if isinstance(exc, CodexUsageLimitError) else "timeout"
+            )
+            block_code = "usage_limit" if block_reason == "usage-limit" else block_reason
             decision["review_required_reasons"] = list(
                 dict.fromkeys(
                     [
                         *decision.get("review_required_reasons", []),
-                        "visual_review_blocked_usage_limit",
+                        f"visual_review_blocked_{block_code}",
                     ]
                 )
             )
@@ -621,7 +737,7 @@ def review_translation_with_visuals(
                     "frame_sha256": [],
                     "allowed_visual_slots": {},
                     "critical_visual_impact": False,
-                    "verdict": "escalate",
+                    "verdict": "machine-uncertain-not-sent",
                     "model_call_receipt": {
                         "status": "blocked",
                         "external_transfer": False,
@@ -629,12 +745,15 @@ def review_translation_with_visuals(
                         "provider": "codex-cli",
                         "role": exc.role,
                         "call_id": exc.call_id,
-                        "reason": "usage-limit",
-                        "retry_after": exc.retry_after,
+                        "reason": block_reason,
+                        "retry_after": getattr(exc, "retry_after", None),
                     },
                 }
             )
             break
+        response = _validate_structured_response(
+            response, VISUAL_REVIEW_SCHEMA, call_id=call_id
+        )
         if str(response.get("unit_id") or "") != unit_id:
             raise ValueError(f"Sol visual response unit mismatch for {unit_id}")
         verdict = str(response.get("verdict") or "escalate")
@@ -647,36 +766,118 @@ def review_translation_with_visuals(
         visual_repair_allowed = (
             decision.get("source_quality_status") != "unusable"
             and not repair_requires_asr_inference
+            and not critical
         )
         effective_verdict = verdict
-        if verdict == "repair" and not critical and visual_repair_allowed:
+        repair_receipt: dict[str, Any] | None = None
+        if verdict == "repair" and visual_repair_allowed:
+            repair_call_id = f"{unit_id}.visual-repair.terra"
+            repair_response, repair_receipt = provider.run_structured(
+                role="translation-terra",
+                title_id=title_id,
+                call_id=repair_call_id,
+                prompt=VISUAL_BOUND_REPAIR_PROMPT,
+                payload={
+                    "title_id": title_id,
+                    "contract": "source_bound_visual_slot_repair_not_final",
+                    "units": [
+                        {
+                            "unit_id": unit_id,
+                            "source_japanese": decision["source_japanese"],
+                            "previous_source_japanese": unit.get(
+                                "previous_source_japanese", ""
+                            ),
+                            "next_source_japanese": unit.get(
+                                "next_source_japanese", ""
+                            ),
+                            "source_quality_status": decision.get(
+                                "source_quality_status", "suspect"
+                            ),
+                            "draft": {
+                                "source_faithful_korean": decision[
+                                    "source_faithful_korean"
+                                ],
+                                "viewer_natural_korean": decision[
+                                    "viewer_natural_korean"
+                                ],
+                            },
+                            "approved_visual_slots": response.get("visual_slots", {}),
+                        }
+                    ],
+                },
+                schema=TRANSLATION_BATCH_SCHEMA,
+                resume=resume,
+            )
+            repair_response = _validate_structured_response(
+                repair_response, TRANSLATION_BATCH_SCHEMA, call_id=repair_call_id
+            )
+            repair_rows = repair_response["translations"]
+            if len(repair_rows) != 1 or str(repair_rows[0].get("unit_id")) != unit_id:
+                raise ValueError(f"visual Terra repair coverage mismatch for {unit_id}")
+            repaired = repair_rows[0]
+            classification = _recovery_classification(
+                repaired.get("recovery_classification"),
+                source_quality_status=str(decision.get("source_quality_status", "suspect")),
+            )
+            recovery_basis = [
+                str(value).strip()
+                for value in repaired.get("recovery_basis", [])
+                if str(value).strip()
+            ]
+            if classification == "FUNCTIONAL_RECOVERY" and not recovery_basis:
+                raise ValueError("FUNCTIONAL_RECOVERY requires a concrete recovery_basis")
             source_ko, source_reasons = _complete_text(
-                response.get("source_faithful_korean"),
+                repaired.get("source_faithful_korean"),
                 source=decision["source_japanese"],
                 unresolved_marker_allowed=False,
             )
             viewer_ko, viewer_reasons = _complete_text(
-                response.get("viewer_natural_korean"),
+                repaired.get("viewer_natural_korean"),
                 source=decision["source_japanese"],
                 unresolved_marker_allowed=False,
             )
-            decision["source_faithful_korean"] = source_ko
-            decision["viewer_natural_korean"] = viewer_ko
-            reasons.extend(source_reasons)
-            reasons.extend(viewer_reasons)
+            from .automated_quality import audit_translation_decision
+
+            repair_audit = audit_translation_decision(
+                unit_id=unit_id,
+                source_japanese=str(decision["source_japanese"]),
+                source_faithful_korean=source_ko,
+                viewer_natural_korean=viewer_ko,
+                source_quality_status=str(decision.get("source_quality_status", "suspect")),
+                confidence=str(repaired.get("confidence") or "low"),
+                existing_reasons=[*source_reasons, *viewer_reasons],
+                recovery_classification=classification,
+                recovery_basis=recovery_basis,
+            )
+            if repair_audit["hard_failures"]:
+                reasons.append("visual_repair_failed_deterministic_gate")
+                reasons.extend(repair_audit["hard_failures"])
+                effective_verdict = "machine-uncertain"
+            else:
+                decision["source_faithful_korean"] = source_ko
+                decision["viewer_natural_korean"] = viewer_ko
+                decision["confidence"] = repaired.get("confidence", decision["confidence"])
+                decision["recovery_classification"] = classification
+                decision["recovery_basis"] = recovery_basis
+                decision["visual_repair_terra_call_id"] = repair_call_id
+                effective_verdict = "repair-applied-pending-independent-audit"
         elif verdict == "repair":
-            reasons.append("visual_text_repair_not_applied_asr_inference_or_unusable_source")
-            effective_verdict = "escalate"
-        if critical or verdict == "escalate":
-            reasons.append("critical_visual_context_requires_human_review")
-        if verdict != "repair" or visual_repair_allowed:
-            decision["confidence"] = response.get("confidence", decision["confidence"])
+            reasons.append(
+                "visual_text_repair_not_applied_without_source_bound_translation_pass"
+            )
+            if repair_requires_asr_inference or decision.get("source_quality_status") == "unusable":
+                reasons.append("visual_text_repair_not_applied_asr_inference_or_unusable_source")
+            effective_verdict = "machine-uncertain"
+        if critical or effective_verdict in {"escalate", "machine-uncertain"}:
+            reasons.append("critical_visual_context_requires_machine_uncertain")
         decision["review_required_reasons"] = list(
             dict.fromkeys([*decision.get("review_required_reasons", []), *reasons])
         )
         decision["sol_call_id"] = call_id
         decision["visual_critical"] = critical
         receipts.append(receipt)
+        if repair_receipt is not None:
+            receipts.append(repair_receipt)
         visual_records.append(
             {
                 "unit_id": unit_id,
@@ -687,6 +888,7 @@ def review_translation_with_visuals(
                 "critical_visual_impact": critical,
                 "model_verdict": verdict,
                 "verdict": effective_verdict,
+                "repair_call_id": decision.get("visual_repair_terra_call_id"),
                 "model_call_receipt": receipt,
             }
         )

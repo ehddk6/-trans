@@ -11,6 +11,7 @@ from .models import SourceSegment, Word
 
 
 _LONG_AUDIO_CHUNK_SECONDS = 600
+_LONG_AUDIO_OVERLAP_SECONDS = 2
 
 
 def _prepare_whisper_audio(input_path: Path) -> tuple[Path, tempfile.TemporaryDirectory[str] | None]:
@@ -33,6 +34,7 @@ def _prepare_whisper_audio(input_path: Path) -> tuple[Path, tempfile.TemporaryDi
                 "-c:a", "pcm_s16le", str(audio_path),
             ],
             check=True,
+            timeout=7_200,
         )
     except Exception:
         temporary.cleanup()
@@ -60,18 +62,45 @@ def transcribe(
     audio_path, temporary_audio = _prepare_whisper_audio(input_path)
     model = WhisperModel(model_name, device="auto", compute_type="auto")
 
-    def append_segments(raw_segments, offset: float, destination: list[SourceSegment]) -> None:
+    def append_segments(
+        raw_segments,
+        offset: float,
+        destination: list[SourceSegment],
+        *,
+        owner_start: float | None = None,
+        owner_end: float | None = None,
+        include_owner_end: bool = True,
+        chunk_index: int | None = None,
+    ) -> None:
         for segment in raw_segments:
+            global_start = segment.start + offset
+            global_end = segment.end + offset
+            midpoint = global_start + ((global_end - global_start) / 2)
+            if owner_start is not None and midpoint < owner_start - 1e-9:
+                continue
+            if owner_end is not None and (
+                midpoint > owner_end + 1e-9
+                or (not include_owner_end and midpoint >= owner_end - 1e-9)
+            ):
+                continue
             words = [
                 Word(w.word, w.start + offset, w.end + offset, getattr(w, "probability", None), backend="whisper")
                 for w in (segment.words or [])
             ]
             destination.append(SourceSegment(
-                id=len(destination), start=segment.start + offset, end=segment.end + offset,
+                id=len(destination), start=global_start, end=global_end,
                 text=segment.text.strip(), words=words,
                 no_speech_prob=getattr(segment, "no_speech_prob", None),
                 avg_logprob=getattr(segment, "avg_logprob", None),
                 compression_ratio=getattr(segment, "compression_ratio", None),
+                metadata=(
+                    {
+                        "whisper_chunk_index": chunk_index,
+                        "whisper_chunk_overlap_seconds": _LONG_AUDIO_OVERLAP_SECONDS,
+                    }
+                    if chunk_index is not None
+                    else {}
+                ),
             ))
 
     try:
@@ -93,12 +122,16 @@ def transcribe(
                     with wave.open(str(audio_path), "rb") as source_wav:
                         params = source_wav.getparams()
                         frames_per_chunk = sample_rate * _LONG_AUDIO_CHUNK_SECONDS
+                        overlap_frames = sample_rate * _LONG_AUDIO_OVERLAP_SECONDS
                         chunk_start = 0
                         chunk_index = 0
                         while chunk_start < total_frames:
                             frame_count = min(frames_per_chunk, total_frames - chunk_start)
-                            source_wav.setpos(chunk_start)
-                            payload = source_wav.readframes(frame_count)
+                            core_end = chunk_start + frame_count
+                            decode_start = max(0, chunk_start - overlap_frames)
+                            decode_end = min(total_frames, core_end + overlap_frames)
+                            source_wav.setpos(decode_start)
+                            payload = source_wav.readframes(decode_end - decode_start)
                             chunk_path = Path(chunk_dir) / f"chunk_{chunk_index:05d}.wav"
                             with wave.open(str(chunk_path), "wb") as chunk_wav:
                                 chunk_wav.setparams(params)
@@ -109,7 +142,15 @@ def transcribe(
                                 temperature=temperature, condition_on_previous_text=condition_on_previous_text,
                                 clip_timestamps="0",
                             )
-                            append_segments(raw_segments, chunk_start / sample_rate, segments)
+                            append_segments(
+                                raw_segments,
+                                decode_start / sample_rate,
+                                segments,
+                                owner_start=chunk_start / sample_rate,
+                                owner_end=core_end / sample_rate,
+                                include_owner_end=core_end >= total_frames,
+                                chunk_index=chunk_index,
+                            )
                             chunk_start += frame_count
                             chunk_index += 1
             else:

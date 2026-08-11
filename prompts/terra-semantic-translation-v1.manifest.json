@@ -5,6 +5,8 @@
   "prompt_version": "2",
   "prompt_file": "terra-semantic-translation-v1.md",
   "prompt_sha256": "6e637b9e52a60e0ea751a9aa1de6a3566165197cf639addcaadfeef7f973ef0f",
+  "decision_schema_file": "../schemas/translation-decision.schema.json",
+  "decision_schema_sha256": "a19a23a1cc64aac17fa82bddb0d07f42becc2c703579253b5098f5c2c196f1c0",
   "translation_model": "gpt-5.6-terra",
   "scope": "semantic translation candidate generation only; no automatic final promotion",
   "required_output_fields": [

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -110,6 +111,56 @@ def test_qwen_cache_invalidates_when_stable_source_changes(tmp_path, monkeypatch
         assert "runtime files are missing" in str(exc)
     else:
         raise AssertionError("changing the stable source must invalidate the Qwen cache")
+
+
+def test_qwen_cache_invalidates_same_size_source_change_with_preserved_mtime(tmp_path, monkeypatch) -> None:
+    from subtitle_pipeline import qwen
+
+    source = tmp_path / "movie.mp4"
+    source.write_bytes(b"AAAA")
+    wav = tmp_path / "temp.wav"
+    wav.write_bytes(b"normalized audio")
+    cache = tmp_path / "qwen_targeted_alignment_ja.jsonl"
+    cache.write_text('{"text":"stale","start":1.0,"end":2.0,"source_chunk":0}\n', encoding="utf-8")
+    monkeypatch.setattr(qwen, "_media_duration", lambda _path: 12.0)
+    runtime = qwen.QwenRuntime(tmp_path / "missing-python", tmp_path / "missing-model", tmp_path / "missing-aligner")
+    helper = Path(qwen.__file__).with_name("qwen_worker.py")
+    qwen._write_cache_metadata(cache, qwen._qwen_cache_metadata(
+        wav, runtime, helper, 12.0, "ja", 180, 256, None, source,
+    ))
+    original_stat = source.stat()
+    source.write_bytes(b"BBBB")
+    os.utime(source, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
+
+    try:
+        qwen.transcribe_qwen(wav, runtime, alignment_cache_path=cache, cache_identity_path=source)
+    except RuntimeError as exc:
+        assert "runtime files are missing" in str(exc)
+    else:
+        raise AssertionError("content hashes must invalidate same-size, same-mtime source changes")
+
+
+def test_qwen_cache_invalidates_jsonl_changed_after_completion(tmp_path, monkeypatch) -> None:
+    from subtitle_pipeline import qwen
+
+    input_path = tmp_path / "input.wav"
+    input_path.write_bytes(b"cached audio")
+    cache = tmp_path / "qwen_alignment_ja.jsonl"
+    cache.write_text('{"text":"cached","start":1.0,"end":2.0,"source_chunk":0}\n', encoding="utf-8")
+    monkeypatch.setattr(qwen, "_media_duration", lambda _path: 12.0)
+    runtime = qwen.QwenRuntime(tmp_path / "missing-python", tmp_path / "missing-model", tmp_path / "missing-aligner")
+    helper = Path(qwen.__file__).with_name("qwen_worker.py")
+    qwen._write_cache_metadata(cache, qwen._qwen_cache_metadata(
+        input_path, runtime, helper, 12.0, "ja", 180, 256, None,
+    ))
+    cache.write_bytes(b"")
+
+    try:
+        qwen.transcribe_qwen(input_path, runtime, alignment_cache_path=cache)
+    except RuntimeError as exc:
+        assert "runtime files are missing" in str(exc)
+    else:
+        raise AssertionError("a cache changed after completion must not be reused")
 
 
 def test_qwen_targeted_cache_for_a_different_interval_is_not_reused(tmp_path, monkeypatch) -> None:

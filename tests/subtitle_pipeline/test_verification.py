@@ -2,14 +2,24 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import wave
 
+import pytest
 from subtitle_pipeline.pipeline import run_pipeline
 from subtitle_pipeline.verification import verify_artifact_bundle
 
 
+def _write_wav(path: Path, *, duration_seconds: int = 2) -> None:
+    with wave.open(str(path), "wb") as handle:
+        handle.setnchannels(1)
+        handle.setsampwidth(2)
+        handle.setframerate(16_000)
+        handle.writeframes(b"\x00\x00" * 16_000 * duration_seconds)
+
+
 def test_verifier_accepts_complete_reference_bundle_with_video(tmp_path):
     video = tmp_path / "video.mp4"
-    video.write_bytes(b"not-a-real-video")
+    _write_wav(video)
     reference = tmp_path / "reference.srt"
     reference.write_text("1\n00:00:00,000 --> 00:00:02,000\nsource text\n", encoding="utf-8")
     run_pipeline(
@@ -31,6 +41,81 @@ def test_verifier_accepts_complete_reference_bundle_with_video(tmp_path):
     assert result["structural"] == {"empty": 0, "non_positive": 0, "overlap": 0}
     saved = (tmp_path / "output" / "reference_primary" / "bundle_verification.json").read_text(encoding="utf-8")
     assert '"accepted": true' in saved
+    assert (tmp_path / "output" / "reference_primary" / "source_media.json").is_file()
+
+
+def test_reference_backend_rejects_timeline_outside_bound_media(tmp_path):
+    video = tmp_path / "TEST-001.mp4"
+    _write_wav(video, duration_seconds=1)
+    reference = tmp_path / "TEST-001.ja.srt"
+    reference.write_text(
+        "1\n00:00:01,500 --> 00:00:02,000\n日本語\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="outside the bound media duration"):
+        run_pipeline(
+            video,
+            tmp_path / "output",
+            backend="reference",
+            reference_srt=reference,
+            review_samples=1,
+        )
+
+
+def test_verifier_rejects_source_and_transcript_overlap_even_when_they_match(tmp_path):
+    reference = tmp_path / "reference.srt"
+    reference.write_text(
+        "1\n00:00:00,000 --> 00:00:02,000\n一\n\n"
+        "2\n00:00:03,000 --> 00:00:04,000\n二\n",
+        encoding="utf-8",
+    )
+    run_pipeline(None, tmp_path / "output", backend="reference", reference_srt=reference, review_samples=1)
+    bundle = tmp_path / "output" / "reference_primary"
+    (bundle / "source_faithful_ja.srt").write_text(
+        "1\n00:00:00,000 --> 00:00:02,000\n一\n\n"
+        "2\n00:00:01,500 --> 00:00:04,000\n二\n",
+        encoding="utf-8",
+    )
+    transcript_path = bundle / "transcript_ja.jsonl"
+    rows = [json.loads(line) for line in transcript_path.read_text(encoding="utf-8").splitlines()]
+    rows[1]["start"] = 1.5
+    transcript_path.write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+    result = verify_artifact_bundle(bundle, expected_review_windows=1)
+
+    assert result["valid"] is False
+    assert "source_structural_error" in result["errors"]
+    assert "transcript_structural_error" in result["errors"]
+    assert result["source_structural"]["overlap"] == 1
+
+
+def test_verifier_rejects_media_content_changed_after_bundle_creation(tmp_path):
+    video = tmp_path / "TEST-001.mp4"
+    _write_wav(video)
+    reference = tmp_path / "TEST-001.ja.srt"
+    reference.write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\n日本語\n",
+        encoding="utf-8",
+    )
+    run_pipeline(video, tmp_path / "output", backend="reference", reference_srt=reference, review_samples=1)
+    bundle = tmp_path / "output" / "reference_primary"
+    changed = bytearray(video.read_bytes())
+    changed[-1] ^= 1
+    video.write_bytes(changed)
+
+    result = verify_artifact_bundle(
+        bundle,
+        expected_video_path=video,
+        expected_review_windows=1,
+        require_media_binding=True,
+    )
+
+    assert result["valid"] is False
+    assert "source_media_sha256_mismatch" in result["errors"]
 
 
 def test_verifier_can_report_review_required_without_failing_structure(tmp_path):

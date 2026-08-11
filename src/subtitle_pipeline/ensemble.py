@@ -238,6 +238,7 @@ def transcribe_ensemble(
     reuse_alignment_cache: bool = True,
     audit_samples: int = 4,
     cache_identity_path: Path | None = None,
+    cache_identity_sha256: str | None = None,
 ) -> EnsembleResult:
     stable_cache_identity = cache_identity_path or input_path
     audio_path, temporary_audio = _prepare_whisper_audio(input_path)
@@ -256,6 +257,7 @@ def transcribe_ensemble(
                 audio_path, runtime, language=language, targeted_intervals=verification_intervals,
                 alignment_cache_path=alignment_cache_path, reuse_alignment_cache=reuse_alignment_cache,
                 cache_identity_path=stable_cache_identity,
+                cache_identity_sha256=cache_identity_sha256,
             )
         annotate_asr_warnings(qwen_segments)
         for segment in qwen_segments:

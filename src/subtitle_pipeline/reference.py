@@ -24,7 +24,14 @@ def reference_language_diagnostics(rows: list[Mapping[str, object]]) -> dict[str
     kana = len(_KANA.findall(text))
     hangul = len(_HANGUL.findall(text))
     han = len(_HAN.findall(text))
-    hangul_dominant = hangul >= 20 and hangul >= max(20, kana * 2)
+    script_characters = kana + han + hangul
+    hangul_share = hangul / script_characters if script_characters else 0.0
+    # A short Korean subtitle is still incompatible.  The previous 20-character
+    # floor allowed a one-cue Korean translation such as ``한국어 번역입니다`` to
+    # enter the Japanese reference backend as ``undetermined``.  Require enough
+    # Hangul to distinguish a Korean name or loan from a Korean-language cue,
+    # then use script share rather than absolute document length.
+    hangul_dominant = hangul >= 4 and hangul_share >= 0.60 and hangul > kana
     if hangul_dominant:
         status = "incompatible_hangul_dominant"
     elif kana or han:
@@ -36,6 +43,8 @@ def reference_language_diagnostics(rows: list[Mapping[str, object]]) -> dict[str
         "kana_characters": kana,
         "han_characters": han,
         "hangul_characters": hangul,
+        "script_characters": script_characters,
+        "hangul_share": round(hangul_share, 6),
         "compatible": not hangul_dominant,
     }
 

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 
+from .media import sha256_file
 from .models import SourceSegment, Word
 from .text import display_width
 
@@ -66,7 +67,7 @@ def _extract_wav(input_path: Path, destination: Path, max_duration: float | None
     if max_duration:
         command += ["-t", str(max_duration)]
     command += ["-vn", "-ac", "1", "-ar", "16000", str(destination)]
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, timeout=7_200)
 
 
 def _compact_targeted_intervals(
@@ -120,13 +121,13 @@ def _extract_targeted_wav(input_path: Path, destination: Path, intervals: list[d
         "ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(input_path),
         "-filter_complex", filter_graph, "-map", "[outa]", "-ac", "1", "-ar", "16000",
         "-c:a", "pcm_s16le", str(destination),
-    ], check=True)
+    ], check=True, timeout=7_200)
 
 
 def _media_duration(path: Path) -> float:
     completed = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(path)],
-        check=True, capture_output=True, text=True,
+        check=True, capture_output=True, text=True, timeout=60,
     )
     return float(completed.stdout.strip())
 
@@ -152,23 +153,29 @@ def _qwen_cache_metadata(
     max_new_tokens: int,
     targeted_intervals: list[dict[str, object]] | None,
     cache_identity_path: Path | None = None,
+    cache_identity_sha256: str | None = None,
 ) -> dict[str, object]:
     """Describe exactly the audio, runtime and audit scope represented by a cache."""
     identity_path = cache_identity_path or input_path
     stat = identity_path.stat()
+    identity_digest = cache_identity_sha256 or sha256_file(identity_path)
+    if len(identity_digest) != 64 or any(
+        character not in "0123456789abcdefABCDEF" for character in identity_digest
+    ):
+        raise ValueError("cache_identity_sha256 must be a 64-character hexadecimal digest")
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "mode": "targeted" if targeted_intervals is not None else "full",
         "input": {
             # The inference path may be a newly-created normalized temporary
             # WAV.  Cache identity must follow the stable source container or
             # every rerun misses even when the media and options are unchanged.
-            "path": str(identity_path.resolve()),
             "size": stat.st_size,
-            "mtime_ns": stat.st_mtime_ns,
+            "sha256": identity_digest.lower(),
             "duration_seconds": round(duration, 6),
         },
         "runtime": {
+            "python": str(runtime.python.resolve()),
             "model": str(runtime.model.resolve()),
             "aligner": str(runtime.aligner.resolve()),
             "helper_sha256": sha256(helper.read_bytes()).hexdigest(),
@@ -185,15 +192,52 @@ def _cache_matches(cache_path: Path, expected: dict[str, object]) -> bool:
     if not cache_path.is_file() or not metadata_path.is_file():
         return False
     try:
-        return json.loads(metadata_path.read_text(encoding="utf-8")) == expected
-    except (OSError, json.JSONDecodeError):
+        stored = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if not isinstance(stored, dict) or stored.get("status") != "complete":
+            return False
+        artifact = stored.pop("cache_artifact", None)
+        stored.pop("status", None)
+        if stored != expected or not isinstance(artifact, dict):
+            return False
+        return artifact == _cache_artifact(cache_path)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
         return False
 
 
+def _cache_artifact(cache_path: Path) -> dict[str, object]:
+    digest = sha256()
+    row_count = 0
+    with cache_path.open("rb") as handle:
+        for raw_line in handle:
+            digest.update(raw_line)
+            try:
+                line = raw_line.decode("utf-8")
+            except UnicodeDecodeError as exc:
+                raise ValueError("Qwen cache JSONL must be UTF-8") from exc
+            if not line.strip():
+                continue
+            value = json.loads(line)
+            if not isinstance(value, dict):
+                raise ValueError("Qwen cache JSONL rows must be objects")
+            row_count += 1
+    return {
+        "sha256": digest.hexdigest(),
+        "size_bytes": cache_path.stat().st_size,
+        "row_count": row_count,
+    }
+
+
 def _write_cache_metadata(cache_path: Path, metadata: dict[str, object]) -> None:
+    if not cache_path.is_file():
+        raise FileNotFoundError(cache_path)
     metadata_path = _cache_metadata_path(cache_path)
     temporary_path = metadata_path.with_name(f".{metadata_path.name}.tmp")
-    temporary_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+    completed = {
+        **metadata,
+        "status": "complete",
+        "cache_artifact": _cache_artifact(cache_path),
+    }
+    temporary_path.write_text(json.dumps(completed, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
     temporary_path.replace(metadata_path)
 
 
@@ -250,6 +294,7 @@ def transcribe_qwen(
     reuse_alignment_cache: bool = True,
     targeted_intervals: list[dict[str, object]] | None = None,
     cache_identity_path: Path | None = None,
+    cache_identity_sha256: str | None = None,
 ) -> tuple[list[SourceSegment], float]:
     helper = Path(__file__).with_name("qwen_worker.py")
     if not helper.is_file():
@@ -261,7 +306,7 @@ def transcribe_qwen(
     decision = "qwen_verification" if targeted else "qwen_primary"
     cache_metadata = _qwen_cache_metadata(
         input_path, runtime, helper, duration, language, chunk_seconds, max_new_tokens, targeted_intervals,
-        cache_identity_path,
+        cache_identity_path, cache_identity_sha256,
     )
     if (
         max_duration is None
@@ -293,7 +338,7 @@ def transcribe_qwen(
         if targeted:
             intervals_path.write_text(json.dumps(compact_intervals, ensure_ascii=False), encoding="utf-8")
             command += ["--intervals-json", str(intervals_path)]
-        subprocess.run(command, check=True)
+        subprocess.run(command, check=True, timeout=7_200)
         words = parse_qwen_jsonl(jsonl_path)
     if alignment_cache_path is not None:
         _write_cache_metadata(alignment_cache_path, cache_metadata)

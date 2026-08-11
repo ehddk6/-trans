@@ -87,6 +87,67 @@ def test_high_compression_is_not_suppressed_when_question_force_is_present():
     assert "high_compression_ratio" in result["reasons"]
 
 
+def test_high_compression_is_not_suppressed_for_kana_lexical_commands_or_locations():
+    cases = [
+        ("やって", "그래.", "request_command_not_preserved"),
+        ("もっと", "됐어.", "continue_command_not_preserved"),
+        ("ここ", "응.", "deictic_location_not_preserved"),
+    ]
+    for index, (source, translation, expected_failure) in enumerate(cases, 1):
+        result = audit_translation_decision(
+            unit_id=f"lexical-{index}",
+            source_japanese=source,
+            source_faithful_korean=translation,
+            viewer_natural_korean=translation,
+            source_quality_status="trusted",
+            confidence="high",
+            existing_reasons=["high_compression_ratio"],
+        )
+        assert result["status"] == "fallback"
+        assert expected_failure in result["hard_failures"]
+        assert result["suppressed_warnings"] == []
+        assert "high_compression_ratio" in result["reasons"]
+
+
+def test_permission_force_cannot_pass_as_plain_command_or_proposal():
+    cases = [
+        ("入れていいよ", "넣어."),
+        ("してもいい？", "할까?"),
+    ]
+    for index, (source, translation) in enumerate(cases, 1):
+        result = audit_translation_decision(
+            unit_id=f"permission-{index}",
+            source_japanese=source,
+            source_faithful_korean=translation,
+            viewer_natural_korean=translation,
+            source_quality_status="trusted",
+            confidence="high",
+        )
+        assert result["status"] == "fallback"
+        assert "permission_not_preserved" in result["hard_failures"]
+        assert result["permission_preserved"] is False
+
+
+def test_permission_request_and_location_pass_when_preserved():
+    cases = [
+        ("入れていいよ", "넣어도 돼."),
+        ("やって", "해 줘."),
+        ("もっと", "더 해."),
+        ("ここ", "여기."),
+    ]
+    for index, (source, translation) in enumerate(cases, 1):
+        result = audit_translation_decision(
+            unit_id=f"preserved-{index}",
+            source_japanese=source,
+            source_faithful_korean=translation,
+            viewer_natural_korean=translation,
+            source_quality_status="trusted",
+            confidence="high",
+        )
+        assert result["status"] == "passed"
+        assert result["hard_failures"] == []
+
+
 def test_recovery_classification_cannot_be_promoted_to_machine_verified():
     result = audit_translation_decision(
         unit_id="u5",

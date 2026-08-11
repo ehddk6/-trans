@@ -5,11 +5,12 @@ import json
 import math
 import os
 import re
+import threading
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, BinaryIO, Iterable, Mapping, Sequence
 
 from .srt import SubtitleBlock, seconds_to_timecode, write_srt
 
@@ -18,6 +19,7 @@ INTEGRATION_SCHEMA_VERSION = "1"
 CACHE_SCHEMA_VERSION = "1"
 TRANSCRIPT_BASENAME = "transcript_ja.jsonl"
 REVIEW_HOLD_TEXT = "[검수 보류]"
+MACHINE_UNCERTAIN_TEXT = "[기계 불확실]"
 
 _GATE_STATUSES = frozenset({"passed", "review_required", "failed"})
 _UNIT_QUALITY_STATUSES = frozenset({"trusted", "suspect", "unusable"})
@@ -69,6 +71,17 @@ class CoverageError(IntegrationPipelineError):
 
 class ResumeRejected(IntegrationPipelineError):
     """Raised when a partial run or cache cannot be resumed safely."""
+
+
+@dataclass(slots=True)
+class _HeldRunLock:
+    handle: BinaryIO
+    owner_pid: int
+    owner_thread_id: int
+
+
+_RUN_LOCKS: dict[str, _HeldRunLock] = {}
+_RUN_LOCKS_GUARD = threading.Lock()
 
 
 @dataclass(frozen=True, slots=True)
@@ -304,18 +317,20 @@ def select_extraction_backend(request: ExtractRequest) -> str:
 def classify_unit_quality(
     warnings: Iterable[str], *, explicit_status: str | None = None
 ) -> str:
+    warning_set = {str(value) for value in warnings}
+    inferred = (
+        "unusable" if warning_set & _UNUSABLE_WARNING_CODES
+        else "suspect" if warning_set & _SUSPECT_WARNING_CODES
+        else "trusted"
+    )
     if explicit_status is not None:
         if explicit_status not in _UNIT_QUALITY_STATUSES:
             raise IntegrationPipelineError(
                 f"unsupported unit quality status: {explicit_status}"
             )
-        return explicit_status
-    warning_set = {str(value) for value in warnings}
-    if warning_set & _UNUSABLE_WARNING_CODES:
-        return "unusable"
-    if warning_set & _SUSPECT_WARNING_CODES:
-        return "suspect"
-    return "trusted"
+        severity = {"trusted": 0, "suspect": 1, "unusable": 2}
+        return max((explicit_status, inferred), key=severity.__getitem__)
+    return inferred
 
 
 def normalize_whitespace(text: str) -> str:
@@ -602,6 +617,7 @@ def package_dual_outputs(
     review_decisions: Mapping[str, ReviewDecision | str] | None = None,
     bundle: JapaneseSubtitleBundle | None = None,
     automated_quality: bool = False,
+    replace_existing: bool = False,
 ) -> DualOutputArtifacts:
     if not units:
         raise CoverageError("cannot package an empty translation")
@@ -678,8 +694,12 @@ def package_dual_outputs(
             natural_text = translation.viewer_natural_ko or REVIEW_HOLD_TEXT
         else:
             held.append(unit.unit_id)
-            faithful_text = REVIEW_HOLD_TEXT
-            natural_text = REVIEW_HOLD_TEXT
+            if automated_quality:
+                faithful_text = translation.source_faithful_ko or MACHINE_UNCERTAIN_TEXT
+                natural_text = translation.viewer_natural_ko or MACHINE_UNCERTAIN_TEXT
+            else:
+                faithful_text = REVIEW_HOLD_TEXT
+                natural_text = REVIEW_HOLD_TEXT
         faithful_blocks.append(_block_for_unit(index, unit, faithful_text))
         natural_blocks.append(_block_for_unit(index, unit, natural_text))
         unit_receipts.append(
@@ -698,7 +718,8 @@ def package_dual_outputs(
     faithful_path = output_dir / "source_faithful_ko.srt"
     natural_path = output_dir / "viewer_natural_ko.srt"
     qa_path = output_dir / "translation_qa.json"
-    _ensure_new_paths((complete_path, faithful_path, natural_path, qa_path))
+    if not replace_existing:
+        _ensure_new_paths((complete_path, faithful_path, natural_path, qa_path))
     _atomic_write_srt(complete_path, complete_blocks)
     _atomic_write_srt(faithful_path, faithful_blocks)
     _atomic_write_srt(natural_path, natural_blocks)
@@ -790,35 +811,52 @@ def stage_run(
     final_dir = output_root / run_id
     partial_dir = output_root / ".partial" / run_id
     state_path = partial_dir / "run-state.json"
-    if final_dir.exists():
-        raise FileExistsError(f"promoted run already exists: {final_dir}")
-    if partial_dir.exists():
-        if not resume:
-            raise FileExistsError(f"partial run already exists: {partial_dir}")
-        state = _read_json_object(state_path)
-        if (
-            state.get("schema_name") != "translation-forensics/integrated-run"
-            or state.get("schema_version") != INTEGRATION_SCHEMA_VERSION
-            or state.get("status") != "partial"
-            or state.get("run_id") != run_id
-            or state.get("cache_identity") != dict(cache_identity)
-        ):
-            raise ResumeRejected("partial run is stale, malformed, or has a different identity")
-        return partial_dir
+    lock_acquired = _acquire_run_lock(output_root, run_id)
+    try:
+        if final_dir.exists():
+            if not resume:
+                raise FileExistsError(f"promoted run already exists: {final_dir}")
+            if partial_dir.exists():
+                raise ResumeRejected(
+                    "both partial and promoted run directories exist for the same run_id"
+                )
+            state = _require_run_state(
+                final_dir / "run-state.json",
+                run_id=run_id,
+                statuses={"verified"},
+                cache_identity=cache_identity,
+            )
+            _write_latest_from_state(output_root, state)
+            _release_run_lock(output_root, run_id)
+            return final_dir
+        if partial_dir.exists():
+            if not resume:
+                raise FileExistsError(f"partial run already exists: {partial_dir}")
+            _require_run_state(
+                state_path,
+                run_id=run_id,
+                statuses={"partial", "verified"},
+                cache_identity=cache_identity,
+            )
+            return partial_dir
 
-    partial_dir.mkdir(parents=True, exist_ok=False)
-    _atomic_write_json(
-        state_path,
-        {
-            "schema_name": "translation-forensics/integrated-run",
-            "schema_version": INTEGRATION_SCHEMA_VERSION,
-            "run_id": run_id,
-            "status": "partial",
-            "cache_identity": dict(cache_identity),
-            "started_at": _utc_now(),
-        },
-    )
-    return partial_dir
+        partial_dir.mkdir(parents=True, exist_ok=False)
+        _atomic_write_json(
+            state_path,
+            {
+                "schema_name": "translation-forensics/integrated-run",
+                "schema_version": INTEGRATION_SCHEMA_VERSION,
+                "run_id": run_id,
+                "status": "partial",
+                "cache_identity": dict(cache_identity),
+                "started_at": _utc_now(),
+            },
+        )
+        return partial_dir
+    except Exception:
+        if lock_acquired:
+            _release_run_lock(output_root, run_id)
+        raise
 
 
 def promote_staged_run(
@@ -829,58 +867,66 @@ def promote_staged_run(
     stage: str = "packaged",
     pending_review_count: int = 0,
     required_artifacts: Iterable[str] = (),
+    manifest_sha256: str | None = None,
 ) -> Path:
     _validate_run_id(run_id)
     if not verification_passed:
         raise BundleBlockedError("a staged run cannot be promoted before verification passes")
     if pending_review_count < 0:
         raise IntegrationPipelineError("pending_review_count cannot be negative")
+    if manifest_sha256 is not None and not re.fullmatch(
+        r"[0-9a-f]{64}", manifest_sha256
+    ):
+        raise IntegrationPipelineError("manifest_sha256 must be lowercase SHA-256")
     output_root = Path(output_root)
     partial_dir = output_root / ".partial" / run_id
     final_dir = output_root / run_id
-    state_path = partial_dir / "run-state.json"
-    state = _read_json_object(state_path)
-    if (
-        state.get("schema_name") != "translation-forensics/integrated-run"
-        or state.get("schema_version") != INTEGRATION_SCHEMA_VERSION
-        or state.get("status") != "partial"
-        or state.get("run_id") != run_id
-    ):
-        raise ResumeRejected("partial run state is not promotable")
-    missing = [name for name in required_artifacts if not (partial_dir / name).is_file()]
-    if missing:
-        raise BundleBlockedError(f"required staged artifacts are missing: {missing}")
-    if final_dir.exists():
-        raise FileExistsError(f"promoted run already exists: {final_dir}")
+    _acquire_run_lock(output_root, run_id)
+    try:
+        if final_dir.exists():
+            if partial_dir.exists():
+                raise ResumeRejected(
+                    "both partial and promoted run directories exist for the same run_id"
+                )
+            state = _require_run_state(
+                final_dir / "run-state.json",
+                run_id=run_id,
+                statuses={"verified"},
+            )
+            _require_matching_promotion(
+                state, stage, pending_review_count, manifest_sha256
+            )
+            _require_artifacts(final_dir, required_artifacts)
+            _write_latest_from_state(output_root, state)
+            return final_dir
 
-    promoted_at = _utc_now()
-    state.update(
-        {
-            "status": "verified",
-            "stage": stage,
-            "pending_review_count": pending_review_count,
-            "promoted_at": promoted_at,
-        }
-    )
-    _atomic_write_json(state_path, state)
-    os.replace(partial_dir, final_dir)
-    _atomic_write_json(
-        output_root / "latest.json",
-        {
-            "schema_name": "translation-forensics/latest-integrated-run",
-            "schema_version": INTEGRATION_SCHEMA_VERSION,
-            "run_id": run_id,
-            "run_path": run_id,
-            "stage": stage,
-            "status": "verified",
-            "cache_identity_sha256": state.get("cache_identity", {}).get(
-                "identity_sha256"
-            ),
-            "pending_review_count": pending_review_count,
-            "updated_at": promoted_at,
-        },
-    )
-    return final_dir
+        state_path = partial_dir / "run-state.json"
+        state = _require_run_state(
+            state_path,
+            run_id=run_id,
+            statuses={"partial", "verified"},
+        )
+        _require_artifacts(partial_dir, required_artifacts)
+        if state["status"] == "verified":
+            _require_matching_promotion(
+                state, stage, pending_review_count, manifest_sha256
+            )
+        else:
+            state.update(
+                {
+                    "status": "verified",
+                    "stage": stage,
+                    "pending_review_count": pending_review_count,
+                    "promoted_at": _utc_now(),
+                    "manifest_sha256": manifest_sha256,
+                }
+            )
+            _atomic_write_json(state_path, state)
+        os.replace(partial_dir, final_dir)
+        _write_latest_from_state(output_root, state)
+        return final_dir
+    finally:
+        _release_run_lock(output_root, run_id)
 
 
 def _coerce_translation(value: UnitTranslation | Mapping[str, Any]) -> UnitTranslation:
@@ -954,6 +1000,187 @@ def _atomic_write_text(path: Path, text: str) -> None:
     finally:
         if temporary.exists():
             temporary.unlink()
+
+
+def _require_run_state(
+    path: Path,
+    *,
+    run_id: str,
+    statuses: set[str],
+    cache_identity: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    state = _read_json_object(path)
+    if (
+        state.get("schema_name") != "translation-forensics/integrated-run"
+        or state.get("schema_version") != INTEGRATION_SCHEMA_VERSION
+        or state.get("status") not in statuses
+        or state.get("run_id") != run_id
+        or (
+            cache_identity is not None
+            and state.get("cache_identity") != dict(cache_identity)
+        )
+    ):
+        raise ResumeRejected("run state is stale, malformed, or has a different identity")
+    return state
+
+
+def _require_matching_promotion(
+    state: Mapping[str, Any],
+    stage: str,
+    pending_review_count: int,
+    manifest_sha256: str | None = None,
+) -> None:
+    if (
+        state.get("stage") != stage
+        or state.get("pending_review_count") != pending_review_count
+        or (
+            manifest_sha256 is not None
+            and state.get("manifest_sha256") != manifest_sha256
+        )
+    ):
+        raise ResumeRejected("verified run has different promotion metadata")
+
+
+def _require_artifacts(root: Path, required_artifacts: Iterable[str]) -> None:
+    missing = [name for name in required_artifacts if not (root / name).is_file()]
+    if missing:
+        raise BundleBlockedError(f"required staged artifacts are missing: {missing}")
+
+
+def _write_latest_from_state(output_root: Path, state: Mapping[str, Any]) -> None:
+    promoted_at = state.get("promoted_at")
+    if not isinstance(promoted_at, str) or not promoted_at:
+        raise ResumeRejected("verified run is missing promoted_at")
+    cache_identity = state.get("cache_identity")
+    if not isinstance(cache_identity, Mapping):
+        raise ResumeRejected("verified run is missing cache identity")
+    run_id = state.get("run_id")
+    stage = state.get("stage")
+    pending_review_count = state.get("pending_review_count")
+    if (
+        not isinstance(run_id, str)
+        or not run_id
+        or not isinstance(stage, str)
+        or not stage
+        or not isinstance(pending_review_count, int)
+        or pending_review_count < 0
+    ):
+        raise ResumeRejected("verified run has incomplete promotion metadata")
+    latest_path = output_root / "latest.json"
+    payload = {
+        "schema_name": "translation-forensics/latest-integrated-run",
+        "schema_version": INTEGRATION_SCHEMA_VERSION,
+        "run_id": run_id,
+        "run_path": run_id,
+        "stage": stage,
+        "status": "verified",
+        "cache_identity_sha256": cache_identity.get("identity_sha256"),
+        "pending_review_count": pending_review_count,
+        "updated_at": promoted_at,
+    }
+    if latest_path.is_file():
+        try:
+            current = _read_json_object(latest_path)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            current = {}
+        if current == payload:
+            return
+        current_updated_at = current.get("updated_at")
+        if (
+            current.get("schema_name")
+            == "translation-forensics/latest-integrated-run"
+            and current.get("schema_version") == INTEGRATION_SCHEMA_VERSION
+            and current.get("status") == "verified"
+            and current.get("run_id") != run_id
+            and isinstance(current_updated_at, str)
+            and _timestamp_is_at_or_after(current_updated_at, promoted_at)
+        ):
+            return
+    _atomic_write_json(latest_path, payload)
+
+
+def _timestamp_is_at_or_after(left: str, right: str) -> bool:
+    try:
+        return datetime.fromisoformat(left) >= datetime.fromisoformat(right)
+    except ValueError:
+        return False
+
+
+def _acquire_run_lock(output_root: Path, run_id: str) -> bool:
+    lock_path = (Path(output_root) / ".locks" / f"{run_id}.lock").resolve()
+    key = str(lock_path).casefold() if os.name == "nt" else str(lock_path)
+    owner_pid = os.getpid()
+    owner_thread_id = threading.get_ident()
+    with _RUN_LOCKS_GUARD:
+        held = _RUN_LOCKS.get(key)
+        if held is not None:
+            if (
+                held.owner_pid == owner_pid
+                and held.owner_thread_id == owner_thread_id
+            ):
+                return False
+            raise ResumeRejected(f"run is locked by another worker: {run_id}")
+
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        handle = lock_path.open("a+b")
+        try:
+            handle.seek(0, os.SEEK_END)
+            if handle.tell() == 0:
+                handle.write(b"1")
+                handle.flush()
+            handle.seek(0)
+            _lock_file(handle)
+        except Exception:
+            handle.close()
+            raise ResumeRejected(f"run is locked by another worker: {run_id}")
+        _RUN_LOCKS[key] = _HeldRunLock(
+            handle=handle,
+            owner_pid=owner_pid,
+            owner_thread_id=owner_thread_id,
+        )
+        return True
+
+
+def _release_run_lock(output_root: Path, run_id: str) -> None:
+    lock_path = (Path(output_root) / ".locks" / f"{run_id}.lock").resolve()
+    key = str(lock_path).casefold() if os.name == "nt" else str(lock_path)
+    with _RUN_LOCKS_GUARD:
+        held = _RUN_LOCKS.get(key)
+        if held is None:
+            return
+        if (
+            held.owner_pid != os.getpid()
+            or held.owner_thread_id != threading.get_ident()
+        ):
+            return
+        try:
+            _unlock_file(held.handle)
+        finally:
+            held.handle.close()
+            del _RUN_LOCKS[key]
+
+
+def _lock_file(handle: BinaryIO) -> None:
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        return
+    import fcntl
+
+    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def _unlock_file(handle: BinaryIO) -> None:
+    handle.seek(0)
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        return
+    import fcntl
+
+    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def _ensure_new_paths(paths: Iterable[Path]) -> None:

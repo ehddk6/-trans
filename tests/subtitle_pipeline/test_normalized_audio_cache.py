@@ -1,4 +1,5 @@
 import json
+import wave
 
 from subtitle_pipeline.models import SourceSegment, Word
 from subtitle_pipeline.pipeline import run_pipeline
@@ -6,7 +7,11 @@ from subtitle_pipeline.pipeline import run_pipeline
 
 def test_run_pipeline_uses_shared_normalized_audio_but_keeps_original_review_media(monkeypatch, tmp_path):
     media = tmp_path / "TEST-001.mp4"
-    media.write_bytes(b"video-placeholder")
+    with wave.open(str(media), "wb") as handle:
+        handle.setnchannels(1)
+        handle.setsampwidth(2)
+        handle.setframerate(16_000)
+        handle.writeframes(b"\x00\x00" * 32_000)
     normalized = tmp_path / "cached.wav"
     normalized.write_bytes(b"wav-placeholder")
     captured = {}
@@ -37,3 +42,5 @@ def test_run_pipeline_uses_shared_normalized_audio_but_keeps_original_review_med
     manifest = json.loads((output / "review_manifest.json").read_text(encoding="utf-8"))
     assert manifest["video_path"] == str(media.resolve())
     assert manifest["video_path"] != str(normalized.resolve())
+    binding = json.loads((output / "source_media.json").read_text(encoding="utf-8"))
+    assert binding["duration_seconds"] == 2.0

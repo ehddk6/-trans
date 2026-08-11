@@ -2574,6 +2574,7 @@ def cmd_process_title(args: argparse.Namespace) -> int:
         review_decisions=args.review_decisions,
         resume=args.resume,
         codex_timeout_seconds=args.codex_timeout,
+        audit_attempt=args.audit_attempt,
         output_root=args.output_root,
     )
     if args.dry_run:
@@ -2749,6 +2750,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--review-decisions", type=Path, help="사람 검수 결정 JSONL")
     p.add_argument("--resume", action="store_true")
     p.add_argument("--codex-timeout", type=int, default=600)
+    p.add_argument(
+        "--audit-attempt",
+        type=int,
+        default=0,
+        help="사용량 제한·timeout 뒤 Sol 감사를 새 immutable run으로 재시도할 번호",
+    )
     p.add_argument("--output-root", type=Path, help="기본값: workspaces/<TITLE>/integrated")
     p.set_defaults(func=cmd_process_title)
     p = sub.add_parser("build-offline-hybrid", help="API 호출 없이 로컬 결과물을 병합한 재생용 미리보기 생성 (human final 아님)")

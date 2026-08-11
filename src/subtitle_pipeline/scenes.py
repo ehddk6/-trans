@@ -12,7 +12,15 @@ def detect_scene_changes(input_path: Path, max_duration: float | None = None, th
         command += ["-t", str(max_duration)]
     command += ["-vf", f"select='gt(scene,{threshold})',metadata=print", "-an", "-f", "null", "-"]
     try:
-        completed = subprocess.run(command, text=True, capture_output=True, check=False, encoding="utf-8", errors="replace")
-    except OSError:
+        completed = subprocess.run(
+            command,
+            text=True,
+            capture_output=True,
+            check=False,
+            encoding="utf-8",
+            errors="replace",
+            timeout=600,
+        )
+    except (OSError, subprocess.TimeoutExpired):
         return []
     return sorted({float(value) for value in re.findall(r"pts_time:([0-9.]+)", completed.stderr)})

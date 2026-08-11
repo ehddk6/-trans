@@ -379,7 +379,7 @@ def merge_translation_decisions(base_path: Path, reviewed_path: Path, output_pat
         "blocks": len(ordered),
         "reviewed_blocks": len(reviewed_numbers),
         "unresolved_blocks": len(unresolved),
-        "final_promotion_allowed": not unresolved,
+        "final_promotion_allowed": False,
     }
 
 
@@ -554,7 +554,7 @@ def validate_translation_decisions(
         "missing_blocks": missing,
         "extra_blocks": extra,
         "translation_model": DEFAULT_TRANSLATION_MODEL,
-        "final_promotion_allowed": not errors and strict,
+        "final_promotion_allowed": False,
     }
 
 

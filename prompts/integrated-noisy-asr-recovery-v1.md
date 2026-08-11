@@ -23,13 +23,24 @@ source boundaries. Produce both `source_faithful_korean` and `viewer_natural_kor
    locations, consent, or a spoken proposition. Record the concrete `recovery_basis`.
 4. `[불명]` is allowed only for `UNRESOLVED` with `source_quality_status=unusable`.
    Never use an ellipsis or an empty string as a substitute for translation.
+5. Evidence IDs are provenance references, not votes. Do not treat multiple files
+   from the same ASR family as independent confirmation, and do not invent an
+   evidence ID that was not supplied with the unit.
+6. Neighboring turns may resolve discourse function, omitted speaker/addressee, or
+   continuity only when the local exchange supports it. They must not overwrite a
+   clear current utterance or create a missing action, target, location, consent,
+   relationship, tense, result, or intensity.
 
 ## Invariants
 
 Preserve question force, negation, refusal, permission, stop/continue commands,
-and numeric tokens when they are reliable source evidence. Do not add information
-outside source and approved contextual evidence. A low-confidence decision remains
-machine-uncertain; never present it as a final translation.
+request/command force, speaker, action subject, target, direction, location, tense,
+completion, intensity, and numeric tokens when they are reliable source evidence.
+Keep uncertain semantic slots explicit instead of smoothing them into a plausible
+claim. Do not add information outside source and supplied contextual evidence. The
+Terra pass receives no image pixels; visual observations, when present, belong to a
+separate bounded stage. A low-confidence decision remains machine-uncertain; never
+present it as a final translation.
 
 ## Output shape
 
