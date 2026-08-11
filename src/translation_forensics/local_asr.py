@@ -27,6 +27,15 @@ PRE_CEILING_REPAIR_POLICY = {
     "attribution_rule": "unique_centered_primary_block_or_multi_block_context_only",
 }
 PRE_CEILING_REPAIR_IMPLEMENTATION_ID = "timestamp-attribution-v2-global-parent-audio-dedup-v3"
+FOCUSED_REPAIR_POLICY = {
+    "policy_version": "focused-native-segment-v1",
+    "maximum_core_span_seconds": 4.0,
+    "clip_seconds": 8.0,
+    "attribution_min_segment_overlap_ratio": 0.5,
+    "attribution_min_block_overlap_ratio": 0.2,
+    "attribution_rule": "unique_centered_primary_block_or_single_block_expanded",
+    "allow_single_block_expanded": True,
+}
 SILENCE_START_RE = re.compile(r"silence_start:\s*([0-9.]+)")
 SILENCE_END_RE = re.compile(r"silence_end:\s*([0-9.]+)")
 
@@ -619,16 +628,21 @@ def run_pre_ceiling_evidence_repair(
     backends: list[ASRBackend] | None = None,
     lineage: dict[str, Any] | None = None,
     attribution_blocks: list[SubtitleBlock] | None = None,
+    policy: dict[str, Any] | None = None,
+    repair_kind: str = "pre-ceiling",
 ) -> dict[int, dict[str, Any]]:
     """Repair only ineligible blocks with native timestamped dual-ASR evidence.
 
-    This is deliberately a pre-ceiling operation.  It never copies a cluster
+    This is deliberately a pre-ceiling operation (broad or focused). It never copies a cluster
     transcript to every covered subtitle block: a segment is added only when
     its native absolute timestamps overlap that block.  A block remains
     ineligible when either family has no timestamped segment or when fusion
     reports a semantic risk.
     """
     output_dir = output_dir.expanduser().resolve()
+    effective_policy = dict(policy or PRE_CEILING_REPAIR_POLICY)
+    if repair_kind not in {"pre-ceiling", "focused"}:
+        raise ValueError("repair_kind must be pre-ceiling or focused")
     report_path = output_dir / "repair-report.json"
     evidence_path = output_dir / "repaired-block-acoustic-evidence.jsonl"
     requested_numbers = sorted(block.number for block in blocks)
@@ -664,8 +678,8 @@ def run_pre_ceiling_evidence_repair(
     cache_identity = hashlib.sha256(
         json.dumps(
             {
-                "implementation_id": PRE_CEILING_REPAIR_IMPLEMENTATION_ID,
-                "policy": PRE_CEILING_REPAIR_POLICY,
+                "implementation_id": f"{PRE_CEILING_REPAIR_IMPLEMENTATION_ID}:{repair_kind}",
+                "policy": effective_policy,
                 "asr_config": asr_config,
                 "lineage": lineage or {},
                 "title_id": title_id,
@@ -686,9 +700,9 @@ def run_pre_ceiling_evidence_repair(
                 "attribution_block_numbers": attribution_numbers,
                 "attribution_signature": attribution_signature,
                 "base_acoustic_sha256": base_signature,
-                "policy": PRE_CEILING_REPAIR_POLICY,
+                "policy": effective_policy,
                 "lineage": lineage or {},
-                "implementation_id": PRE_CEILING_REPAIR_IMPLEMENTATION_ID,
+                "implementation_id": f"{PRE_CEILING_REPAIR_IMPLEMENTATION_ID}:{repair_kind}",
                 "asr_config": asr_config,
                 "cache_identity": cache_identity,
             },
@@ -726,8 +740,8 @@ def run_pre_ceiling_evidence_repair(
                     "model_calls": 0,
                     "local_asr_call_count": 0,
                     "semantic_model_call_count": 0,
-                    "policy": PRE_CEILING_REPAIR_POLICY,
-                    "implementation_id": PRE_CEILING_REPAIR_IMPLEMENTATION_ID,
+                    "policy": effective_policy,
+                    "implementation_id": f"{PRE_CEILING_REPAIR_IMPLEMENTATION_ID}:{repair_kind}",
                     "asr_config": asr_config,
                     "cache_identity": cache_identity,
                     "lineage": lineage or {},
@@ -745,12 +759,20 @@ def run_pre_ceiling_evidence_repair(
 
     duration = probe_audio_duration(audio_path)
     parent_audio_sha256 = _sha256(audio_path)
-    planned = plan_conflict_rerun_windows(
-        blocks,
-        duration_seconds=duration,
-        maximum_core_span_seconds=PRE_CEILING_REPAIR_POLICY["maximum_core_span_seconds"],
-        clip_seconds=PRE_CEILING_REPAIR_POLICY["clip_seconds"],
-    )
+    if repair_kind == "focused":
+        planned = plan_focused_repair_windows(
+            blocks,
+            duration_seconds=duration,
+            clip_seconds=effective_policy["clip_seconds"],
+            context_seconds=min(2.0, effective_policy["clip_seconds"] / 4.0),
+        )
+    else:
+        planned = plan_conflict_rerun_windows(
+            blocks,
+            duration_seconds=duration,
+            maximum_core_span_seconds=effective_policy["maximum_core_span_seconds"],
+            clip_seconds=effective_policy["clip_seconds"],
+        )
     clip_paths = extract_audio_windows(audio_path, [window for window, _ in planned], output_dir / "clips")
     if backends is None:
         backends = []
@@ -798,7 +820,12 @@ def run_pre_ceiling_evidence_repair(
                 if end_seconds <= start_seconds:
                     continue
                 raw_transcript_count += 1
-                attribution = _segment_block_attribution(start_seconds, end_seconds, attribution_scope)
+                attribution = _segment_block_attribution(
+                    start_seconds,
+                    end_seconds,
+                    attribution_scope,
+                    policy=effective_policy,
+                )
                 for block in covered_blocks:
                     assignment = attribution.get(block.number)
                     if assignment is None:
@@ -818,7 +845,7 @@ def run_pre_ceiling_evidence_repair(
                         "alignment_scope": assignment["alignment_scope"],
                         "block_aligned": assignment["block_aligned"],
                         "attribution_status": assignment["attribution_status"],
-                        "evidence_repair": "pre-ceiling",
+                        "evidence_repair": repair_kind,
                     }
                     current = repaired.setdefault(
                         block.number,
@@ -851,23 +878,25 @@ def run_pre_ceiling_evidence_repair(
         original_count = len(record.get("transcripts", []))
         repair_transcripts = [
             row for row in record.get("transcripts", [])
-            if row.get("evidence_repair") == "pre-ceiling"
+            if row.get("evidence_repair") == repair_kind
         ]
         deduped, removed = _deduplicate_repair_transcripts(repair_transcripts)
         duplicate_transcript_count += removed
         new_transcript_count += len(deduped)
         preserved = [
             row for row in record.get("transcripts", [])
-            if row.get("evidence_repair") != "pre-ceiling"
+            if row.get("evidence_repair") != repair_kind
         ]
         record["transcripts"] = preserved + deduped
         record["evidence_refs"] = sorted(set(record["evidence_refs"]))
         record["independent_source_families"] = sorted(set(record["independent_source_families"]))
-        record["block_alignment_status"] = (
-            "pre-ceiling-repair-utterance-timestamp-aligned"
-            if any(bool(row.get("block_aligned")) for row in record["transcripts"] if row.get("evidence_repair") == "pre-ceiling")
-            else "pre-ceiling-repair-multi-block-context"
-        )
+        repair_rows = [row for row in record["transcripts"] if row.get("evidence_repair") == repair_kind]
+        if any(row.get("alignment_scope") == "single-block-expanded" for row in repair_rows):
+            record["block_alignment_status"] = "single-block-expanded"
+        elif any(bool(row.get("block_aligned")) for row in repair_rows):
+            record["block_alignment_status"] = f"{repair_kind}-repair-utterance-timestamp-aligned"
+        else:
+            record["block_alignment_status"] = f"{repair_kind}-repair-multi-block-context"
         record["evidence_repair_status"] = "attempted"
         repaired_rows.append(add_asr_fusion(record))
 
@@ -897,8 +926,8 @@ def run_pre_ceiling_evidence_repair(
         "new_transcript_count": new_transcript_count,
         "duplicate_transcript_count": duplicate_transcript_count,
         "cache_hit": False,
-        "policy": PRE_CEILING_REPAIR_POLICY,
-        "implementation_id": PRE_CEILING_REPAIR_IMPLEMENTATION_ID,
+        "policy": effective_policy,
+        "implementation_id": f"{PRE_CEILING_REPAIR_IMPLEMENTATION_ID}:{repair_kind}",
         "asr_config": asr_config,
         "cache_identity": cache_identity,
         "lineage": lineage or {},
@@ -979,6 +1008,45 @@ def plan_conflict_rerun_windows(
     return planned
 
 
+def plan_focused_repair_windows(
+    blocks: list[SubtitleBlock],
+    *,
+    duration_seconds: float,
+    clip_seconds: float = 8.0,
+    context_seconds: float = 2.0,
+) -> list[tuple[AudioWindow, list[SubtitleBlock]]]:
+    """Plan one short, block-centered ASR window per target block.
+
+    The focused lane is intentionally opt-in and additive.  It does not claim
+    that a short clip is block-local; native segment timestamps still decide
+    whether the result is block-local, single-block-expanded, or context-only.
+    """
+    if duration_seconds <= 0 or clip_seconds <= 0 or context_seconds < 0:
+        raise ValueError("Focused repair window parameters must be valid")
+    windows: list[tuple[AudioWindow, list[SubtitleBlock]]] = []
+    for index, block in enumerate(sorted(blocks, key=lambda item: item.number), 1):
+        core_start = max(0.0, float(block.start_seconds))
+        core_end = min(float(duration_seconds), float(block.end_seconds))
+        if core_end <= core_start:
+            continue
+        clip_start = max(0.0, core_start - context_seconds)
+        clip_end = min(float(duration_seconds), clip_start + clip_seconds)
+        clip_start = max(0.0, clip_end - clip_seconds)
+        windows.append(
+            (
+                AudioWindow(
+                    window_id=f"focused-block-{block.number:05d}-{index:05d}",
+                    core_start=core_start,
+                    core_end=core_end,
+                    clip_start=clip_start,
+                    clip_end=clip_end,
+                ),
+                [block],
+            )
+        )
+    return windows
+
+
 def _split_reazon_by_whisper_segments(reazon_text: str, segments: list[dict[str, Any]]) -> list[str]:
     compact = normalize_japanese(reazon_text)
     if not segments:
@@ -1027,6 +1095,8 @@ def _segment_block_attribution(
     start_seconds: float,
     end_seconds: float,
     blocks: list[SubtitleBlock],
+    *,
+    policy: dict[str, Any] | None = None,
 ) -> dict[int, dict[str, Any]]:
     """Attribute one native segment conservatively across overlapping blocks.
 
@@ -1035,6 +1105,7 @@ def _segment_block_attribution(
     prevents one long ASR segment from becoming block-local evidence everywhere
     it happens to overlap.
     """
+    effective_policy = policy or PRE_CEILING_REPAIR_POLICY
     if end_seconds <= start_seconds:
         return {}
     segment_duration = end_seconds - start_seconds
@@ -1049,9 +1120,9 @@ def _segment_block_attribution(
     qualifying = [
         (block, overlap)
         for block, overlap in candidates
-        if overlap / segment_duration >= PRE_CEILING_REPAIR_POLICY["attribution_min_segment_overlap_ratio"]
+        if overlap / segment_duration >= effective_policy["attribution_min_segment_overlap_ratio"]
         and overlap / max(0.001, block.end_seconds - block.start_seconds)
-        >= PRE_CEILING_REPAIR_POLICY["attribution_min_block_overlap_ratio"]
+        >= effective_policy["attribution_min_block_overlap_ratio"]
         and block.start_seconds <= center < block.end_seconds
     ]
     primary: SubtitleBlock | None = None
@@ -1059,11 +1130,23 @@ def _segment_block_attribution(
         primary = qualifying[0][0]
     result: dict[int, dict[str, Any]] = {}
     for block, overlap in candidates:
+        is_primary = primary is not None and block.number == primary.number
+        expanded = bool(
+            is_primary
+            and effective_policy.get("allow_single_block_expanded")
+            and (start_seconds < primary.start_seconds or end_seconds > primary.end_seconds)
+        )
         result[block.number] = {
-            "block_aligned": primary is not None and block.number == primary.number,
-            "alignment_scope": "utterance-timestamp" if primary is not None and block.number == primary.number else "multi-block",
+            "block_aligned": is_primary and not expanded,
+            "alignment_scope": (
+                "single-block-expanded"
+                if expanded
+                else "utterance-timestamp"
+                if is_primary
+                else "multi-block"
+            ),
             "overlap_seconds": round(overlap, 3),
-            "attribution_status": "primary" if primary is not None and block.number == primary.number else "multi-block-context",
+            "attribution_status": "primary-expanded" if expanded else "primary" if is_primary else "multi-block-context",
         }
     return result
 

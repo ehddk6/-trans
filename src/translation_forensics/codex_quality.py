@@ -49,6 +49,16 @@ TITLE_GATES = {
     "JUQ-439": {"minimum_accepted_rate": 0.90, "minimum_safe_usable_rate": 0.90, "maximum_ellipsis_rate": 0.05},
     "SSIS-908": {"minimum_accepted_rate": 0.85, "minimum_safe_usable_rate": 0.85, "maximum_ellipsis_rate": 0.08},
 }
+GATE_POLICY_VERSION = "1"
+
+# Unknown titles must never receive an implicit zero threshold or model-call
+# authorization.  The strict default is diagnostic only; execution remains
+# denied until the title receives an explicit policy.
+UNREGISTERED_TITLE_GATE = {
+    "minimum_accepted_rate": 1.0,
+    "minimum_safe_usable_rate": 1.0,
+    "maximum_ellipsis_rate": 0.0,
+}
 KOREAN_SHORT_RE = re.compile(r"^(?:아+|어+|응+|네+|싫어|안 돼|좋아|더|잠깐|…)[.!?…~]*$")
 
 
@@ -58,6 +68,28 @@ class CodexQualityError(RuntimeError):
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _gate_context(title_id: str) -> dict[str, Any]:
+    gate_configured = title_id in TITLE_GATES
+    gate_policy = "registered" if gate_configured else "unregistered-deny"
+    gate = dict(TITLE_GATES.get(title_id) or UNREGISTERED_TITLE_GATE)
+    gate_config_sha256 = sha256_json(
+        {
+            "title_id": title_id,
+            "gate_configured": gate_configured,
+            "gate_policy": gate_policy,
+            "gate_policy_version": GATE_POLICY_VERSION,
+            "thresholds": gate,
+        }
+    )
+    return {
+        "gate": gate,
+        "gate_configured": gate_configured,
+        "gate_policy": gate_policy,
+        "gate_policy_version": GATE_POLICY_VERSION,
+        "gate_config_sha256": gate_config_sha256,
+    }
 
 
 def _write_json(path: Path, value: Any) -> None:
@@ -237,6 +269,25 @@ def _response_rows(response: dict[str, Any], field: str, expected: list[int], sc
     return rows
 
 
+def _proxy_response_rows(
+    response: dict[str, Any],
+    expected: list[int],
+    batch_id: str,
+) -> list[dict[str, Any]]:
+    """Validate proxy-evaluator responses, whose identifier is ``batch_id``."""
+    if response.get("batch_id") != batch_id:
+        raise CodexQualityError(
+            f"Proxy response batch_id mismatch: {response.get('batch_id')!r} != {batch_id!r}"
+        )
+    rows = response.get("judgments")
+    if not isinstance(rows, list):
+        raise CodexQualityError("Proxy response judgments must be an array")
+    numbers = [int(row.get("block_number", 0) or 0) for row in rows if isinstance(row, dict)]
+    if numbers != expected:
+        raise CodexQualityError("Proxy response judgments must cover the batch once and in order")
+    return rows
+
+
 def _scene_payload(
     scene_id: str,
     scene: list[SubtitleBlock],
@@ -286,6 +337,40 @@ def _scene_payload(
     }
 
 
+def _build_translation_continuity_memory(
+    decisions: list[dict[str, Any]],
+    *,
+    limit: int = 6,
+) -> list[dict[str, Any]]:
+    """Return a small style/role memory that is explicitly not evidence.
+
+    Scene batches are intentionally semantically independent.  The memory is
+    therefore withheld from Terra/Sol meaning-frame calls and is attached only
+    to translation/critique payloads as a continuity hint.  It carries no
+    evidence references and can never corroborate a slot.
+    """
+    if limit <= 0:
+        return []
+    memory: list[dict[str, Any]] = []
+    for row in decisions[-limit:]:
+        frame = row.get("selected_frame") or row.get("consensus_frame") or {}
+        if not isinstance(frame, dict):
+            frame = {}
+        memory.append(
+            {
+                "block_number": int(row.get("block_number", 0) or 0),
+                "speaker": frame.get("speaker"),
+                "actor": frame.get("actor"),
+                "utterance_kind": row.get("utterance_kind", "unknown"),
+                "source_faithful_korean": str(row.get("source_faithful_korean") or ""),
+                "viewer_natural_korean": str(row.get("viewer_natural_korean") or ""),
+                "memory_role": "continuity-only-not-evidence",
+                "evidence_refs": [],
+            }
+        )
+    return memory
+
+
 def _persist_call(
     *,
     provider: CodexExecProvider,
@@ -307,6 +392,15 @@ def _persist_call(
         schema=schema,
         resume=resume,
     )
+    receipt = {
+        **receipt,
+        "call_id": call_id,
+        "covered_block_numbers": [
+            int(row["block_number"])
+            for row in payload.get("locked_blocks", [])
+            if isinstance(row, dict) and row.get("block_number") is not None
+        ],
+    }
     _write_json(scene_dir / f"{call_id}.response.json", response)
     _write_json(scene_dir / f"{call_id}.receipt.json", receipt)
     return response, receipt
@@ -328,24 +422,51 @@ def evaluate_evidence_ceiling(
         or has_usable_dual_acoustic(acoustic[number])
     ]
     maximum_rate = len(eligible) / max(1, len(expected_blocks))
-    gate = TITLE_GATES.get(title_id)
-    minimum_rate = float(gate["minimum_accepted_rate"]) if gate else 0.0
+    gate_context = _gate_context(title_id)
+    gate = gate_context["gate"]
+    minimum_rate = float(gate["minimum_accepted_rate"])
+    model_calls_allowed = gate_context["gate_configured"] and maximum_rate >= minimum_rate
     return {
         "schema_name": "translation-forensics/codex-quality-evidence-ceiling",
         "schema_version": "1",
         "title_id": title_id,
-        "status": "pass" if maximum_rate >= minimum_rate else "fail",
+        "status": "pass" if model_calls_allowed else "fail",
         "block_count": len(expected_blocks),
         "eligible_block_count": len(eligible),
         "eligible_block_numbers": eligible,
         "maximum_possible_accepted_rate": round(maximum_rate, 6),
         "minimum_required_accepted_rate": minimum_rate,
+        "gate_configured": gate_context["gate_configured"],
+        "gate_policy": gate_context["gate_policy"],
+        "gate_policy_version": gate_context["gate_policy_version"],
+        "gate_config_sha256": gate_context["gate_config_sha256"],
         "policy": "trusted Japanese or downstream-compatible two block-local independent ASR families",
-        "model_calls_allowed": maximum_rate >= minimum_rate,
+        "model_calls_allowed": model_calls_allowed,
         "human_equal": False,
         "human_final": False,
         "final_promotion_allowed": False,
     }
+
+
+def _eligible_block_selection_sha256(
+    *,
+    title_id: str,
+    expected_blocks: list[int],
+    ceiling: dict[str, Any],
+    source_quality_path: Path,
+    acoustic_path: Path,
+) -> str:
+    """Bind partial execution to the exact evidence-derived block selection."""
+    return sha256_json(
+        {
+            "title_id": title_id,
+            "expected_block_numbers": expected_blocks,
+            "eligible_block_numbers": ceiling.get("eligible_block_numbers", []),
+            "gate_config_sha256": ceiling.get("gate_config_sha256"),
+            "source_quality_sha256": _sha256(source_quality_path),
+            "acoustic_evidence_sha256": _sha256(acoustic_path),
+        }
+    )
 
 
 def run_codex_quality_title(
@@ -367,6 +488,7 @@ def run_codex_quality_title(
     allow_model_download: bool = True,
     resume: bool = True,
     local_asr_call_count: int = 0,
+    partial_evidence_evaluation: bool = False,
 ) -> dict[str, Any]:
     output_dir = output_dir.expanduser().resolve()
     manifest_path = output_dir / "manifest.json"
@@ -397,6 +519,39 @@ def run_codex_quality_title(
             evidence_repair_path is None
             or (repair_cache_identity is not None and existing.get("repair_cache_identity") == repair_cache_identity)
         )
+        current_gate_context = _gate_context(title_id)
+        partial_mode_matches = existing.get("partial_execution") is bool(partial_evidence_evaluation)
+        partial_flag_matches = existing.get("partial_evidence_evaluation") is bool(partial_evidence_evaluation)
+        execution_scope_matches = existing.get("execution_scope") == (
+            "eligible-blocks-only" if partial_evidence_evaluation else "full-title"
+        )
+        selection_identity_matches = True
+        if partial_evidence_evaluation:
+            resume_structure, _, _ = parse_srt(structure_path)
+            resume_expected = [block.number for block in resume_structure]
+            resume_source_quality = _load_by_block(source_quality_map_path, resume_expected, "source quality")
+            resume_acoustic = _load_by_block(acoustic_evidence_path, resume_expected, "acoustic evidence")
+            resume_ceiling = evaluate_evidence_ceiling(
+                title_id=title_id,
+                expected_blocks=resume_expected,
+                source_quality=resume_source_quality,
+                acoustic=resume_acoustic,
+            )
+            current_selection_sha256 = _eligible_block_selection_sha256(
+                title_id=title_id,
+                expected_blocks=resume_expected,
+                ceiling=resume_ceiling,
+                source_quality_path=source_quality_map_path,
+                acoustic_path=acoustic_evidence_path,
+            )
+            selection_identity_matches = existing.get("eligible_block_selection_sha256") == current_selection_sha256
+        gate_policy_matches = (
+            existing.get("title_id") == title_id
+            and existing.get("gate_configured") is current_gate_context["gate_configured"]
+            and existing.get("gate_policy") == current_gate_context["gate_policy"]
+            and existing.get("gate_policy_version") == current_gate_context["gate_policy_version"]
+            and existing.get("gate_config_sha256") == current_gate_context["gate_config_sha256"]
+        )
         if (
             existing.get("inputs", {}).get("structure", {}).get("sha256") == _sha256(structure_path)
             and existing.get("inputs", {}).get("source_quality_map", {}).get("sha256") == _sha256(source_quality_map_path)
@@ -404,6 +559,11 @@ def run_codex_quality_title(
             and repair_matches
             and repair_mode_matches
             and repair_identity_matches
+            and gate_policy_matches
+            and partial_mode_matches
+            and partial_flag_matches
+            and execution_scope_matches
+            and selection_identity_matches
         ):
             return {**existing, "cache_hit": True, "output": str(output_dir)}
     if output_dir.exists() and any(output_dir.iterdir()) and not resume:
@@ -421,7 +581,21 @@ def run_codex_quality_title(
         source_quality=source_quality,
         acoustic=acoustic,
     )
-    if ceiling["status"] != "pass":
+    partial_execution = bool(partial_evidence_evaluation and ceiling["status"] != "pass" and ceiling["gate_configured"])
+    eligible_block_selection_sha256 = (
+        _eligible_block_selection_sha256(
+            title_id=title_id,
+            expected_blocks=expected,
+            ceiling=ceiling,
+            source_quality_path=source_quality_map_path,
+            acoustic_path=acoustic_evidence_path,
+        )
+        if partial_execution
+        else None
+    )
+    if partial_execution:
+        _write_json(output_dir / "evidence-feasibility.json", ceiling)
+    if ceiling["status"] != "pass" and not partial_execution:
         ceiling_path = output_dir / "evidence-feasibility.json"
         _write_json(ceiling_path, ceiling)
         failed_status = (
@@ -446,6 +620,10 @@ def run_codex_quality_title(
             "semantic_model_call_count": 0,
             "local_asr_call_count": int(local_asr_call_count),
             "repair_cache_identity": repair_cache_identity,
+            "gate_configured": ceiling["gate_configured"],
+            "gate_policy": ceiling["gate_policy"],
+            "gate_policy_version": ceiling["gate_policy_version"],
+            "gate_config_sha256": ceiling["gate_config_sha256"],
             "all_model_calls_traceable": True,
             "api_key_used": False,
             "human_equal": False,
@@ -457,7 +635,7 @@ def run_codex_quality_title(
         _write_json(manifest_path, manifest)
         return {**manifest, "cache_hit": False, "output": str(output_dir)}
     scenes = build_scene_batches(
-        structure,
+        [block for block in structure if not partial_execution or block.number in set(ceiling["eligible_block_numbers"])],
         max_blocks=max_scene_blocks,
         maximum_gap_seconds=maximum_scene_gap_seconds,
     )
@@ -667,6 +845,7 @@ def run_codex_quality_title(
         translation_payload = {
             **payload,
             "consensus": agreements,
+            "continuity_memory": _build_translation_continuity_memory(all_decisions),
         }
         translation_response, translation_receipt = _persist_call(
             provider=provider,
@@ -711,6 +890,7 @@ def run_codex_quality_title(
                         "candidate_blocks": [candidate_by_number[number] for number in active_numbers],
                         "repair_attempt": repair_attempt,
                         "original_scene_id": scene_id,
+                        "continuity_memory": _build_translation_continuity_memory(all_decisions),
                     }
                 )
             critique_response, critique_receipt = _persist_call(
@@ -865,6 +1045,15 @@ def run_codex_quality_title(
     _write_jsonl(receipts_path, all_receipts)
 
     by_number = {int(row["block_number"]): row for row in all_decisions}
+    if partial_execution:
+        for block in structure:
+            if block.number in by_number:
+                continue
+            by_number[block.number] = {
+                "block_number": block.number,
+                "source_faithful_korean": "…",
+                "viewer_natural_korean": "…",
+            }
     source_blocks = [
         SubtitleBlock(block.number, block.start, block.end, str(by_number[block.number]["source_faithful_korean"]), block.start_seconds, block.end_seconds)
         for block in structure
@@ -883,7 +1072,7 @@ def run_codex_quality_title(
         "schema_version": "1",
         "title_id": title_id,
         "release_kind": "autonomous-quality-candidate",
-        "status": "candidate-generated",
+        "status": "partial-evidence-candidate" if partial_execution else "candidate-generated",
         "inputs": {
             "structure": _artifact(structure_path, output_dir),
             "source_quality_map": _artifact(source_quality_map_path, output_dir),
@@ -903,19 +1092,40 @@ def run_codex_quality_title(
         "semantic_model_call_count": len(all_receipts),
         "local_asr_call_count": int(local_asr_call_count),
         "repair_cache_identity": repair_cache_identity,
+        "gate_configured": ceiling["gate_configured"],
+        "gate_policy": ceiling["gate_policy"],
+        "gate_policy_version": ceiling["gate_policy_version"],
+        "gate_config_sha256": ceiling["gate_config_sha256"],
         "all_model_calls_traceable": all(not validate_call_receipt(receipt) for receipt in all_receipts),
         "models": {"generation": "gpt-5.6-terra", "independent_critic": "gpt-5.6-sol"},
+        "translation_continuity_policy": "style-only-memory-not-evidence",
         "api_key_used": False,
         "human_equal": False,
         "human_final": False,
         "final_promotion_allowed": False,
+        "partial_execution": partial_execution,
+        "partial_evidence_evaluation": bool(partial_evidence_evaluation),
+        "execution_scope": "eligible-blocks-only" if partial_execution else "full-title",
+        "title_gate_passed": False if partial_execution else ceiling["status"] == "pass",
+        "promotion_permanently_blocked": True if partial_execution else False,
+        "eligible_block_numbers": ceiling["eligible_block_numbers"] if partial_execution else [block.number for block in structure],
+        "ineligible_block_numbers": [block.number for block in structure if block.number not in set(ceiling["eligible_block_numbers"])] if partial_execution else [],
     }
+    if partial_execution:
+        manifest["eligible_block_selection_sha256"] = eligible_block_selection_sha256
+        manifest["evidence_feasibility"] = _artifact(output_dir / "evidence-feasibility.json", output_dir)
     if evidence_repair_path is not None:
         manifest["inputs"]["evidence_repair"] = _artifact(evidence_repair_path, output_dir)
     _write_json(manifest_path, manifest)
     validation = validate_codex_quality(output_dir)
     _write_json(output_dir / "qa-report.json", validation)
-    manifest["status"] = "quality-gates-passed" if validation["status"] == "pass" else "quality-gates-failed"
+    manifest["status"] = (
+        "partial-evidence-candidate"
+        if partial_execution
+        else "quality-gates-passed"
+        if validation["status"] == "pass"
+        else "quality-gates-failed"
+    )
     manifest["qa_report"] = _artifact(output_dir / "qa-report.json", output_dir)
     _write_json(manifest_path, manifest)
     return {**manifest, "cache_hit": False, "output": str(output_dir)}
@@ -1025,6 +1235,176 @@ def _validate_repair_lineage(
         return None
 
 
+def _validate_partial_codex_quality(
+    manifest: dict[str, Any],
+    package_dir: Path,
+    gate_context: dict[str, Any],
+) -> dict[str, Any]:
+    """Validate the opt-in diagnostic package without treating it as a pass."""
+    errors: list[str] = []
+    title_id = str(manifest.get("title_id") or "")
+    if manifest.get("status") != "partial-evidence-candidate":
+        errors.append("partial package has an invalid status")
+    required_flags = {
+        "partial_execution": True,
+        "partial_evidence_evaluation": True,
+        "execution_scope": "eligible-blocks-only",
+        "title_gate_passed": False,
+        "promotion_permanently_blocked": True,
+        "human_equal": False,
+        "human_final": False,
+        "final_promotion_allowed": False,
+    }
+    for field, expected in required_flags.items():
+        if manifest.get(field) != expected:
+            errors.append(f"partial package {field} must be {expected!r}")
+    try:
+        structure_path = _resolve_ref(package_dir, manifest["inputs"]["structure"])
+        source_quality_path = _resolve_ref(package_dir, manifest["inputs"]["source_quality_map"])
+        acoustic_path = _resolve_ref(package_dir, manifest["inputs"]["acoustic_evidence"])
+        decisions_path = _resolve_ref(package_dir, manifest["outputs"]["decisions"])
+        source_path = _resolve_ref(package_dir, manifest["outputs"]["source_faithful"])
+        viewer_path = _resolve_ref(package_dir, manifest["outputs"]["viewer_natural"])
+        receipts_path = _resolve_ref(package_dir, manifest["outputs"]["model_call_receipts"])
+        feasibility_path = _resolve_ref(package_dir, manifest["evidence_feasibility"])
+        for label, record, path in (
+            ("structure", manifest["inputs"]["structure"], structure_path),
+            ("source_quality_map", manifest["inputs"]["source_quality_map"], source_quality_path),
+            ("acoustic_evidence", manifest["inputs"]["acoustic_evidence"], acoustic_path),
+            ("decisions", manifest["outputs"]["decisions"], decisions_path),
+            ("source_faithful", manifest["outputs"]["source_faithful"], source_path),
+            ("viewer_natural", manifest["outputs"]["viewer_natural"], viewer_path),
+            ("model_call_receipts", manifest["outputs"]["model_call_receipts"], receipts_path),
+            ("evidence_feasibility", manifest["evidence_feasibility"], feasibility_path),
+        ):
+            if not path.is_file() or record.get("sha256") != _sha256(path):
+                errors.append(f"artifact hash mismatch: {label}")
+        structure, _, _ = parse_srt(structure_path)
+        expected = [block.number for block in structure]
+        source_quality = _load_by_block(source_quality_path, expected, "source quality")
+        acoustic = _load_by_block(acoustic_path, expected, "acoustic evidence")
+        ceiling = evaluate_evidence_ceiling(
+            title_id=title_id,
+            expected_blocks=expected,
+            source_quality=source_quality,
+            acoustic=acoustic,
+        )
+        expected_selection_sha256 = _eligible_block_selection_sha256(
+            title_id=title_id,
+            expected_blocks=expected,
+            ceiling=ceiling,
+            source_quality_path=source_quality_path,
+            acoustic_path=acoustic_path,
+        )
+        if manifest.get("eligible_block_selection_sha256") != expected_selection_sha256:
+            errors.append("partial eligible block selection identity mismatch")
+        feasibility = json.loads(feasibility_path.read_text(encoding="utf-8"))
+        if feasibility.get("status") != "fail" or feasibility.get("model_calls_allowed") is not False:
+            errors.append("partial package evidence ceiling contract is invalid")
+        for field in ("eligible_block_count", "eligible_block_numbers", "maximum_possible_accepted_rate", "status"):
+            if feasibility.get(field) != ceiling.get(field):
+                errors.append(f"partial evidence ceiling disagrees with recomputed {field}")
+        eligible = sorted(int(value) for value in manifest.get("eligible_block_numbers", []))
+        ineligible = sorted(int(value) for value in manifest.get("ineligible_block_numbers", []))
+        if eligible != sorted(ceiling["eligible_block_numbers"]):
+            errors.append("partial eligible block list differs from evidence ceiling")
+        if sorted(eligible + ineligible) != expected or set(eligible) & set(ineligible):
+            errors.append("partial block partition is not exactly the locked structure")
+        decisions = _read_jsonl(decisions_path)
+        decision_by_number = {int(row.get("block_number", 0)): row for row in decisions}
+        if sorted(decision_by_number) != eligible or len(decision_by_number) != len(decisions):
+            errors.append("partial decisions must cover eligible blocks only")
+        source, _, _ = parse_srt(source_path)
+        viewer, _, _ = parse_srt(viewer_path)
+        if not compare_structure(structure, source)["pass"] or not compare_structure(structure, viewer)["pass"]:
+            errors.append("partial output SRT structure changed")
+        source_by_number = {block.number: block for block in source}
+        viewer_by_number = {block.number: block for block in viewer}
+        for block in structure:
+            if block.number in eligible:
+                row = decision_by_number.get(block.number, {})
+                if source_by_number.get(block.number, None) is None or source_by_number[block.number].text != str(row.get("source_faithful_korean")):
+                    errors.append(f"partial source output mismatch for block {block.number}")
+                if viewer_by_number.get(block.number, None) is None or viewer_by_number[block.number].text != str(row.get("viewer_natural_korean")):
+                    errors.append(f"partial viewer output mismatch for block {block.number}")
+            else:
+                if source_by_number.get(block.number, None) is None or viewer_by_number.get(block.number, None) is None or source_by_number[block.number].text != "…" or viewer_by_number[block.number].text != "…":
+                    errors.append(f"ineligible block {block.number} is not abstained with ellipsis")
+        receipts = _read_jsonl(receipts_path)
+        receipt_errors = [error for receipt in receipts for error in validate_call_receipt(receipt)]
+        errors.extend(f"receipt: {error}" for error in receipt_errors[:20])
+        if len(receipts) != int(manifest.get("model_call_count", -1)):
+            errors.append("partial model call receipt count mismatch")
+        covered: set[int] = set()
+        for receipt in receipts:
+            numbers = receipt.get("covered_block_numbers")
+            if not isinstance(numbers, list):
+                errors.append("partial receipt lacks covered_block_numbers")
+                continue
+            covered.update(int(number) for number in numbers)
+        if not covered.issubset(set(eligible)):
+            errors.append("partial semantic receipt covers an ineligible block")
+        if not receipts:
+            errors.append("partial package contains no semantic receipts")
+        elif covered != set(eligible):
+            errors.append("partial semantic receipts do not cover exactly the eligible blocks")
+        return {
+            "schema_name": "translation-forensics/codex-quality-validation",
+            "schema_version": "1",
+            "status": "partial" if not errors else "fail",
+            "phase": "partial-evidence",
+            "partial_execution": True,
+            "partial_evidence_evaluation": True,
+            "execution_scope": "eligible-blocks-only",
+            "title_id": title_id,
+            "block_count": len(expected),
+            "eligible_block_count": len(eligible),
+            "eligible_block_numbers": eligible,
+            "eligible_block_selection_sha256": manifest.get("eligible_block_selection_sha256"),
+            "ineligible_block_count": len(ineligible),
+            "maximum_possible_accepted_rate": ceiling["maximum_possible_accepted_rate"],
+            "minimum_required_accepted_rate": ceiling["minimum_required_accepted_rate"],
+            "model_call_count": len(receipts),
+            "semantic_model_call_count": len(receipts),
+            "metric_gate_passed": False,
+            "errors": errors,
+            "human_equal": False,
+            "human_final": False,
+            "final_promotion_allowed": False,
+            "gate_configured": gate_context["gate_configured"],
+            "gate_policy": gate_context["gate_policy"],
+            "gate_policy_version": gate_context["gate_policy_version"],
+            "gate_config_sha256": gate_context["gate_config_sha256"],
+        }
+    except (KeyError, OSError, ValueError, TypeError, json.JSONDecodeError, IndexError) as exc:
+        return {
+            "schema_name": "translation-forensics/codex-quality-validation",
+            "schema_version": "1",
+            "status": "fail",
+            "phase": "partial-evidence",
+            "partial_execution": True,
+            "partial_evidence_evaluation": True,
+            "execution_scope": "eligible-blocks-only",
+            "title_id": title_id,
+            "block_count": 0,
+            "eligible_block_count": 0,
+            "ineligible_block_count": 0,
+            "eligible_block_numbers": [],
+            "eligible_block_selection_sha256": manifest.get("eligible_block_selection_sha256", "0" * 64),
+            "model_call_count": 0,
+            "semantic_model_call_count": 0,
+            "metric_gate_passed": False,
+            "errors": errors + [str(exc)],
+            "human_equal": False,
+            "human_final": False,
+            "final_promotion_allowed": False,
+            "gate_configured": gate_context["gate_configured"],
+            "gate_policy": gate_context["gate_policy"],
+            "gate_policy_version": gate_context["gate_policy_version"],
+            "gate_config_sha256": gate_context["gate_config_sha256"],
+        }
+
+
 def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
     package_dir = package_dir.expanduser().resolve()
     errors: list[str] = []
@@ -1033,10 +1413,20 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
         return {"status": "fail", "errors": ["manifest.json is missing"], "final_promotion_allowed": False}
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     title_id = str(manifest.get("title_id") or "")
+    gate_context = _gate_context(title_id)
+    for field in ("gate_configured", "gate_policy", "gate_policy_version", "gate_config_sha256"):
+        if field not in manifest:
+            errors.append(f"manifest is missing {field}")
+        elif manifest.get(field) != gate_context[field]:
+            errors.append(f"manifest {field} does not match current gate policy")
     if manifest.get("release_kind") != "autonomous-quality-candidate":
         errors.append("release_kind must be autonomous-quality-candidate")
     if any(manifest.get(field) is not False for field in ("human_equal", "human_final", "final_promotion_allowed")):
         errors.append("human/final claim boundary is invalid")
+    if manifest.get("partial_execution") is True:
+        result = _validate_partial_codex_quality(manifest, package_dir, gate_context)
+        result["errors"] = errors + list(result.get("errors", []))
+        return result
     if manifest.get("inputs", {}).get("evidence_repair") is not None:
         _validate_repair_lineage(manifest, package_dir, errors)
     if manifest.get("status") in {"evidence-ceiling-failed", "evidence-ceiling-failed-after-repair"}:
@@ -1045,6 +1435,9 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
             feasibility = json.loads(feasibility_path.read_text(encoding="utf-8"))
             if manifest["evidence_feasibility"].get("sha256") != _sha256(feasibility_path):
                 errors.append("evidence feasibility hash mismatch")
+            for field in ("gate_configured", "gate_policy", "gate_policy_version", "gate_config_sha256"):
+                if feasibility.get(field) != gate_context[field]:
+                    errors.append(f"evidence feasibility {field} does not match current gate policy")
             if manifest.get("status") == "evidence-ceiling-failed-after-repair":
                 repair_record = manifest.get("inputs", {}).get("evidence_repair")
                 if not isinstance(repair_record, dict):
@@ -1221,20 +1614,22 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
     block_count = len(structure)
     accepted_rate = accepted / max(1, block_count)
     ellipsis_rate = ellipsis / max(1, block_count)
-    gate = TITLE_GATES.get(title_id)
-    metric_gate_passed = True
-    if gate:
-        safe_usable_rate = safe_usable / max(1, block_count)
-        if safe_usable_rate < gate["minimum_safe_usable_rate"]:
-            errors.append(
-                f"safe usable-output rate {safe_usable_rate:.4f} is below {gate['minimum_safe_usable_rate']:.2f} for {title_id}"
-            )
-            metric_gate_passed = False
-        if ellipsis_rate > gate["maximum_ellipsis_rate"]:
-            errors.append(
-                f"ellipsis rate {ellipsis_rate:.4f} exceeds {gate['maximum_ellipsis_rate']:.2f} for {title_id}"
-            )
-            metric_gate_passed = False
+    gate = gate_context["gate"]
+    gate_configured = gate_context["gate_configured"]
+    metric_gate_passed = gate_configured
+    if not gate_configured:
+        errors.append(f"no registered quality gate for {title_id}")
+    safe_usable_rate = safe_usable / max(1, block_count)
+    if safe_usable_rate < gate["minimum_safe_usable_rate"]:
+        errors.append(
+            f"safe usable-output rate {safe_usable_rate:.4f} is below {gate['minimum_safe_usable_rate']:.2f} for {title_id}"
+        )
+        metric_gate_passed = False
+    if ellipsis_rate > gate["maximum_ellipsis_rate"]:
+        errors.append(
+            f"ellipsis rate {ellipsis_rate:.4f} exceeds {gate['maximum_ellipsis_rate']:.2f} for {title_id}"
+        )
+        metric_gate_passed = False
     return {
         "schema_name": "translation-forensics/codex-quality-validation",
         "schema_version": "1",
@@ -1243,8 +1638,12 @@ def validate_codex_quality(package_dir: Path) -> dict[str, Any]:
         "block_count": block_count,
         "accepted_count": accepted,
         "accepted_rate": round(accepted_rate, 6),
-        "minimum_accepted_rate": gate.get("minimum_accepted_rate") if gate else None,
-        "minimum_safe_usable_rate": gate.get("minimum_safe_usable_rate") if gate else None,
+        "minimum_accepted_rate": gate.get("minimum_accepted_rate"),
+        "minimum_safe_usable_rate": gate.get("minimum_safe_usable_rate"),
+        "gate_configured": gate_configured,
+        "gate_policy": gate_context["gate_policy"],
+        "gate_policy_version": gate_context["gate_policy_version"],
+        "gate_config_sha256": gate_context["gate_config_sha256"],
         "safe_usable_rate": round(safe_usable / max(1, block_count), 6),
         "recovery_state_counts": dict(sorted(recovery_counts.items())),
         "ellipsis_count": ellipsis,
@@ -1327,6 +1726,11 @@ def evaluate_codex_quality(
     if validation["block_count"] <= 0:
         raise CodexQualityError("Candidate package is not structurally evaluable")
     manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
+    partial_evaluation = bool(manifest.get("partial_execution"))
+    if partial_evaluation and validation.get("status") != "partial":
+        raise CodexQualityError("Partial candidate failed diagnostic validation")
+    if not partial_evaluation and validation.get("status") != "pass":
+        raise CodexQualityError("Candidate package failed quality validation")
     title_id = str(manifest["title_id"])
     structure_path = _resolve_ref(package_dir, manifest["inputs"]["structure"])
     acoustic_path = _resolve_ref(package_dir, manifest["inputs"]["acoustic_evidence"])
@@ -1341,6 +1745,10 @@ def evaluate_codex_quality(
     decisions = _read_jsonl(decisions_path)
     acoustic = _load_by_block(acoustic_path, [block.number for block in structure], "acoustic evidence")
     decision_by_number = {int(row["block_number"]): row for row in decisions}
+    if partial_evaluation:
+        eligible = set(int(number) for number in manifest.get("eligible_block_numbers", []))
+        if set(decision_by_number) != eligible:
+            raise CodexQualityError("Partial candidate decisions do not match its eligible block set")
     candidate_by_number = {block.number: block.text for block in candidate}
     baseline_by_number = {block.number: block.text for block in baseline_blocks}
     sample = stratified_proxy_sample(decisions, title_id=title_id, sample_size=sample_size)
@@ -1348,9 +1756,18 @@ def evaluate_codex_quality(
     result_path = evaluation_dir / "proxy-evaluation.json"
     if result_path.is_file() and resume:
         existing = json.loads(result_path.read_text(encoding="utf-8"))
+        evaluation_identity_matches = (
+            existing.get("partial_evaluation") is partial_evaluation
+            and existing.get("evaluation_scope") == ("eligible-blocks-only" if partial_evaluation else "full-title")
+            and (
+                not partial_evaluation
+                or existing.get("eligible_block_selection_sha256") == manifest.get("eligible_block_selection_sha256")
+            )
+        )
         if (
             existing.get("candidate_sha256") == _sha256(candidate_path)
             and existing.get("baseline_sha256") == _sha256(baseline_path)
+            and evaluation_identity_matches
         ):
             return {**existing, "cache_hit": True, "output": str(evaluation_dir)}
     if result_path.exists() and not resume:
@@ -1388,7 +1805,14 @@ def evaluate_codex_quality(
         batch = blind_rows[offset : offset + batch_size]
         batch_id = f"proxy-{offset // batch_size + 1:03d}"
         expected = [int(row["block_number"]) for row in batch]
-        payload = {"batch_id": batch_id, "title_id": title_id, "blocks": batch}
+        payload = {
+            "batch_id": batch_id,
+            "title_id": title_id,
+            "blocks": batch,
+            "evaluation_scope": "eligible-blocks-only" if partial_evaluation else "full-title",
+            "partial_evaluation": partial_evaluation,
+            "denominator_block_count": len(structure),
+        }
         for label, role in roles:
             response, receipt = provider.run_structured(
                 role=role,
@@ -1399,9 +1823,16 @@ def evaluate_codex_quality(
                 schema=schema,
                 resume=resume,
             )
-            rows = _response_rows(response, "judgments", expected, batch_id)
+            rows = _proxy_response_rows(response, expected, batch_id)
             evaluator_judgments[label].extend(rows)
-            receipts.append(receipt)
+            receipts.append(
+                {
+                    **receipt,
+                    "call_id": f"{batch_id}.{label}",
+                    "covered_block_numbers": expected,
+                    "evaluation_scope": "eligible-blocks-only" if partial_evaluation else "full-title",
+                }
+            )
             _write_json(evaluation_dir / f"{batch_id}.{label}.response.json", response)
             _write_json(evaluation_dir / f"{batch_id}.{label}.receipt.json", receipt)
     _write_jsonl(evaluation_dir / "model-call-receipts.jsonl", receipts)
@@ -1442,9 +1873,25 @@ def evaluate_codex_quality(
         "schema_name": "translation-forensics/codex-quality-proxy-evaluation",
         "schema_version": "1",
         "title_id": title_id,
-        "status": "pass" if all_passed else "fail",
+        "status": (
+            "partial-pass"
+            if partial_evaluation and all_passed
+            else "partial-fail"
+            if partial_evaluation
+            else "pass"
+            if all_passed
+            else "fail"
+        ),
         "engineering_proxy_only": True,
         "human_equivalence_certified": False,
+        "evaluation_scope": "eligible-blocks-only" if partial_evaluation else "full-title",
+        "partial_evaluation": partial_evaluation,
+        "denominator_block_count": len(structure),
+        "eligible_block_count": len(decisions),
+        "eligible_block_numbers": sorted(decision_by_number) if partial_evaluation else [block.number for block in structure],
+        "title_gate_passed": False if partial_evaluation else manifest.get("title_gate_passed", False),
+        "promotion_permanently_blocked": True if partial_evaluation else False,
+        "eligible_block_selection_sha256": manifest.get("eligible_block_selection_sha256") if partial_evaluation else None,
         "sample_seed": f"codex-quality-v1:{title_id}",
         "stratified_sample_size": len(sample),
         "candidate_sha256": _sha256(candidate_path),
@@ -1456,5 +1903,17 @@ def evaluate_codex_quality(
         "human_final": False,
         "final_promotion_allowed": False,
     }
+    evaluation_schema_path = schema_dir / "codex-quality-proxy-evaluation.schema.json"
+    if evaluation_schema_path.is_file():
+        schema_error = next(
+            iter(
+                Draft202012Validator(
+                    json.loads(evaluation_schema_path.read_text(encoding="utf-8"))
+                ).iter_errors(result)
+            ),
+            None,
+        )
+        if schema_error is not None:
+            raise CodexQualityError(f"Proxy evaluation schema error: {schema_error.message}")
     _write_json(result_path, result)
     return {**result, "cache_hit": False, "output": str(evaluation_dir)}

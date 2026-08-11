@@ -29,6 +29,31 @@ python -m pip install -e ".[dev]"
 python -m translation_forensics.cli doctor --project-root . --json
 ```
 
+## 통합 영상 처리 명령
+
+새 작업의 정본은 `process-title`이다. 이 명령은 영상/승인된 일본어 참조 또는 기존 검증 번들에서 `transcript_ja.jsonl.text_raw`를 선택하고, Terra 완전 초안과 근거 통과 후보를 분리해 패키징한다.
+
+```powershell
+python -m translation_forensics process-title `
+  --project-root . `
+  --title ADN-622 `
+  --media "C:\영상\ADN-622.mp4" `
+  --japanese-bundle "C:\자막\ADN-622\ensemble_qwen_whisper" `
+  --legacy-captures "C:\사진\ADN-622\timestamp_frames" `
+  --translation-policy dual `
+  --visual-policy targeted `
+  --max-visual-units 20 `
+  --max-frames-per-unit 3 `
+  --auto-capture-frames `
+  --quality-policy automated `
+  --resume
+```
+
+승인된 일본어 SRT를 정본으로 사용할 때만 `--reference-ja ... --reference-ja-approved`를 함께 쓴다. 참조와 기존 번들이 모두 없으면 VAD를 끈 `large-v3-turbo` 전체 전사와 제한적 Qwen 검증을 실행한다. `targeted`는 모호한 단위에 한해 최대 3장을 Codex에 전송한다. 전송을 원치 않으면 `--visual-policy metadata` 또는 `off`를 쓴다.
+`--legacy-captures`를 생략하거나 사진 폴더가 비어 있으면 선택된 모호 단위의 시작·중앙·끝 프레임을 영상에서 자동 생성한다. 생성 프레임은 실행 번들의 `generated-frames/`와 `capture_index.jsonl`에 해시·타임스탬프와 함께 기록된다.
+
+산출물은 `workspaces/<TITLE>/integrated/<run-id>/`에 원자적으로 생성된다. 기본 `automated` 정책은 사람 승인 없이 자동 의미 보존 게이트를 적용하고, 실패 단위는 원문 충실 폴백과 `automated_quality.jsonl`로 표시한다. 모두 통과하면 `machine-final`, 폴백이 있으면 `machine-uncertain` 상태가 된다. 기존 사람 승인 동작이 필요하면 `--quality-policy legacy`를 사용한다. 상세 계약은 [`docs/INTEGRATED_PROCESS_TITLE.md`](docs/INTEGRATED_PROCESS_TITLE.md)에 있다.
+
 ## 초보 사용자를 위한 짧은 요청
 
 프로젝트 루트의 `AGENTS.md`가 번역 규칙과 프롬프트를 자동으로 불러오므로 긴 지침을 매번 붙여 넣을 필요가 없다. Codex에서 다음처럼 요청하면 된다.
@@ -136,7 +161,7 @@ python -m translation_forensics.cli build-translation-queue --project-root . --t
 
 ## 한계
 
-위험 모델은 자동 오역 확정기가 아니며, 기존 모델은 ABF-303 내부 그룹 교차검증 결과다. 사진은 자동 판독하지 않는다. 같은 Whisper 모델의 여러 패스는 독립 증거가 아니다. 원음 직접 청취·외부 골드 세트·실제 작품 샘플은 이 작업에 제공되지 않았다.
+위험 모델은 자동 오역 확정기가 아니며, 기존 모델은 ABF-303 내부 그룹 교차검증 결과다. `process-title --visual-policy targeted`만 선별 프레임을 제한적으로 판독하며, 나머지 경로는 사진 픽셀을 의미 근거로 사용하지 않는다. 같은 Whisper 모델의 여러 패스는 독립 증거가 아니다. 원음 직접 청취·외부 골드 세트가 없으면 결과는 기계 초안이다.
 
 ## 의미 번역 단계
 
@@ -151,7 +176,7 @@ python -m translation_forensics.cli validate-quality-regressions `
   --input .\tests\fixtures\translation-quality-regressions.json
 ```
 
-반복 번역에는 [prompts/terra-semantic-translation-v1.md](prompts/terra-semantic-translation-v1.md)와 함께 제공하는 버전·해시·시험 사례 계약을 사용한다. 외부 모델 호출은 이 저장소가 수행하지 않으며, 템플릿 계약만 다음처럼 검사한다.
+기존 큐/적용 경로의 반복 번역에는 [prompts/terra-semantic-translation-v1.md](prompts/terra-semantic-translation-v1.md)와 함께 제공하는 버전·해시·시험 사례 계약을 사용한다. 이 legacy 경로는 템플릿 계약만 검사하고 모델을 호출하지 않는다. 실제 Codex Terra/Sol 호출은 영수증을 남기는 `process-title` 또는 명시적 autonomous 명령에서만 수행한다.
 
 ```powershell
 python -m translation_forensics.cli validate-prompt-contract `

@@ -5,6 +5,9 @@ source quality, the selected frame, rendered slots, omitted slots, per-slot prov
 coherence findings, and render-blocking conflicts. Raw Terra/Sol disagreement is diagnostic and is not by itself a blocking finding. Do not copy
 `critical_slot_conflicts` into a whole-block rejection when the disputed slot was omitted safely.
 
+If `continuity_memory` is supplied, use it only to detect register or recurring-phrase drift.
+It is not evidence and cannot justify a semantic claim, a slot, or an acceptance verdict.
+
 List claim-level findings. Mark a claim `repair` when wording can be fixed without changing
 the selected frame, `omit` when a removable unsupported detail should be dropped, and
 `blocking` only for unsupported critical meaning, force/polarity/refusal-permission reversal,

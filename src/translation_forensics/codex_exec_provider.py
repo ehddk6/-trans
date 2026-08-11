@@ -21,6 +21,7 @@ ROLE_POLICY = {
     "meaning-frame-terra": (TERRA_MODEL, "high"),
     "meaning-frame-sol": (SOL_MODEL, "xhigh"),
     "translation-terra": (TERRA_MODEL, "high"),
+    "translation-audit-sol": (SOL_MODEL, "xhigh"),
     "critique-sol": (SOL_MODEL, "xhigh"),
     "repair-terra": (TERRA_MODEL, "high"),
     "proxy-evaluator-terra": (TERRA_MODEL, "high"),
@@ -188,9 +189,31 @@ class CodexExecProvider:
         payload: dict[str, Any],
         schema: dict[str, Any],
         resume: bool = True,
+        image_paths: list[Path] | tuple[Path, ...] | None = None,
+        allow_image_transfer: bool = False,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         if role not in ROLE_POLICY:
             raise CodexExecError(f"Unsupported Codex quality role: {role}")
+        resolved_images = [Path(path).expanduser().resolve() for path in (image_paths or [])]
+        if resolved_images and not allow_image_transfer:
+            raise CodexExecError("Image attachments require allow_image_transfer=True.")
+        if len(resolved_images) > 3:
+            raise CodexExecError("At most 3 image attachments are allowed per model call.")
+        unsupported = [path for path in resolved_images if path.suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp"}]
+        if unsupported:
+            raise CodexExecError(f"Unsupported image attachment type: {unsupported[0]}")
+        missing = [path for path in resolved_images if not path.is_file()]
+        if missing:
+            raise CodexExecError(f"Image attachment does not exist: {missing[0]}")
+        image_attachments = [
+            {
+                "path": str(path),
+                "name": path.name,
+                "sha256": sha256_bytes(path.read_bytes()),
+                "size_bytes": path.stat().st_size,
+            }
+            for path in resolved_images
+        ]
         model, reasoning_effort = ROLE_POLICY[role]
         cli_version = self._cli_version()
         request_contract = {
@@ -211,6 +234,9 @@ class CodexExecProvider:
             "ignore_project_instructions": True,
             "api_key_used": False,
         }
+        if image_attachments:
+            request_contract["image_attachments"] = image_attachments
+            request_contract["pixel_external_transfer"] = True
         request_sha256 = sha256_json(request_contract)
         response_cache, receipt_cache = self._cache_paths(request_sha256)
         if resume:
@@ -258,8 +284,10 @@ class CodexExecProvider:
                 "--output-last-message",
                 str(output_path),
                 "--json",
-                "-",
             ]
+            for image_path in resolved_images:
+                command.extend(["--image", str(image_path)])
+            command.append("-")
             env = os.environ.copy()
             env.pop("OPENAI_API_KEY", None)
             env["PYTHONIOENCODING"] = "utf-8"
@@ -340,6 +368,9 @@ class CodexExecProvider:
             "isolated_temporary_directory": True,
             "api_key_used": False,
             "authentication": "codex-login",
+            "external_transfer": bool(image_attachments),
+            "pixel_external_transfer_count": len(image_attachments),
+            "image_attachments": image_attachments,
             "requested_model_verified_by_cli_invocation": True,
             "actual_server_model_reported_by_cli": False,
             "model_call_verified": True,
@@ -382,6 +413,20 @@ def validate_call_receipt(receipt: dict[str, Any], *, expected_role: str | None 
         errors.append("api_key_used must be false")
     if receipt.get("sandbox") != "read-only" or receipt.get("exit_code") != 0:
         errors.append("Codex sandbox/exit contract failed")
+    attachments = receipt.get("image_attachments", [])
+    if not isinstance(attachments, list):
+        errors.append("image_attachments must be a list")
+        attachments = []
+    transfer_count = receipt.get("pixel_external_transfer_count", len(attachments))
+    if transfer_count != len(attachments):
+        errors.append("pixel_external_transfer_count does not match image_attachments")
+    if attachments and receipt.get("external_transfer") is not True:
+        errors.append("image attachments require external_transfer=true")
+    if not attachments and receipt.get("external_transfer") not in {None, False}:
+        errors.append("external_transfer must be false when no image is attached")
+    for attachment in attachments:
+        if not isinstance(attachment, dict) or not str(attachment.get("sha256") or "").strip():
+            errors.append("invalid image attachment receipt")
     for field in (
         "thread_id",
         "codex_cli_version",

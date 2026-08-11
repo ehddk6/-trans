@@ -42,6 +42,7 @@ from .manifest import append_history, build_project_manifest, write_json
 from .memory_ledger import initialize_memory_ledger, validate_memory_ledger
 from .machine_final import package_machine_final, repair_machine_final_asr
 from .local_asr import (
+    FOCUSED_REPAIR_POLICY,
     LocalASRError,
     build_timestamped_utterance_evidence,
     merge_repaired_acoustic_evidence,
@@ -90,6 +91,7 @@ from .pilot_report import (
     build_pilot_evaluation_report,
     write_pilot_evaluation_report,
 )
+from .process_title import ProcessTitleConfig, process_title
 from .prompt_contract import validate_prompt_contract
 from .review_pack import build_review_pack, validate_review_decisions
 from .reverse_check import initialize_reverse_check, validate_reverse_check
@@ -1293,6 +1295,7 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
             effective_acoustic_path = acoustic_path
             effective_source_map_path = source_map_path
             repair_result: dict[str, Any] | None = None
+            effective_repair_report_path: Path | None = None
             if args.repair_evidence:
                 base_acoustic = {
                     int(row["block_number"]): row
@@ -1323,7 +1326,10 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                         for block in structure_blocks
                         if block.number not in set(initial_ceiling["eligible_block_numbers"])
                     ]
-                    repair_dir = quality_root / "pre-ceiling-repair-v4"
+                    focused_repair = bool(getattr(args, "focused_repair", False))
+                    repair_kind = "focused" if focused_repair else "pre-ceiling"
+                    repair_dir = quality_root / ("focused-repair-v1" if focused_repair else "pre-ceiling-repair-v4")
+                    repair_policy = FOCUSED_REPAIR_POLICY if focused_repair else None
                     repair_lineage = {
                         "audio_sha256": _sha256_file(plan["audio"]),
                         "structure_sha256": _sha256_file(plan["structure"]),
@@ -1343,6 +1349,8 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                         resume=args.resume,
                         lineage=repair_lineage,
                         attribution_blocks=structure_blocks,
+                        policy=repair_policy,
+                        repair_kind=repair_kind,
                     )
                     merged_acoustic_path = repair_dir / "block-acoustic-evidence-merged.jsonl"
                     repair_report_path = repair_dir / "repair-report.json"
@@ -1392,6 +1400,7 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                         resume=args.resume,
                     )
                     repair_report = repair_dir / "repair-report.json"
+                    effective_repair_report_path = repair_report
                     repair_result = json.loads(repair_report.read_text(encoding="utf-8"))
                     final_acoustic = {
                         int(row["block_number"]): row
@@ -1460,7 +1469,7 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                 provider=provider,
                 prompt_dir=root / "prompts",
                 schema_dir=root / "schemas",
-                evidence_repair_path=(quality_root / "pre-ceiling-repair-v4" / "repair-report.json") if repair_result else None,
+                evidence_repair_path=effective_repair_report_path,
                 max_scene_blocks=args.max_scene_blocks,
                 maximum_scene_gap_seconds=args.max_scene_gap,
                 max_repairs=args.max_repairs,
@@ -1468,6 +1477,7 @@ def cmd_run_codex_quality(args: argparse.Namespace) -> int:
                 allow_model_download=not args.offline,
                 resume=args.resume,
                 local_asr_call_count=int((repair_result or {}).get("local_asr_call_count", 0)),
+                partial_evidence_evaluation=bool(getattr(args, "partial_evidence_evaluation", False)),
             )
             results.append(
                 {
@@ -2543,6 +2553,76 @@ def cmd_run(args: argparse.Namespace) -> int:
     return analyze_status
 
 
+def cmd_process_title(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    config = ProcessTitleConfig(
+        project_root=root,
+        title_id=args.title,
+        media=args.media,
+        reference_ja=args.reference_ja,
+        reference_ja_approved=args.reference_ja_approved,
+        japanese_bundle=args.japanese_bundle,
+        legacy_captures=args.legacy_captures,
+        translation_policy=args.translation_policy,
+        visual_policy=args.visual_policy,
+        max_visual_units=args.max_visual_units,
+        max_frames_per_unit=args.max_frames_per_unit,
+        auto_capture_frames=args.auto_capture_frames,
+        quality_policy=args.quality_policy,
+        translation_batch_size=args.translation_batch_size,
+        qwen_root=args.qwen_root,
+        review_decisions=args.review_decisions,
+        resume=args.resume,
+        codex_timeout_seconds=args.codex_timeout,
+        output_root=args.output_root,
+    )
+    if args.dry_run:
+        try:
+            config.validate()
+        except ValueError as exc:
+            _emit({"status": "fail", "error": str(exc)}, args)
+            return 2
+        _emit(
+            {
+                "status": "dry-run",
+                "title_id": args.title,
+                "media": str(args.media.expanduser().resolve()),
+                "japanese_source": (
+                    "existing-bundle" if args.japanese_bundle else
+                    "approved-reference" if args.reference_ja else "ensemble"
+                ),
+                "translation_policy": args.translation_policy,
+                "visual_policy": args.visual_policy,
+                "max_visual_units": args.max_visual_units,
+                "max_frames_per_unit": args.max_frames_per_unit,
+                "external_image_transfer_authorized": args.visual_policy == "targeted",
+                "final_promotion_allowed": False,
+            },
+            args,
+        )
+        return 0
+    try:
+        result = process_title(config)
+    except CodexUsageLimitError as exc:
+        _emit(
+            {
+                "status": "blocked",
+                "reason": "codex-usage-limit",
+                "role": exc.role,
+                "call_id": exc.call_id,
+                "retry_after": exc.retry_after,
+                "error": str(exc),
+            },
+            args,
+        )
+        return 2
+    except (CodexExecError, RuntimeError, ValueError, OSError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0
+
+
 def cmd_build_offline_hybrid(args: argparse.Namespace) -> int:
     build_offline_hybrid(args.titles_file, args.workspace_root, args.output)
     return 0
@@ -2567,8 +2647,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("validate-pilot-reviewer-submission", help="검수자 전 블록 직접 청취·독립성·MQM 제출 완전성 검사"); _add_common(p); p.add_argument("--pack", required=True, type=Path); p.add_argument("--attestation", required=True, type=Path); p.add_argument("--decisions", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.set_defaults(func=cmd_validate_pilot_reviewer_submission)
     p = sub.add_parser("adjudicate-pilot-reviews", help="두 독립 제출의 불일치 합의를 검증하고 봉인 키로 최종 결정 기록"); _add_common(p); p.add_argument("--reviewer-1-pack", required=True, type=Path); p.add_argument("--reviewer-1-attestation", required=True, type=Path); p.add_argument("--reviewer-1-decisions", required=True, type=Path); p.add_argument("--reviewer-2-pack", required=True, type=Path); p.add_argument("--reviewer-2-attestation", required=True, type=Path); p.add_argument("--reviewer-2-decisions", required=True, type=Path); p.add_argument("--internal-key", required=True, type=Path); p.add_argument("--consensus", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--expected-baseline-sha256", default="8653a42dc952152994c75e9d43265c49eddc1b7d581cf05d8012fd87e3c3e25b"); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_adjudicate_pilot_reviews)
     p = sub.add_parser("evaluate-pilot-new-critical", help="최종 조정 MQM에서 개선본에 새로 생긴 critical 의미·화행 오류 0건 게이트 판정"); _add_common(p); p.add_argument("--adjudication", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_evaluate_pilot_new_critical)
-    p = sub.add_parser("evaluate-pilot-error-reduction", help="기준본 대비 critical/major 의미·맥락 오류 고유 블록 50% 감소 게이트 판정"); _add_common(p); p.add_argument("--adjudication", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_evaluate_pilot_error_reduction)
-    p = sub.add_parser("evaluate-pilot-naturalness", help="동률 포함 전체 조정 블록 기준 개선본 자연스러움 승률 65%·패배율 15% 게이트 판정"); _add_common(p); p.add_argument("--adjudication", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_evaluate_pilot_naturalness)
+    p = sub.add_parser("evaluate-pilot-error-reduction", help="기준본 대비 critical/major 의미·맥락 오류 고유 블록 50%% 감소 게이트 판정"); _add_common(p); p.add_argument("--adjudication", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_evaluate_pilot_error_reduction)
+    p = sub.add_parser("evaluate-pilot-naturalness", help="동률 포함 전체 조정 블록 기준 개선본 자연스러움 승률 65%%·패배율 15%% 게이트 판정"); _add_common(p); p.add_argument("--adjudication", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_evaluate_pilot_naturalness)
     p = sub.add_parser("analyze", help="Subtitle Forensics 실행 또는 구조 기반 검토 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--output", type=Path); p.add_argument("--vendor-root", type=Path); p.set_defaults(func=cmd_analyze)
     p = sub.add_parser("build-korean-draft", help="일본어 구조에 맞춘 한국어 번역 초안 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--output", type=Path); p.add_argument("--report", type=Path); p.set_defaults(func=cmd_build_korean_draft)
     p = sub.add_parser("build-automatic-draft", help="기존 자동 후보와 정렬 fallback으로 전 블록 재생용 초안 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-candidate", type=Path); p.add_argument("--viewer-candidate", type=Path); p.add_argument("--single-candidate", type=Path); p.add_argument("--fallback", type=Path); p.add_argument("--decision-candidate", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_build_automatic_draft)
@@ -2633,13 +2713,44 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("apply-inferred-recovery", help="사용자 승인 음성 추론 복구본을 v4 SRT에 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--hold-ledger", required=True, type=Path); p.add_argument("--response", required=True, type=Path, action="append"); p.add_argument("--output", type=Path); p.add_argument("--version", default="v4"); p.add_argument("--hold-marker", default="…"); p.set_defaults(func=cmd_apply_inferred_recovery)
     p = sub.add_parser("run-autonomous-release", help="사람 final과 분리된 하이브리드 무인 번역·반증·패키징 실행"); _add_common(p); p.add_argument("--title", action="append"); p.add_argument("--titles-file", type=Path); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--local-asr", type=Path); p.add_argument("--local-asr-model", default="large-v3"); p.add_argument("--cpu", action="store_true"); p.add_argument("--allow-local-model-download", action="store_true"); p.add_argument("--output", type=Path); p.add_argument("--allow-network", action="store_true"); p.add_argument("--max-cost-usd", type=float); p.add_argument("--cache-dir", type=Path); p.add_argument("--resume", action="store_true"); p.add_argument("--max-workers", type=int, default=2); p.add_argument("--batch-size", type=int, default=20); p.add_argument("--max-repairs", type=int, default=2); p.set_defaults(func=cmd_run_autonomous_release)
     p = sub.add_parser("audit-source-quality", help="일본어 SRT의 구조와 텍스트 신뢰도를 분리해 trusted/suspect/unusable 지도를 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--asr-evidence", type=Path); p.add_argument("--output", type=Path); p.add_argument("--resume", action="store_true"); p.set_defaults(func=cmd_audit_source_quality)
-    p = sub.add_parser("run-codex-quality", help="Terra 생성·Sol 독립 반증 기반 autonomous-quality-candidate 실행"); _add_common(p); p.add_argument("--titles", required=True, help="쉼표로 구분한 작품 ID"); p.add_argument("--full-local-asr", action="store_true"); p.add_argument("--repair-evidence", action="store_true", help="초기 evidence ceiling 탈락 블록에 한해 native timestamp ASR 복구 후 ceiling 재평가"); p.add_argument("--resume", action="store_true"); p.add_argument("--offline", action="store_true", help="로컬 ASR 모델 다운로드 금지"); p.add_argument("--cpu", action="store_true"); p.add_argument("--max-windows", type=int, default=0, help="개발용 ASR 창 제한; 0은 전체"); p.add_argument("--max-scene-blocks", type=int, default=60); p.add_argument("--max-scene-gap", type=float, default=60.0); p.add_argument("--max-repairs", type=int, default=2); p.add_argument("--codex-timeout", type=int, default=600); p.add_argument("--cache-dir", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_run_codex_quality)
+    p = sub.add_parser("run-codex-quality", help="Terra 생성·Sol 독립 반증 기반 autonomous-quality-candidate 실행"); _add_common(p); p.add_argument("--titles", required=True, help="쉼표로 구분한 작품 ID"); p.add_argument("--full-local-asr", action="store_true"); p.add_argument("--repair-evidence", action="store_true", help="초기 evidence ceiling 탈락 블록에 한해 native timestamp ASR 복구 후 ceiling 재평가"); p.add_argument("--focused-repair", action="store_true", help="--repair-evidence와 함께 4~8초 블록 중심 native ASR 복구를 사용"); p.add_argument("--partial-evidence-evaluation", action="store_true", help="title gate가 실패해도 증거 통과 블록만 진단 실행; promotion은 항상 차단"); p.add_argument("--resume", action="store_true"); p.add_argument("--offline", action="store_true", help="로컬 ASR 모델 다운로드 금지"); p.add_argument("--cpu", action="store_true"); p.add_argument("--max-windows", type=int, default=0, help="개발용 ASR 창 제한; 0은 전체"); p.add_argument("--max-scene-blocks", type=int, default=60); p.add_argument("--max-scene-gap", type=float, default=60.0); p.add_argument("--max-repairs", type=int, default=2); p.add_argument("--codex-timeout", type=int, default=600); p.add_argument("--cache-dir", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_run_codex_quality)
     p = sub.add_parser("validate-codex-quality", help="autonomous-quality-candidate의 구조·근거·모델 분리·충돌·해시 게이트 검증"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.set_defaults(func=cmd_validate_codex_quality)
     p = sub.add_parser("evaluate-codex-quality", help="고정 시드 120블록을 Terra/Sol 익명 A/B 대리평가"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--baseline", required=True, type=Path); p.add_argument("--sample-size", type=int, default=120); p.add_argument("--batch-size", type=int, default=20); p.add_argument("--resume", action="store_true"); p.add_argument("--codex-timeout", type=int, default=600); p.add_argument("--cache-dir", type=Path); p.set_defaults(func=cmd_evaluate_codex_quality)
     p = sub.add_parser("validate-autonomous-release", help="autonomous-release 구조·커버리지·해시·사람 final 경계 검증"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_autonomous_release)
     p = sub.add_parser("prove-autonomous-claim", help="autonomous-release가 보장하는 속성과 식별 불가능한 사람 정답 주장을 분리"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_prove_autonomous_claim)
     p = sub.add_parser("package", help="새 버전으로 최종 산출물 패키징"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path, required=True); p.add_argument("--photos", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--translation-queue", type=Path, help="결정의 evidence_refs를 대조할 원본 번역 큐"); p.add_argument("--semantic-frames", type=Path); p.add_argument("--hypothesis-ledger", type=Path); p.add_argument("--speaker-state", type=Path); p.add_argument("--alignment-evidence", type=Path); p.add_argument("--mqm-errors", type=Path); p.add_argument("--backtranslation-check", type=Path); p.add_argument("--evaluation-summary", type=Path); p.add_argument("--blind-review-pack", type=Path); p.add_argument("--release-gate", type=Path); p.add_argument("--timeline-validation", type=Path); p.add_argument("--output", type=Path); p.add_argument("--stage", choices=STAGES, default="text-crosschecked"); p.add_argument("--version", type=int); p.add_argument("--all-blocks-reviewed", action="store_true"); p.add_argument("--direct-human-listening", action="store_true"); p.add_argument("--evidence-complete", action="store_true"); p.set_defaults(func=cmd_package)
     p = sub.add_parser("run", help="결정적 단계만 수행하고 의미 판정 전 중단"); _add_common(p); _add_title(p); _input_args(p); p.set_defaults(func=cmd_run)
+    p = sub.add_parser("process-title", help="영상에서 일본어 원문을 복원하고 Terra/Sol 한국어 이중 산출을 패키징")
+    _add_common(p)
+    _add_title(p)
+    p.add_argument("--media", required=True, type=Path, help="작품 코드가 포함된 원본 영상")
+    p.add_argument("--reference-ja", type=Path, help="승인할 일본어 참조 SRT")
+    p.add_argument("--reference-ja-approved", action="store_true", help="참조 SRT를 일본어 원문 근거로 명시 승인")
+    p.add_argument("--japanese-bundle", type=Path, help="검증된 기존 일본어 자막 번들 디렉터리")
+    p.add_argument("--legacy-captures", type=Path, help="timestamp가 파일명에 포함된 기존 프레임 디렉터리")
+    p.add_argument("--translation-policy", choices=("dual",), default="dual")
+    p.add_argument("--visual-policy", choices=("off", "metadata", "targeted"), default="targeted")
+    p.add_argument("--max-visual-units", type=int, default=20)
+    p.add_argument("--max-frames-per-unit", type=int, default=3)
+    p.add_argument(
+        "--auto-capture-frames",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="사진이 없으면 모호한 번역 단위의 대표 프레임을 영상에서 자동 추출 (기본값: 활성)",
+    )
+    p.add_argument(
+        "--quality-policy",
+        choices=("automated", "legacy"),
+        default="automated",
+        help="사람 승인 없이 자동 품질 게이트를 사용 (기본값: automated)",
+    )
+    p.add_argument("--translation-batch-size", type=int, default=40)
+    p.add_argument("--qwen-root", type=Path, help="Qwen3ASR 런타임 루트; 환경변수도 지원")
+    p.add_argument("--review-decisions", type=Path, help="사람 검수 결정 JSONL")
+    p.add_argument("--resume", action="store_true")
+    p.add_argument("--codex-timeout", type=int, default=600)
+    p.add_argument("--output-root", type=Path, help="기본값: workspaces/<TITLE>/integrated")
+    p.set_defaults(func=cmd_process_title)
     p = sub.add_parser("build-offline-hybrid", help="API 호출 없이 로컬 결과물을 병합한 재생용 미리보기 생성 (human final 아님)")
     _add_common(p)
     p.add_argument("--titles-file", type=Path, required=True, help="작품 목록 텍스트 파일 경로")

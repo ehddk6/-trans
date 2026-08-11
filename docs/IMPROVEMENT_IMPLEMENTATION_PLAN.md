@@ -235,3 +235,22 @@
 ## 완료 판단
 
 이 계획의 완료는 기능 수가 아니라 증거로 판단한다. 시간축이 검증되고, 잠긴 평가 세트에서 검수 효율과 오류 포착률을 비교할 수 있으며, 최종 자막의 각 중요한 결정이 근거와 검수 상태까지 역추적될 때에만 개선 효과를 주장한다.
+
+## 2026-08-02 추가 구현: 원문 근거 복구와 부분 진단 실행
+
+현재 SSIS-908 파일럿은 안전성 게이트는 통과했지만 원문 근거 상한이 110/298(36.9128%)이고 semantic 호출은 0건이다. 따라서 품질 향상으로 표현하지 않고, 다음 두 경로를 별도 계약으로 추가했다.
+
+- `--focused-repair`: `--repair-evidence`와 함께 사용하는 opt-in 경로다. 블록마다 4~8초 중심 창을 만들고 두 ASR의 native timestamp를 전역 시간축으로 복원한다. 결과는 `block-local`, `single-block-expanded`, `multi-block-context`로 귀속하며, 후자는 evidence ceiling에 사용할 수 없다. 동일 family의 겹치는 창은 dedup한다.
+- `--partial-evidence-evaluation`: 제목 전체 gate가 실패해도 이미 strict acoustic predicate를 통과한 블록만 Terra/Sol 의미 프레임·번역·비평을 실행한다. 나머지 블록은 모델 호출 없이 `…`로 abstain한다. manifest에는 `execution_scope=eligible-blocks-only`, eligible/ineligible 목록, `title_gate_passed=false`, `promotion_permanently_blocked=true`를 기록하고, `human_equal`, `human_final`, `final_promotion_allowed`는 계속 false다.
+
+필수 안전성은 회귀 테스트로 고정했다. focused 창 계획과 단일 블록 귀속, 부분 실행의 eligible-only receipt 범위, 298개 denominator 보존, SRT 구조 불변, partial schema 검증을 검사한다. 이 구현은 110개 블록의 의미 번역 동작을 측정할 수 있게 하지만, SSIS-908 전체 품질이나 인간 동급을 입증하지 않는다. 전체 품질 주장은 여전히 85% evidence ceiling과 Terra/Sol 대리평가 및 인간/골드 검수를 모두 통과해야 한다.
+
+추가로 장면이 시간축 간격 때문에 분리될 때 이전 후보의 화자·역할·말투·반복 표현을 `continuity_memory`로 전달한다. 이 메모리는 번역·비평 단계에서만 사용하고 의미 프레임 독립 호출에는 제공하지 않으며, evidence reference를 비워 근거로 승격되지 않도록 한다. 이를 통해 자연스러움과 장면 간 일관성을 높이되, 이전 모델 출력이 새 발화의 의미를 덮어쓰는 경로는 차단한다.
+
+부분 후보도 `evaluate-codex-quality`의 고정 시드 대리평가를 사용할 수 있게 했다. 이 경우 결과 상태는 `partial-pass`/`partial-fail`이고, eligible 블록 수와 전체 작품 denominator를 동시에 기록한다. 이는 Terra/Sol의 후보 비교를 가능하게 하는 진단 지표일 뿐, 제목 전체 통과나 인간 동급 판정으로 승격되지 않는다.
+
+## 2026-08-08 추가 구현: 장면 연속성과 부분 대리평가
+
+- 장면이 분리돼도 이전 후보의 화자·역할·말투·반복 표현을 `continuity_memory`로 전달한다. 의미 프레임의 Terra/Sol 독립성은 유지하고, 번역·비평 단계에서만 스타일 힌트로 사용한다.
+- 부분 후보의 A/B 대리평가가 `batch_id` 응답 계약을 검증하고, eligible 표본만 비교하도록 수정했다. 결과에는 전체 denominator, eligible 수, 선택 해시, `partial-pass`/`partial-fail` 상태를 기록한다.
+- 대리평가 결과도 사람 동급·최종 승격과 분리하며, partial 상태가 제목 전체 품질 통과로 해석되지 않도록 스키마와 캐시 계약을 고정했다.

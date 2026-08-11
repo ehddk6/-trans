@@ -5,6 +5,11 @@ blocks without moving timecodes. For each block, use `selected_frame`, `rendered
 `omitted_slots`, `recovery_state`, and `slot_provenance` from the arbitration record. Raw
 Terra/Sol conflicts are diagnostic; only `render_blocking_conflicts` prevents full rendering.
 
+If `continuity_memory` is supplied, use it only to keep speaker labels, register, pronoun
+choices, and recurring Korean phrasing consistent with earlier candidate blocks. It is a
+style/role hint, not evidence: never cite it, never use it to fill a null slot, and never
+allow it to override the current block's selected frame or acoustic/source evidence.
+
 The primary source-faithful and viewer-natural strings may express every selected slot, but
 must not imply omitted slots through Korean grammar, honorifics, actor/target choice, location,
 direction, completion, intensity, or explicit detail. `accepted_partial` must render the

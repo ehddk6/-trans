@@ -8,6 +8,7 @@ from typing import Any
 _ALIGNMENT_PRIORITY = {
     "utterance-timestamp": 3,
     "boundary-expanded-window-rerun": 2,
+    "single-block-expanded": 2,
     "overlapping-window": 1,
 }
 

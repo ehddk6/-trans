@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/codex-quality-manifest.schema.json",
+  "title": "Codex quality package manifest",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "gate_configured",
+    "gate_policy",
+    "gate_policy_version",
+    "gate_config_sha256"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/codex-quality-manifest"},
+    "schema_version": {"type": "string", "minLength": 1},
+    "title_id": {"type": "string", "minLength": 1},
+    "gate_configured": {"type": "boolean"},
+    "gate_policy": {"enum": ["registered", "unregistered-deny"]},
+    "gate_policy_version": {"type": "string", "minLength": 1},
+    "gate_config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "partial_execution": {"type": "boolean"},
+    "partial_evidence_evaluation": {"type": "boolean"},
+    "execution_scope": {"enum": ["full-title", "eligible-blocks-only"]},
+    "title_gate_passed": {"type": "boolean"},
+    "promotion_permanently_blocked": {"type": "boolean"},
+    "eligible_block_numbers": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+    "ineligible_block_numbers": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+    "eligible_block_selection_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "allOf": [
+    {
+      "if": {"required": ["partial_execution"], "properties": {"partial_execution": {"const": true}}},
+      "then": {"required": ["partial_evidence_evaluation", "execution_scope", "title_gate_passed", "promotion_permanently_blocked", "eligible_block_numbers", "ineligible_block_numbers", "eligible_block_selection_sha256"]}
+    }
+  ],
+  "additionalProperties": true
+}

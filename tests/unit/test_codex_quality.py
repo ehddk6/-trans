@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 import json
+import hashlib
 
+from jsonschema import Draft202012Validator
+
+import translation_forensics.codex_quality as codex_quality
 from translation_forensics.codex_exec_provider import ROLE_POLICY
 from translation_forensics.codex_quality import (
+    _build_translation_continuity_memory,
     _review_repair_eligible,
     build_scene_batches,
     compare_independent_frames,
+    evaluate_codex_quality,
     evaluate_evidence_ceiling,
     run_codex_quality_title,
     stratified_proxy_sample,
@@ -107,12 +113,29 @@ def test_proxy_sample_is_fixed_and_stratified():
         {"block_number": number, "source_quality_status": ("trusted", "suspect", "unusable")[number % 3]}
         for number in range(1, 301)
     ]
-    first = stratified_proxy_sample(decisions, title_id="SAMPLE", sample_size=120)
-    second = stratified_proxy_sample(list(reversed(decisions)), title_id="SAMPLE", sample_size=120)
+    first = stratified_proxy_sample(decisions, title_id="SSIS-908", sample_size=120)
+    second = stratified_proxy_sample(list(reversed(decisions)), title_id="SSIS-908", sample_size=120)
     assert first == second
     assert len(first) == 120
     selected_statuses = {decisions[number - 1]["source_quality_status"] for number in first}
     assert selected_statuses == {"trusted", "suspect", "unusable"}
+
+
+def test_translation_continuity_memory_is_not_evidence():
+    memory = _build_translation_continuity_memory(
+        [
+            {
+                "block_number": 7,
+                "selected_frame": {"speaker": "speaker-1", "actor": "actor-1"},
+                "utterance_kind": "lexical_speech",
+                "source_faithful_korean": "이전 대사",
+                "viewer_natural_korean": "자연스러운 이전 대사",
+            }
+        ]
+    )
+    assert memory[0]["memory_role"] == "continuity-only-not-evidence"
+    assert memory[0]["evidence_refs"] == []
+    assert memory[0]["speaker"] == "speaker-1"
 
 
 def test_evidence_ceiling_blocks_impossible_title_before_model_calls():
@@ -167,7 +190,7 @@ def test_evidence_ceiling_uses_downstream_fusion_predicate():
         },
     }
     result = evaluate_evidence_ceiling(
-        title_id="SAMPLE",
+        title_id="SSIS-908",
         expected_blocks=[1, 2, 3],
         source_quality=quality,
         acoustic=acoustic,
@@ -175,6 +198,135 @@ def test_evidence_ceiling_uses_downstream_fusion_predicate():
     # Family names alone are not enough: a fusion decision is mandatory for
     # the production evidence ceiling.
     assert result["eligible_block_numbers"] == [3]
+
+
+def test_unregistered_title_uses_strict_default_and_blocks_empty_evidence():
+    result = evaluate_evidence_ceiling(
+        title_id="UNREGISTERED",
+        expected_blocks=[1, 2],
+        source_quality={
+            1: {"source_quality_status": "unusable"},
+            2: {"source_quality_status": "unusable"},
+        },
+        acoustic={1: {}, 2: {}},
+    )
+    assert result["status"] == "fail"
+    assert result["model_calls_allowed"] is False
+    assert result["minimum_required_accepted_rate"] == 1.0
+    assert result["gate_configured"] is False
+    assert result["gate_policy"] == "unregistered-deny"
+
+
+def test_unregistered_title_is_denied_even_with_full_evidence():
+    result = evaluate_evidence_ceiling(
+        title_id="UNREGISTERED",
+        expected_blocks=[1],
+        source_quality={1: {"source_quality_status": "trusted"}},
+        acoustic={1: {}},
+    )
+    assert result["maximum_possible_accepted_rate"] == 1.0
+    assert result["status"] == "fail"
+    assert result["model_calls_allowed"] is False
+
+
+def test_resume_recomputes_gate_policy_for_legacy_unregistered_package(tmp_path):
+    structure = tmp_path / "structure.srt"
+    structure.write_text("1\n00:00:00,000 --> 00:00:01,000\n原文\n", encoding="utf-8")
+    source_map = tmp_path / "source-quality-map.jsonl"
+    source_map.write_text(json.dumps({"block_number": 1, "source_quality_status": "unusable"}) + "\n", encoding="utf-8")
+    acoustic = tmp_path / "acoustic.jsonl"
+    acoustic.write_text(json.dumps({"block_number": 1, "transcripts": [], "evidence_refs": []}) + "\n", encoding="utf-8")
+    package = tmp_path / "package"
+    package.mkdir()
+
+    def digest(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    (package / "manifest.json").write_text(
+        json.dumps(
+            {
+                "title_id": "UNREGISTERED",
+                "status": "quality-gates-passed",
+                "inputs": {
+                    "structure": {"sha256": digest(structure)},
+                    "source_quality_map": {"sha256": digest(source_map)},
+                    "acoustic_evidence": {"sha256": digest(acoustic)},
+                },
+                "model_call_count": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_codex_quality_title(
+        title_id="UNREGISTERED",
+        structure_path=structure,
+        source_quality_map_path=source_map,
+        acoustic_evidence_path=acoustic,
+        audio_path=None,
+        output_dir=package,
+        provider=object(),
+        prompt_dir=tmp_path,
+        schema_dir=tmp_path,
+        resume=True,
+    )
+    assert result["cache_hit"] is False
+    assert result["status"] == "evidence-ceiling-failed"
+    assert result["model_call_count"] == 0
+    assert result["gate_policy"] == "unregistered-deny"
+
+
+def test_registered_gate_hash_invalidates_resume_and_forged_gate_is_rejected(tmp_path, monkeypatch):
+    structure = tmp_path / "structure.srt"
+    structure.write_text("1\n00:00:00,000 --> 00:00:01,000\n原文\n", encoding="utf-8")
+    source_map = tmp_path / "source-quality-map.jsonl"
+    source_map.write_text(json.dumps({"block_number": 1, "source_quality_status": "unusable"}) + "\n", encoding="utf-8")
+    acoustic = tmp_path / "acoustic.jsonl"
+    acoustic.write_text(json.dumps({"block_number": 1, "transcripts": [], "evidence_refs": []}) + "\n", encoding="utf-8")
+    package = tmp_path / "package"
+    first = run_codex_quality_title(
+        title_id="SSIS-908",
+        structure_path=structure,
+        source_quality_map_path=source_map,
+        acoustic_evidence_path=acoustic,
+        audio_path=None,
+        output_dir=package,
+        provider=object(),
+        prompt_dir=tmp_path,
+        schema_dir=tmp_path,
+        resume=False,
+    )
+    assert first["cache_hit"] is False
+    manifest_path = package / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    original_hash = manifest["gate_config_sha256"]
+
+    monkeypatch.setitem(
+        codex_quality.TITLE_GATES,
+        "SSIS-908",
+        {"minimum_accepted_rate": 0.86, "minimum_safe_usable_rate": 0.85, "maximum_ellipsis_rate": 0.08},
+    )
+    resumed = run_codex_quality_title(
+        title_id="SSIS-908",
+        structure_path=structure,
+        source_quality_map_path=source_map,
+        acoustic_evidence_path=acoustic,
+        audio_path=None,
+        output_dir=package,
+        provider=object(),
+        prompt_dir=tmp_path,
+        schema_dir=tmp_path,
+        resume=True,
+    )
+    assert resumed["cache_hit"] is False
+    assert resumed["gate_config_sha256"] != original_hash
+
+    forged = json.loads((package / "manifest.json").read_text(encoding="utf-8"))
+    forged["gate_configured"] = False
+    manifest_path.write_text(json.dumps(forged), encoding="utf-8")
+    validation = validate_codex_quality(package)
+    assert validation["status"] == "fail"
+    assert any("manifest gate_configured does not match" in error for error in validation["errors"])
 
 
 class FakeQualityProvider:
@@ -244,6 +396,55 @@ class FakeQualityProvider:
             "response_sha256": "e" * 64,
         }
         return response, receipt
+
+
+class ProxyQualityProvider(FakeQualityProvider):
+    def run_structured(self, *, role, title_id, call_id, prompt, payload, schema, resume=True):
+        if role.startswith("proxy-evaluator"):
+            model, effort = ROLE_POLICY[role]
+            batch_id = payload["batch_id"]
+            numbers = [int(row["block_number"]) for row in payload["blocks"]]
+            response = {
+                "batch_id": batch_id,
+                "judgments": [
+                    {
+                        "block_number": number,
+                        "winner": "tie",
+                        "critical_error_side": "none",
+                        "reason": "candidate is supported",
+                    }
+                    for number in numbers
+                ],
+            }
+            receipt = {
+                "role": role,
+                "requested_model": model,
+                "reasoning_effort": effort,
+                "ephemeral": True,
+                "isolated_temporary_directory": True,
+                "requested_model_verified_by_cli_invocation": True,
+                "model_call_verified": True,
+                "api_key_used": False,
+                "sandbox": "read-only",
+                "exit_code": 0,
+                "thread_id": f"thread-{call_id}",
+                "codex_cli_version": "codex-cli test",
+                "request_sha256": "a" * 64,
+                "prompt_sha256": "b" * 64,
+                "evidence_sha256": "c" * 64,
+                "schema_sha256": "d" * 64,
+                "response_sha256": "e" * 64,
+            }
+            return response, receipt
+        return super().run_structured(
+            role=role,
+            title_id=title_id,
+            call_id=call_id,
+            prompt=prompt,
+            payload=payload,
+            schema=schema,
+            resume=resume,
+        )
 
 
 class VocalizationQualityProvider(FakeQualityProvider):
@@ -405,7 +606,7 @@ def test_end_to_end_quality_package_with_real_contracts(tmp_path):
     root = __import__("pathlib").Path(__file__).resolve().parents[2]
     package = tmp_path / "package"
     result = run_codex_quality_title(
-        title_id="SAMPLE",
+        title_id="SSIS-908",
         structure_path=structure,
         source_quality_map_path=source_map,
         acoustic_evidence_path=acoustic,
@@ -424,6 +625,167 @@ def test_end_to_end_quality_package_with_real_contracts(tmp_path):
     assert validation["accepted_rate"] == 1.0
     assert validation["safe_usable_rate"] == 1.0
     assert validation["recovery_state_counts"] == {"accepted_consensus": 2}
+    root = __import__("pathlib").Path(__file__).resolve().parents[2]
+    manifest_schema = json.loads((root / "schemas" / "codex-quality-manifest.schema.json").read_text(encoding="utf-8"))
+    evidence_schema = json.loads((root / "schemas" / "codex-quality-evidence-ceiling.schema.json").read_text(encoding="utf-8"))
+    validation_schema = json.loads((root / "schemas" / "codex-quality-validation.schema.json").read_text(encoding="utf-8"))
+    Draft202012Validator(manifest_schema).validate(json.loads((package / "manifest.json").read_text(encoding="utf-8")))
+    evidence_path = package / "evidence-feasibility.json"
+    if evidence_path.is_file():
+        Draft202012Validator(evidence_schema).validate(json.loads(evidence_path.read_text(encoding="utf-8")))
+    Draft202012Validator(validation_schema).validate(validation)
+
+
+def test_partial_evidence_evaluation_runs_only_eligible_blocks_and_never_promotes(tmp_path):
+    structure = tmp_path / "sample.ja.srt"
+    structure.write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\n?꾠굙??n\n\n"
+        "2\n00:00:02,000 --> 00:00:03,000\n?꾠굙??n\n",
+        encoding="utf-8",
+    )
+    source_map = tmp_path / "source-quality-map.jsonl"
+    source_map.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "block_number": number,
+                    "source_quality_status": "trusted" if number == 1 else "unusable",
+                    "reason_codes": [],
+                }
+            )
+            + "\n"
+            for number in (1, 2)
+        ),
+        encoding="utf-8",
+    )
+    acoustic = tmp_path / "block-acoustic-evidence.jsonl"
+    acoustic.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "block_number": number,
+                    "transcripts": [],
+                    "evidence_refs": [],
+                    "independent_source_families": [],
+                }
+            )
+            + "\n"
+            for number in (1, 2)
+        ),
+        encoding="utf-8",
+    )
+    root = __import__("pathlib").Path(__file__).resolve().parents[2]
+    package = tmp_path / "partial-package"
+    result = run_codex_quality_title(
+        title_id="SSIS-908",
+        structure_path=structure,
+        source_quality_map_path=source_map,
+        acoustic_evidence_path=acoustic,
+        audio_path=None,
+        output_dir=package,
+        provider=FakeQualityProvider(),
+        prompt_dir=root / "prompts",
+        schema_dir=root / "schemas",
+        max_scene_blocks=20,
+        max_repairs=0,
+        resume=False,
+        partial_evidence_evaluation=True,
+    )
+    assert result["status"] == "partial-evidence-candidate"
+    assert result["partial_execution"] is True
+    assert result["eligible_block_numbers"] == [1]
+    assert result["ineligible_block_numbers"] == [2]
+    validation = validate_codex_quality(package)
+    assert validation["status"] == "partial"
+    assert validation["metric_gate_passed"] is False
+    assert validation["final_promotion_allowed"] is False
+    assert validation["eligible_block_numbers"] == [1]
+    manifest_schema = json.loads((root / "schemas" / "codex-quality-manifest.schema.json").read_text(encoding="utf-8"))
+    validation_schema = json.loads((root / "schemas" / "codex-quality-validation.schema.json").read_text(encoding="utf-8"))
+    Draft202012Validator(manifest_schema).validate(json.loads((package / "manifest.json").read_text(encoding="utf-8")))
+    Draft202012Validator(validation_schema).validate(validation)
+    manifest_path = package / "manifest.json"
+    forged_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    forged_manifest["eligible_block_numbers"] = [2]
+    manifest_path.write_text(json.dumps(forged_manifest), encoding="utf-8")
+    forged_validation = validate_codex_quality(package)
+    assert forged_validation["status"] == "fail"
+    assert any("eligible block list differs" in error for error in forged_validation["errors"])
+    assert len((package / "model-call-receipts.jsonl").read_text(encoding="utf-8").splitlines()) > 0
+    assert all(
+        row["block_number"] == 1
+        for row in (
+            json.loads(line)
+            for line in (package / "decisions.jsonl").read_text(encoding="utf-8").splitlines()
+        )
+    )
+    viewer_text = (package / "SSIS-908.viewer-natural-ko.autonomous-quality-v1.srt").read_text(encoding="utf-8")
+    assert "…" in viewer_text
+
+
+def test_partial_proxy_evaluation_is_diagnostic_and_keeps_full_denominator(tmp_path):
+    structure = tmp_path / "sample.ja.srt"
+    structure.write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\n?꾠굙??n\n\n"
+        "2\n00:00:02,000 --> 00:00:03,000\n?꾠굙??n\n",
+        encoding="utf-8",
+    )
+    source_map = tmp_path / "source-quality-map.jsonl"
+    source_map.write_text(
+        "".join(
+            json.dumps({"block_number": number, "source_quality_status": "trusted" if number == 1 else "unusable", "reason_codes": []}) + "\n"
+            for number in (1, 2)
+        ),
+        encoding="utf-8",
+    )
+    acoustic = tmp_path / "block-acoustic-evidence.jsonl"
+    acoustic.write_text(
+        "".join(json.dumps({"block_number": number, "transcripts": [], "evidence_refs": [], "independent_source_families": []}) + "\n" for number in (1, 2)),
+        encoding="utf-8",
+    )
+    root = __import__("pathlib").Path(__file__).resolve().parents[2]
+    package = tmp_path / "partial-package"
+    provider = ProxyQualityProvider()
+    run_codex_quality_title(
+        title_id="SSIS-908",
+        structure_path=structure,
+        source_quality_map_path=source_map,
+        acoustic_evidence_path=acoustic,
+        audio_path=None,
+        output_dir=package,
+        provider=provider,
+        prompt_dir=root / "prompts",
+        schema_dir=root / "schemas",
+        max_scene_blocks=20,
+        max_repairs=0,
+        resume=False,
+        partial_evidence_evaluation=True,
+    )
+    baseline = tmp_path / "baseline.srt"
+    baseline.write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\n기준 대사\n\n"
+        "2\n00:00:02,000 --> 00:00:03,000\n기준 대사\n",
+        encoding="utf-8",
+    )
+    evaluation = evaluate_codex_quality(
+        package_dir=package,
+        baseline=baseline,
+        provider=provider,
+        prompt_dir=root / "prompts",
+        schema_dir=root / "schemas",
+        sample_size=1,
+        batch_size=1,
+        resume=False,
+    )
+    assert evaluation["status"] == "partial-pass"
+    assert evaluation["evaluation_scope"] == "eligible-blocks-only"
+    assert evaluation["partial_evaluation"] is True
+    assert evaluation["denominator_block_count"] == 2
+    assert evaluation["eligible_block_count"] == 1
+    assert evaluation["title_gate_passed"] is False
+    assert evaluation["promotion_permanently_blocked"] is True
+    evaluation_schema = json.loads((root / "schemas" / "codex-quality-proxy-evaluation.schema.json").read_text(encoding="utf-8"))
+    Draft202012Validator(evaluation_schema).validate(evaluation)
 
 
 def test_end_to_end_vocalization_route_controls_rendering(tmp_path):
@@ -469,7 +831,7 @@ def test_end_to_end_vocalization_route_controls_rendering(tmp_path):
     root = __import__("pathlib").Path(__file__).resolve().parents[2]
     package = tmp_path / "package"
     result = run_codex_quality_title(
-        title_id="SAMPLE",
+        title_id="SSIS-908",
         structure_path=structure,
         source_quality_map_path=source_map,
         acoustic_evidence_path=acoustic,
@@ -557,7 +919,7 @@ def test_end_to_end_conflict_rerun_is_block_local_and_re_fused(tmp_path, monkeyp
     root = __import__("pathlib").Path(__file__).resolve().parents[2]
     package = tmp_path / "package"
     result = run_codex_quality_title(
-        title_id="SAMPLE",
+        title_id="SSIS-908",
         structure_path=structure,
         source_quality_map_path=source_map,
         acoustic_evidence_path=acoustic,
@@ -632,7 +994,7 @@ def test_end_to_end_repair_critique_runs_terra_repair_then_accept(tmp_path):
     root = __import__("pathlib").Path(__file__).resolve().parents[2]
     package = tmp_path / "package"
     result = run_codex_quality_title(
-        title_id="SAMPLE",
+        title_id="SSIS-908",
         structure_path=structure,
         source_quality_map_path=source_map,
         acoustic_evidence_path=acoustic,
@@ -650,3 +1012,45 @@ def test_end_to_end_repair_critique_runs_terra_repair_then_accept(tmp_path):
     decision = json.loads((package / "decisions.jsonl").read_text(encoding="utf-8").splitlines()[0])
     assert decision["sol_final_verdict"] == "accept"
     assert len(decision["repair_history"]) == 2
+
+
+def test_translation_payload_carries_prior_scene_continuity_only_memory(tmp_path):
+    structure = tmp_path / "sample.ja.srt"
+    structure.write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\n?꾠굙??n\n\n"
+        "2\n00:00:10,000 --> 00:00:11,000\n?꾠굙??n\n",
+        encoding="utf-8",
+    )
+    source_map = tmp_path / "source-quality-map.jsonl"
+    source_map.write_text(
+        "".join(json.dumps({"block_number": number, "source_quality_status": "trusted", "reason_codes": []}) + "\n" for number in (1, 2)),
+        encoding="utf-8",
+    )
+    acoustic = tmp_path / "block-acoustic-evidence.jsonl"
+    acoustic.write_text(
+        "".join(json.dumps({"block_number": number, "transcripts": [], "evidence_refs": [], "independent_source_families": []}) + "\n" for number in (1, 2)),
+        encoding="utf-8",
+    )
+    root = __import__("pathlib").Path(__file__).resolve().parents[2]
+    provider = ConflictRetryQualityProvider()
+    package = tmp_path / "continuity-package"
+    result = run_codex_quality_title(
+        title_id="SSIS-908",
+        structure_path=structure,
+        source_quality_map_path=source_map,
+        acoustic_evidence_path=acoustic,
+        audio_path=None,
+        output_dir=package,
+        provider=provider,
+        prompt_dir=root / "prompts",
+        schema_dir=root / "schemas",
+        max_scene_blocks=1,
+        maximum_scene_gap_seconds=1.0,
+        max_repairs=0,
+        resume=False,
+    )
+    assert result["status"] == "quality-gates-failed"
+    memory = provider.payloads["scene-0002.translation.terra"]["continuity_memory"]
+    assert memory and memory[-1]["block_number"] == 1
+    assert memory[-1]["memory_role"] == "continuity-only-not-evidence"
+    assert memory[-1]["evidence_refs"] == []

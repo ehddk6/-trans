@@ -146,3 +146,60 @@ def test_usage_limit_is_typed_and_preserves_retry_time(tmp_path, monkeypatch):
     assert caught.value.role == "translation-terra"
     assert caught.value.call_id == "scene-0004.translation.terra"
     assert caught.value.retry_after == "Aug 4th, 2026 4:49 PM"
+
+
+def test_image_attachment_requires_explicit_transfer_and_is_receipted(tmp_path, monkeypatch):
+    monkeypatch.setattr("translation_forensics.codex_exec_provider.shutil.which", lambda _: "codex")
+    image = tmp_path / "frame.jpg"
+    image.write_bytes(b"jpeg-test")
+    provider = CodexExecProvider(cache_dir=tmp_path / "cache", runner=fake_runner)
+
+    with pytest.raises(CodexExecError, match="allow_image_transfer"):
+        provider.run_structured(
+            role="critique-sol",
+            title_id="SAMPLE",
+            call_id="unit-1.visual.sol",
+            prompt="Review the supplied frame.",
+            payload={"unit_id": "unit-1"},
+            schema=SCHEMA,
+            image_paths=[image],
+        )
+
+    response, receipt = provider.run_structured(
+        role="critique-sol",
+        title_id="SAMPLE",
+        call_id="unit-1.visual.sol",
+        prompt="Review the supplied frame.",
+        payload={"unit_id": "unit-1"},
+        schema=SCHEMA,
+        image_paths=[image],
+        allow_image_transfer=True,
+        resume=False,
+    )
+    assert response == {"value": "ok"}
+    assert receipt["external_transfer"] is True
+    assert receipt["pixel_external_transfer_count"] == 1
+    assert receipt["image_attachments"][0]["name"] == "frame.jpg"
+    assert len(receipt["image_attachments"][0]["sha256"]) == 64
+    assert validate_call_receipt(receipt, expected_role="critique-sol") == []
+
+
+def test_image_attachment_limit_is_three(tmp_path, monkeypatch):
+    monkeypatch.setattr("translation_forensics.codex_exec_provider.shutil.which", lambda _: "codex")
+    images = []
+    for index in range(4):
+        image = tmp_path / f"frame-{index}.jpg"
+        image.write_bytes(bytes([index]))
+        images.append(image)
+    provider = CodexExecProvider(cache_dir=tmp_path / "cache", runner=fake_runner)
+    with pytest.raises(CodexExecError, match="At most 3"):
+        provider.run_structured(
+            role="critique-sol",
+            title_id="SAMPLE",
+            call_id="unit-1.visual.sol",
+            prompt="Review.",
+            payload={},
+            schema=SCHEMA,
+            image_paths=images,
+            allow_image_transfer=True,
+        )

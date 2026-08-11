@@ -4,12 +4,15 @@ from translation_forensics.local_asr import (
     AudioWindow,
     _deduplicate_overlapping_utterances,
     _deduplicate_repair_transcripts,
+    _segment_block_attribution,
     _segments_from_reazon_subwords,
     _split_reazon_by_whisper_segments,
     map_transcripts_to_blocks,
     plan_conflict_rerun_windows,
+    plan_focused_repair_windows,
     plan_vad_windows,
     run_pre_ceiling_evidence_repair,
+    FOCUSED_REPAIR_POLICY,
 )
 from translation_forensics.srt import SubtitleBlock
 
@@ -198,6 +201,29 @@ def test_conflict_rerun_clusters_adjacent_blocks_into_shared_windows():
     assert len(planned) == 2
     assert sum(len(group) for _, group in planned) == len(blocks)
     assert all(window.duration <= 28.0 for window, _ in planned)
+
+
+def test_focused_repair_plans_short_block_centered_windows():
+    blocks = [
+        SubtitleBlock(1, "00:00:10,000", "00:00:11,000", "x", 10.0, 11.0),
+        SubtitleBlock(2, "00:00:20,000", "00:00:23,000", "y", 20.0, 23.0),
+    ]
+    planned = plan_focused_repair_windows(blocks, duration_seconds=30.0)
+    assert len(planned) == 2
+    assert all(window.duration <= 8.0 for window, _ in planned)
+    assert [group[0].number for _, group in planned] == [1, 2]
+    assert all(window.core_start == group[0].start_seconds for window, group in planned)
+
+
+def test_focused_attribution_allows_only_explicit_single_block_expansion():
+    blocks = [
+        SubtitleBlock(1, "00:00:10,000", "00:00:11,000", "x", 10.0, 11.0),
+        SubtitleBlock(2, "00:00:11,000", "00:00:12,000", "y", 11.0, 12.0),
+    ]
+    result = _segment_block_attribution(9.5, 11.2, blocks, policy=FOCUSED_REPAIR_POLICY)
+    assert result[1]["alignment_scope"] == "single-block-expanded"
+    assert result[1]["block_aligned"] is False
+    assert result[2]["attribution_status"] == "multi-block-context"
 
 
 def test_reazon_text_uses_sequence_aligned_segment_boundaries():
