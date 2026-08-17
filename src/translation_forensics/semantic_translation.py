@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .alignment import align_by_overlap
+from .consistency import consistency_conflicts, read_consistency_ledger, select_consistency_context, speaker_context_by_scene, terminology_consistency_records
 from .identity import attach_queue_identity, infer_title_id, stable_id
+from .manifest import sha256_file
 from .srt import JAPANESE_RE, SubtitleBlock, has_japanese, parse_srt, write_srt
 from .translation_model import DEFAULT_TRANSLATION_MODEL, resolve_translation_model
 
@@ -24,6 +26,10 @@ DECISION_FIELDS = [
     "confidence",
     "uncertain_slots",
     "evidence_refs",
+    "consistency_refs",
+    "consistency_conflicts",
+    "preserved_meaning",
+    "review_required_reasons",
     "review_note",
 ]
 
@@ -152,6 +158,9 @@ def build_translation_queue(
     review_context_path: Path | None = None,
     review_queue_path: Path | None = None,
     capture_index_path: Path | None = None,
+    consistency_ledger_path: Path | None = None,
+    terminology_path: Path | None = None,
+    speaker_state_path: Path | None = None,
     translation_model: str = DEFAULT_TRANSLATION_MODEL,
     title_id: str | None = None,
 ) -> dict[str, Any]:
@@ -167,6 +176,26 @@ def build_translation_queue(
     structure_equals_ja = structure_path.resolve() == ja_path.resolve()
     records: list[dict[str, Any]] = []
     title_id = title_id or infer_title_id(structure_path)
+    consistency_records: list[dict[str, Any]] = []
+    consistency_report: dict[str, Any] = {"status": "not-provided", "conflict_count": 0}
+    consistency_sha256: str | None = None
+    terminology_sha256: str | None = None
+    if consistency_ledger_path and consistency_ledger_path.exists():
+        all_consistency_records, consistency_report = read_consistency_ledger(consistency_ledger_path)
+        consistency_records = [record for record in all_consistency_records if str(record.get("title_id") or "") == title_id]
+        consistency_sha256 = sha256_file(consistency_ledger_path)
+    terminology_records: list[dict[str, Any]] = []
+    if terminology_path and terminology_path.exists():
+        terminology_records = terminology_consistency_records(terminology_path, title_id=title_id)
+        terminology_sha256 = sha256_file(terminology_path)
+        terminology_keys = {str(record.get("key") or "") for record in terminology_records}
+        consistency_records = [
+            record for record in consistency_records
+            if not (record.get("entry_type") == "terminology" and str(record.get("key") or "") in terminology_keys)
+        ]
+        consistency_records.extend(terminology_records)
+    consistency_report["conflict_count"] = len(consistency_conflicts(consistency_records))
+    speakers_by_scene = speaker_context_by_scene(speaker_state_path)
     unresolved_source = 0
     for index, reference in enumerate(structure):
         ja_match = japanese_map.get(reference.number, {})
@@ -176,6 +205,22 @@ def build_translation_queue(
         previous_match = previous_map.get(reference.number, {})
         band = bands.get(reference.number, "P3")
         asr_rows = asr_by_block.get(reference.number, [])
+        block_scene_ids = scene_ids.get(reference.number, [])
+        speaker_context = [speakers_by_scene[scene_id] for scene_id in block_scene_ids if scene_id in speakers_by_scene]
+        consistency_context = (
+            select_consistency_context(
+                consistency_records,
+                block_number=reference.number,
+                scene_ids=block_scene_ids,
+                speaker_context=speaker_context,
+            )
+            if consistency_records
+            else {"status": "not-provided", "applied_entries": [], "unresolved_entries": [], "conflicts": [], "speaker_context": speaker_context, "human_final_evidence": False}
+        )
+        if consistency_sha256:
+            consistency_context["ledger_sha256"] = consistency_sha256
+        if terminology_sha256:
+            consistency_context["terminology_sha256"] = terminology_sha256
         evidence_refs = ["japanese_srt", "neighboring_context"]
         if previous_match.get("text"):
             evidence_refs.append("previous_korean_candidate")
@@ -195,7 +240,8 @@ def build_translation_queue(
             "previous_korean_alignment": previous_match,
             "neighboring_source_japanese": _neighbor_rows(japanese, min(index, len(japanese) - 1)) if japanese else [],
             "asr_candidates": asr_rows,
-            "scene_ids": scene_ids.get(reference.number, []),
+            "scene_ids": block_scene_ids,
+            "consistency_context": consistency_context,
             "required_semantic_slots": _required_slots(japanese_text),
             "evidence_refs": evidence_refs,
             "structure_locked_to": str(structure_path),
@@ -209,6 +255,7 @@ def build_translation_queue(
                 "do_not_add_screen_only_actions_or_body_parts",
                 "do_not_treat_previous_korean_as_truth",
                 "write_source_faithful_before_viewer_natural",
+                "apply_confirmed_consistency_entries_without_treating_unresolved_entries_as_facts",
             ],
         })
     records = attach_queue_identity(records, title_id=title_id)
@@ -228,6 +275,16 @@ def build_translation_queue(
         "priority_blocks": sum(record["review_band"] in {"P1", "P2"} for record in records),
         "structure_equals_japanese_source": structure_equals_ja,
         "capture_semantic_interpretation": False if capture_available else None,
+        "consistency_ledger": {
+            "path": str(consistency_ledger_path) if consistency_ledger_path and consistency_ledger_path.exists() else None,
+            "sha256": consistency_sha256,
+            "title_entries": len(consistency_records),
+            "conflict_count": consistency_report.get("conflict_count", 0),
+            "speaker_state": str(speaker_state_path) if speaker_state_path and speaker_state_path.exists() else None,
+            "terminology": str(terminology_path) if terminology_path and terminology_path.exists() else None,
+            "terminology_sha256": terminology_sha256,
+            "automatic_application": False,
+        },
         "translation_model": translation_model,
         "next_required_action": "supply one semantic translation decision per block before SRT promotion",
         "final_promotion_allowed": False,
@@ -260,6 +317,16 @@ def initialize_translation_decisions(queue_path: Path, output_path: Path, *, tra
             "confidence": "",
             "uncertain_slots": item.get("required_semantic_slots", []),
             "evidence_refs": item.get("evidence_refs", []),
+            "consistency_refs": [],
+            "consistency_conflicts": [
+                entry_id
+                for conflict in (item.get("consistency_context", {}) or {}).get("conflicts", [])
+                if isinstance(conflict, dict)
+                for entry_id in conflict.get("entry_ids", [])
+                if isinstance(entry_id, str)
+            ],
+            "preserved_meaning": [],
+            "review_required_reasons": [],
             "review_note": "",
         })
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -312,7 +379,7 @@ def merge_translation_decisions(base_path: Path, reviewed_path: Path, output_pat
         "blocks": len(ordered),
         "reviewed_blocks": len(reviewed_numbers),
         "unresolved_blocks": len(unresolved),
-        "final_promotion_allowed": not unresolved,
+        "final_promotion_allowed": False,
     }
 
 
@@ -328,7 +395,66 @@ def _decision_text(record: dict[str, Any], field: str) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
-def _decision_errors(record: dict[str, Any], *, strict: bool) -> list[str]:
+def _evidence_refs(value: Any) -> tuple[list[str], bool]:
+    if not isinstance(value, list):
+        return [], False
+    refs = [item.strip() for item in value if isinstance(item, str) and item.strip()]
+    return refs, len(refs) == len(value)
+
+
+def _queue_evidence_refs(path: Path) -> dict[int, set[str]]:
+    allowed_by_block: dict[int, set[str]] = {}
+    errors: list[str] = []
+    for record in _read_jsonl(path):
+        try:
+            number = _decision_key(record.get("block_number"))
+        except ValueError as exc:
+            errors.append(str(exc))
+            continue
+        if number in allowed_by_block:
+            errors.append(f"translation queue에 중복 block이 있습니다: {number}")
+            continue
+        refs, valid = _evidence_refs(record.get("evidence_refs"))
+        if not valid:
+            errors.append(f"translation queue {number}: evidence_refs는 빈 값 없는 문자열 목록이어야 합니다")
+        allowed_by_block[number] = set(refs)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return allowed_by_block
+
+
+def _queue_consistency_contract(path: Path) -> dict[int, tuple[set[str], set[str]]]:
+    result: dict[int, tuple[set[str], set[str]]] = {}
+    for record in _read_jsonl(path):
+        number = _decision_key(record.get("block_number"))
+        context = record.get("consistency_context", {})
+        if not isinstance(context, dict):
+            result[number] = (set(), set())
+            continue
+        allowed = {
+            str(entry.get("consistency_id"))
+            for entry in context.get("applied_entries", [])
+            if isinstance(entry, dict) and str(entry.get("consistency_id") or "")
+        }
+        conflicts = {
+            str(identifier)
+            for conflict in context.get("conflicts", [])
+            if isinstance(conflict, dict)
+            for identifier in conflict.get("entry_ids", [])
+            if str(identifier)
+        }
+        result[number] = (allowed, conflicts)
+    return result
+
+
+def _decision_errors(
+    record: dict[str, Any],
+    *,
+    strict: bool,
+    allowed_evidence_refs: set[str] | None = None,
+    allowed_consistency_refs: set[str] | None = None,
+    required_consistency_conflicts: set[str] | None = None,
+) -> list[str]:
     errors: list[str] = []
     block = record.get("block_number", "?")
     source = _decision_text(record, "source_faithful_korean")
@@ -337,6 +463,9 @@ def _decision_errors(record: dict[str, Any], *, strict: bool) -> list[str]:
     method = str(record.get("translation_method", "")).strip()
     model = record.get("translation_model")
     confidence = str(record.get("confidence", "")).strip().lower()
+    evidence_refs, evidence_refs_valid = _evidence_refs(record.get("evidence_refs"))
+    consistency_refs, consistency_refs_valid = _evidence_refs(record.get("consistency_refs", []))
+    consistency_conflicts, consistency_conflicts_valid = _evidence_refs(record.get("consistency_conflicts", []))
     if not source or not viewer:
         errors.append(f"{block}: source_faithful_korean/viewer_natural_korean 누락")
     if strict and status not in {"translated", "reviewed", "approved"}:
@@ -352,6 +481,24 @@ def _decision_errors(record: dict[str, Any], *, strict: bool) -> list[str]:
             errors.append(f"{block}: {exc}")
     if strict and confidence not in {"high", "medium"}:
         errors.append(f"{block}: 확신도는 high 또는 medium이어야 함")
+    if strict and (not evidence_refs_valid or not evidence_refs):
+        errors.append(f"{block}: evidence_refs는 하나 이상의 빈 값 없는 문자열이어야 함")
+    if allowed_evidence_refs is not None:
+        unknown_refs = sorted(set(evidence_refs) - allowed_evidence_refs)
+        if unknown_refs:
+            errors.append(f"{block}: translation queue에 없는 evidence_refs가 있습니다: {', '.join(unknown_refs)}")
+    if allowed_consistency_refs:
+        if not consistency_refs_valid:
+            errors.append(f"{block}: consistency_refs는 빈 값 없는 문자열 배열이어야 합니다")
+        unknown_consistency = sorted(set(consistency_refs) - allowed_consistency_refs)
+        if unknown_consistency:
+            errors.append(f"{block}: translation queue에 없는 consistency_refs가 있습니다: {', '.join(unknown_consistency)}")
+    if required_consistency_conflicts:
+        if not consistency_conflicts_valid:
+            errors.append(f"{block}: consistency_conflicts는 빈 값 없는 문자열 배열이어야 합니다")
+        missing_conflicts = sorted(required_consistency_conflicts - set(consistency_conflicts))
+        if missing_conflicts:
+            errors.append(f"{block}: translation queue의 consistency conflict를 기록하지 않았습니다: {', '.join(missing_conflicts)}")
     for field, text in (("source_faithful_korean", source), ("viewer_natural_korean", viewer)):
         if has_japanese(text):
             errors.append(f"{block}: {field}에 일본어 문자가 남음")
@@ -362,9 +509,17 @@ def _decision_errors(record: dict[str, Any], *, strict: bool) -> list[str]:
     return errors
 
 
-def validate_translation_decisions(structure_path: Path, decisions_path: Path, *, strict: bool = True) -> dict[str, Any]:
+def validate_translation_decisions(
+    structure_path: Path,
+    decisions_path: Path,
+    *,
+    strict: bool = True,
+    translation_queue_path: Path | None = None,
+) -> dict[str, Any]:
     structure, _, _ = parse_srt(structure_path)
     records = _read_jsonl(decisions_path)
+    allowed_by_block = _queue_evidence_refs(translation_queue_path) if translation_queue_path else None
+    consistency_by_block = _queue_consistency_contract(translation_queue_path) if translation_queue_path else None
     by_number: dict[int, dict[str, Any]] = {}
     errors: list[str] = []
     for record in records:
@@ -376,7 +531,11 @@ def validate_translation_decisions(structure_path: Path, decisions_path: Path, *
         if number in by_number:
             errors.append(f"{number}: 번역 결정이 중복됨")
         by_number[number] = record
-        errors.extend(_decision_errors(record, strict=strict))
+        allowed_evidence_refs = allowed_by_block.get(number) if allowed_by_block is not None else None
+        consistency_contract = consistency_by_block.get(number, (set(), set())) if consistency_by_block is not None else (None, None)
+        if allowed_by_block is not None and number not in allowed_by_block:
+            errors.append(f"{number}: translation queue에 해당 block이 없습니다")
+        errors.extend(_decision_errors(record, strict=strict, allowed_evidence_refs=allowed_evidence_refs, allowed_consistency_refs=consistency_contract[0], required_consistency_conflicts=consistency_contract[1]))
     expected = {block.number for block in structure}
     actual = set(by_number)
     missing = sorted(expected - actual)
@@ -388,13 +547,14 @@ def validate_translation_decisions(structure_path: Path, decisions_path: Path, *
         "strict": strict,
         "structure": str(structure_path),
         "decisions": str(decisions_path),
+        "translation_queue": str(translation_queue_path) if translation_queue_path else None,
         "blocks": len(structure),
         "decision_records": len(records),
         "errors": errors,
         "missing_blocks": missing,
         "extra_blocks": extra,
         "translation_model": DEFAULT_TRANSLATION_MODEL,
-        "final_promotion_allowed": not errors and strict,
+        "final_promotion_allowed": False,
     }
 
 
@@ -407,10 +567,13 @@ def apply_translation_decisions(
     *,
     strict: bool = True,
     translation_model: str = DEFAULT_TRANSLATION_MODEL,
+    translation_queue_path: Path | None = None,
 ) -> dict[str, Any]:
     translation_model = resolve_translation_model(translation_model)
     structure, _, _ = parse_srt(structure_path)
     records = _read_jsonl(decisions_path)
+    allowed_by_block = _queue_evidence_refs(translation_queue_path) if translation_queue_path else None
+    consistency_by_block = _queue_consistency_contract(translation_queue_path) if translation_queue_path else None
     by_number: dict[int, dict[str, Any]] = {}
     errors: list[str] = []
     for record in records:
@@ -422,7 +585,11 @@ def apply_translation_decisions(
         if number in by_number:
             errors.append(f"{number}: 번역 결정이 중복됨")
         by_number[number] = record
-        errors.extend(_decision_errors(record, strict=strict))
+        allowed_evidence_refs = allowed_by_block.get(number) if allowed_by_block is not None else None
+        consistency_contract = consistency_by_block.get(number, (set(), set())) if consistency_by_block is not None else (None, None)
+        if allowed_by_block is not None and number not in allowed_by_block:
+            errors.append(f"{number}: translation queue에 해당 block이 없습니다")
+        errors.extend(_decision_errors(record, strict=strict, allowed_evidence_refs=allowed_evidence_refs, allowed_consistency_refs=consistency_contract[0], required_consistency_conflicts=consistency_contract[1]))
     expected = {block.number for block in structure}
     actual = set(by_number)
     missing = sorted(expected - actual)
@@ -435,6 +602,7 @@ def apply_translation_decisions(
             "strict": strict,
             "structure": str(structure_path),
             "decisions": str(decisions_path),
+            "translation_queue": str(translation_queue_path) if translation_queue_path else None,
             "errors": errors,
             "missing_blocks": missing,
             "extra_blocks": extra,
@@ -457,6 +625,7 @@ def apply_translation_decisions(
         "strict": strict,
         "structure": str(structure_path),
         "decisions": str(decisions_path),
+        "translation_queue": str(translation_queue_path) if translation_queue_path else None,
         "source_output": str(source_output_path),
         "viewer_output": str(viewer_output_path),
         "blocks": len(structure),

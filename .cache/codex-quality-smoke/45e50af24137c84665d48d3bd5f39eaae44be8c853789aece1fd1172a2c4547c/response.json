@@ -1,0 +1,24 @@
+{
+  "scene_id": "smoke-0001",
+  "frames": [
+    {
+      "block_number": 1,
+      "speech_act": null,
+      "question": null,
+      "polarity": null,
+      "refusal_permission": null,
+      "command_strength": null,
+      "speaker": null,
+      "actor": null,
+      "action": null,
+      "target": null,
+      "location": null,
+      "tense_aspect": null,
+      "direction": null,
+      "intensity": null,
+      "confidence": "low",
+      "evidence_refs": [],
+      "reason": "No acoustic transcript or intelligible Japanese dialogue is available; \"???\" supports no semantic reconstruction."
+    }
+  ]
+}

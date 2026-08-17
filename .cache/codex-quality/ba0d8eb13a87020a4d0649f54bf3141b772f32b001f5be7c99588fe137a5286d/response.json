@@ -1,0 +1,241 @@
+{
+  "scene_id": "scene-0012",
+  "reviews": [
+    {
+      "block_number": 386,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "question/speech_act",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "'…'는 음성에 없는 침묵·머뭇거림을 암시함"
+      ],
+      "naturalness_issues": [
+        "386~388에 같은 말줄임표가 반복돼 자리표시자처럼 보임"
+      ],
+      "reason": "음성은 명확한 질문인데 제안은 질문력을 없앤다. 행동·시제 합의도 없어 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 387,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "question/speech_act",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "'…'는 음성에 없는 침묵·머뭇거림을 암시함"
+      ],
+      "naturalness_issues": [
+        "인접 블록과 같은 말줄임표가 반복돼 대사 연속성이 깨짐"
+      ],
+      "reason": "질문 화행은 분명하지만 제안에는 질문도 내용도 없다. 충돌 중인 행동·시제 역시 확정할 수 없다."
+    },
+    {
+      "block_number": 388,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "polarity",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "'…'는 근거 없는 침묵이나 주저를 암시함"
+      ],
+      "naturalness_issues": [
+        "연속된 말줄임표가 복사된 자리표시자처럼 보임"
+      ],
+      "reason": "중단 방향만 합의됐고 화행·극성·시제가 충돌한다. 말줄임표를 실제 대사로 승인할 근거도 없다."
+    },
+    {
+      "block_number": 389,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "문두의 'じゃあ'에 해당하는 연결 표현이 빠져 앞 대사와의 흐름이 약해짐"
+      ],
+      "reason": "부정 극성과 미래 의미는 맞지만, 장면 전환을 잇는 문두 연결어가 누락돼 대화 연속성을 보완해야 한다."
+    },
+    {
+      "block_number": 390,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "polarity",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "'…'는 원문에 없는 머뭇거림을 암시함"
+      ],
+      "naturalness_issues": [
+        "내용 있는 진술을 말줄임표로 대체함"
+      ],
+      "reason": "부정 진술과 보기 행동은 합의됐지만 시제가 충돌하며, 말줄임표는 그 의미를 전달하지 못한다."
+    },
+    {
+      "block_number": 391,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [
+        "'…'는 근거 없는 비언어적 주저를 암시함"
+      ],
+      "naturalness_issues": [
+        "accepted 상태인데 대사가 말줄임표뿐임"
+      ],
+      "reason": "진술력만 합의됐고 핵심 의미를 뒷받침할 음성 근거가 없다. 말줄임표도 진술을 전달하지 못한다."
+    },
+    {
+      "block_number": 392,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "question/speech_act",
+        "actor",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "'…'는 근거 없는 침묵을 암시함"
+      ],
+      "naturalness_issues": [
+        "질문 대사를 말줄임표로 대체해 응답 연속성이 끊김"
+      ],
+      "reason": "상대의 향후 행동을 묻는 틀은 있으나 행동 슬롯이 충돌한다. 제안은 질문력까지 제거해 승인할 수 없다."
+    },
+    {
+      "block_number": 393,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "'…'는 원문에 없는 머뭇거림을 암시함"
+      ],
+      "naturalness_issues": [
+        "번역 가능한 trusted 원문을 말줄임표만으로 처리함"
+      ],
+      "reason": "신뢰된 일본어 원문은 번역 가능한 진술인데 제안은 말줄임표뿐이라 내용을 누락한다."
+    },
+    {
+      "block_number": 394,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "polarity",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [
+        "'…'는 음성에 없는 침묵·주저를 암시함"
+      ],
+      "naturalness_issues": [
+        "강도 진술을 내용 없는 표지로 대체함"
+      ],
+      "reason": "강한 긍정 진술 프레임은 있으나 음성이 잘렸고 시제도 충돌한다. 말줄임표로는 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 395,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "question/speech_act",
+        "action",
+        "polarity",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "'…'는 실제 질문 대신 근거 없는 침묵을 암시함"
+      ],
+      "naturalness_issues": [
+        "명확한 질문의 대화 기능을 잃음"
+      ],
+      "reason": "흔들리지 않는다는 질문은 들리지만 시제 합의가 충돌한다. 제안은 질문·행동·극성을 모두 전달하지 못한다."
+    },
+    {
+      "block_number": 396,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰된 원문과 상대를 향한 명령 프레임을 자연스럽게 보존하며, '해'는 한국어 명령형의 정당한 보완이다."
+    },
+    {
+      "block_number": 397,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "0.10초 노출에 문장 전체를 읽을 수 없음",
+        "원문의 짧은 감탄사 '아'가 누락됨"
+      ],
+      "reason": "의미 프레임은 맞지만 0.10초 자막에 문장이 너무 길고, 원문의 감탄사도 빠져 있다."
+    },
+    {
+      "block_number": 398,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "actor",
+        "action",
+        "target",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [
+        "'…'는 요청 대신 근거 없는 침묵을 암시함"
+      ],
+      "naturalness_issues": [
+        "요청 화행이 사라져 대화 연결이 끊김"
+      ],
+      "reason": "약한 키스 요청은 들리지만 대상과 시제가 충돌한다. 말줄임표는 요청·행동·강도를 전혀 전달하지 못한다."
+    },
+    {
+      "block_number": 399,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "actor",
+        "action",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [
+        "'…'는 감탄음을 침묵으로 바꾸고 불명확한 주저를 암시함"
+      ],
+      "naturalness_issues": [
+        "말줄임표 자막이 약 114초 유지되어 타이밍과 가독성이 부적절함"
+      ],
+      "reason": "음성은 감탄음 위주이고 핵심 행동·화행 합의가 없다. 약 114초짜리 말줄임표는 의미와 타이밍 모두 부적절하다."
+    },
+    {
+      "block_number": 400,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "actor",
+        "action",
+        "polarity",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "'…'는 짧은 감탄음을 근거 없는 침묵으로 바꿈"
+      ],
+      "naturalness_issues": [
+        "내용 없는 자막이 약 29초 유지됨"
+      ],
+      "reason": "음성은 감탄음뿐이고 자기 행동의 미래 진술을 뒷받침하지 못한다. 행동 슬롯도 충돌해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 401,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복 거절, 부정 극성, 중간 강도를 자연스럽게 유지하며 원문과 합의 프레임에 부합한다."
+    }
+  ]
+}

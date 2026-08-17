@@ -1,0 +1,166 @@
+{
+  "scene_id": "scene-0012",
+  "blocks": [
+    {
+      "block_number": 386,
+      "source_faithful_korean": "…?",
+      "viewer_natural_korean": "…?",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00833:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 387,
+      "source_faithful_korean": "…?",
+      "viewer_natural_korean": "…?",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00833:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 388,
+      "source_faithful_korean": "그만.",
+      "viewer_natural_korean": "그만.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 389,
+      "source_faithful_korean": "이거면 들키지 않을 테니까.",
+      "viewer_natural_korean": "이거면 안 들킬 테니까.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00834:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 390,
+      "source_faithful_korean": "안 보여.",
+      "viewer_natural_korean": "안 보여.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 391,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 392,
+      "source_faithful_korean": "누가 오면 어떡해?",
+      "viewer_natural_korean": "누가 오면 어떡해?",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00837:reazonspeech-k2-v2",
+        "utterance:utterance-00838:faster-whisper-large-v3",
+        "utterance:utterance-00839:reazonspeech-k2-v2",
+        "utterance:utterance-00840:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 393,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 394,
+      "source_faithful_korean": "엄청 격렬해.",
+      "viewer_natural_korean": "엄청 격렬해.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00842:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 395,
+      "source_faithful_korean": "안 흔들리지?",
+      "viewer_natural_korean": "봐, 안 흔들리지?",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00844:faster-whisper-large-v3",
+        "utterance:utterance-00846:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 396,
+      "source_faithful_korean": "조용히.",
+      "viewer_natural_korean": "조용히 해.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00846:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 397,
+      "source_faithful_korean": "걷고 있지 않아.",
+      "viewer_natural_korean": "걷고 있지 않아.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 398,
+      "source_faithful_korean": "살짝 키스해 줘.",
+      "viewer_natural_korean": "살짝 키스해 줘.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00847:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 399,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00848:reazonspeech-k2-v2",
+        "utterance:utterance-00849:reazonspeech-k2-v2",
+        "utterance:utterance-00850:reazonspeech-k2-v2",
+        "utterance:utterance-00851:reazonspeech-k2-v2",
+        "utterance:utterance-00852:reazonspeech-k2-v2",
+        "utterance:utterance-00853:reazonspeech-k2-v2",
+        "utterance:utterance-00854:reazonspeech-k2-v2",
+        "utterance:utterance-00855:reazonspeech-k2-v2",
+        "utterance:utterance-00856:reazonspeech-k2-v2",
+        "utterance:utterance-00857:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 400,
+      "source_faithful_korean": "내가 할게.",
+      "viewer_natural_korean": "내가 할게.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00858:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 401,
+      "source_faithful_korean": "싫어, 싫어.",
+      "viewer_natural_korean": "싫어, 싫어.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": []
+    }
+  ]
+}

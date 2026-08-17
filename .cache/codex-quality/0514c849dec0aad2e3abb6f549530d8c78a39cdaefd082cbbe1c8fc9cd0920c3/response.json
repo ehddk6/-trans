@@ -1,0 +1,26 @@
+{
+  "scene_id": "scene-0001-repair-1",
+  "blocks": [
+    {
+      "block_number": 27,
+      "source_faithful_korean": "항상 신세를 지고 있습니다.",
+      "viewer_natural_korean": "늘 감사드립니다.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00035:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 33,
+      "source_faithful_korean": "실례하겠습니다.",
+      "viewer_natural_korean": "실례하겠습니다.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00039:faster-whisper-large-v3",
+        "utterance:utterance-00039:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

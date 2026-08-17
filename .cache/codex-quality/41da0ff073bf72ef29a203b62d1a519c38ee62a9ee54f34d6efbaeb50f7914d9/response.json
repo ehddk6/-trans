@@ -1,0 +1,221 @@
+{
+  "scene_id": "scene-0008",
+  "reviews": [
+    {
+      "block_number": 335,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰 원문과 합의 프레임을 충실히 보존하며 자연스럽다."
+    },
+    {
+      "block_number": 336,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "발화 가능성을 묻는 질문으로 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 337,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action: 포괄적인 학교 상황 질문을 통학 여부 질문으로 좁힘"
+      ],
+      "unsupported_additions": [
+        "‘잘’이 긍정적 평가 기준을 추가함"
+      ],
+      "naturalness_issues": [],
+      "reason": "‘학교는 어때?’보다 행동과 평가를 구체화해 원문의 포괄적 질문을 좁힌다."
+    },
+    {
+      "block_number": 338,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "‘도’의 첨가·대조 의미가 원문에 없음"
+      ],
+      "naturalness_issues": [],
+      "reason": "‘공부도’의 보조사 ‘도’가 근거 없는 첨가 의미를 만든다."
+    },
+    {
+      "block_number": 339,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "잠금 원문이 이중 ASR 충돌로 unusable이므로 긍정 응답을 확정하기 어렵다."
+    },
+    {
+      "block_number": 340,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "잠금 원문이 이중 ASR 충돌로 unusable이므로 허락 발화를 확정할 수 없다."
+    },
+    {
+      "block_number": 341,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity: 독립 프레임 간 강도 불일치"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 실제 응답을 생략해 대화 흐름을 끊음"
+      ],
+      "reason": "프레임 충돌과 abstained 상태로 응답의 확정 표현을 지지할 수 없다."
+    },
+    {
+      "block_number": 342,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect: 이동 시점에 대한 독립 프레임 불일치"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 질문 발화를 누락함"
+      ],
+      "reason": "이동 시제가 합의되지 않아 질문의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 343,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "0.14초 노출로 자막을 안정적으로 읽기 어려움"
+      ],
+      "reason": "번역 의미는 맞지만 0.14초의 표시 시간은 자막 가독성을 확보하지 못한다."
+    },
+    {
+      "block_number": 344,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity: 앎과 모름의 극성 불일치",
+        "location: 화장실 추정 여부 불일치"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 실제 응답과 후속 질문을 생략함"
+      ],
+      "reason": "극성과 장소가 모두 충돌해 발화 의미를 안정적으로 복원할 수 없다."
+    },
+    {
+      "block_number": 345,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength: 격려·요청 강도 불일치"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 격려 발화를 생략함"
+      ],
+      "reason": "요청 강도에 대한 합의가 없고 source가 abstained라 의미 확정이 불가능하다."
+    },
+    {
+      "block_number": 346,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "target: ‘해줄게’가 상대를 수혜 대상으로 명시함"
+      ],
+      "unsupported_additions": [
+        "수혜 대상을 나타내는 ‘해주다’는 원문과 합의 프레임에 없음"
+      ],
+      "naturalness_issues": [
+        "약 61초 노출은 자막 동기화와 연속성을 해침"
+      ],
+      "reason": "근거 없는 수혜 대상을 넣었고 약 61초의 표시 시간도 지나치게 길다."
+    },
+    {
+      "block_number": 347,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action: 음향의 ‘자다’와 제안문의 장소 조건이 충돌함",
+        "location: 음향에는 ‘여기’가 확인되지 않음"
+      ],
+      "unsupported_additions": [
+        "‘여기’는 해당 ASR 전사에서 뒷받침되지 않음"
+      ],
+      "naturalness_issues": [],
+      "reason": "ASR의 ‘寝ないとやだ’와 잠금 원문의 ‘ここじゃないとやだ’가 충돌해 확정할 수 없다."
+    },
+    {
+      "block_number": 348,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "잠금 원문과 완전 합의 프레임에 맞으며 반복도 원문에 존재한다."
+    },
+    {
+      "block_number": 349,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "잠금 원문과 완전 합의 프레임에 맞으며 앞 블록의 반복을 그대로 보존한다."
+    },
+    {
+      "block_number": 350,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정 확인 질문의 힘과 극성을 정확히 유지한다."
+    },
+    {
+      "block_number": 351,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "주의를 끄는 짧은 감탄 발화로 자연스럽고 프레임에도 맞는다."
+    },
+    {
+      "block_number": 352,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect: 중단 발화의 시제·상 불일치"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 중단 제안을 생략함"
+      ],
+      "reason": "중단 발화의 시제·상이 합의되지 않아 source의 abstained 상태를 해소할 수 없다."
+    },
+    {
+      "block_number": 353,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "location: 이동·선택 방향의 장소 해석 불일치"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "말줄임표가 방향 제안을 생략함"
+      ],
+      "reason": "장소 해석이 충돌하고 핵심 슬롯도 비어 있어 방향 제안을 확정할 수 없다."
+    },
+    {
+      "block_number": 354,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "intensity: ‘점점’이 근거 없는 단계적 강화를 명시함"
+      ],
+      "unsupported_additions": [
+        "‘점점’의 점진적 강도 의미가 원문과 합의 프레임에 없음"
+      ],
+      "naturalness_issues": [],
+      "reason": "진행 의미는 맞지만 ‘점점’이 확인되지 않은 강도 변화를 추가한다."
+    },
+    {
+      "block_number": 355,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대에게 조용히 하라는 중간 강도의 명령을 자연스럽게 보존한다."
+    }
+  ]
+}

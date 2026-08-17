@@ -1,0 +1,313 @@
+{
+  "scene_id": "scene-0001",
+  "reviews": [
+    {
+      "block_number": 1,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "화행·명령 강도·강조에 합의가 없고 제안도 생략 부호뿐이어서 발화 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 2,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "기상 완료 의미는 잡히지만 화행 합의가 없어 제안 자막을 확정할 수 없다."
+    },
+    {
+      "block_number": 3,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "행위자와 행위가 합의되지 않았고 제안도 생략되어 있어 의미 복원이 불가능하다."
+    },
+    {
+      "block_number": 4,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘들어오다’는 문맥상 귀가를 뜻해 return·toward·future 프레임과 자연스럽게 일치한다."
+    },
+    {
+      "block_number": 5,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "귀가 시각을 묻는 미래형 질문으로 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 6,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "늦을 가능성과 향후 연락 약속을 자연스럽게 보존했다."
+    },
+    {
+      "block_number": 7,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "화자 자신이 상대를 기다리겠다는 미래 진술과 정확히 일치한다."
+    },
+    {
+      "block_number": 8,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘잘 다녀와’는 원문의 환송 인사에 대응하는 자연스러운 한국어 관용 표현이다."
+    },
+    {
+      "block_number": 9,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아버지의 반년 전 재혼이라는 행위자·행위·완료 시점을 모두 보존했다."
+    },
+    {
+      "block_number": 10,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "새어머니가 아버지 회사에서 사무원으로 일했다는 과거 사실을 간결하게 보존했다."
+    },
+    {
+      "block_number": 11,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재 상태의 행위와 시제·상이 합의되지 않아 생략된 제안의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 12,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아버지가 오늘 늦게 귀가한다는 전달 화법과 미래 방향을 정확히 유지했다."
+    },
+    {
+      "block_number": 13,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "평서형 수용 응답을 물음표가 있는 의문형으로 바꿨다."
+      ],
+      "reason": "원문과 합의는 평서형 응답인데 ‘그러세요?’는 질문으로 바뀌어 대화의 힘이 달라진다."
+    },
+    {
+      "block_number": 14,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "질문이라는 점만 합의됐고 묻는 행위와 시제가 확정되지 않아 의미 복원이 불가능하다."
+    },
+    {
+      "block_number": 15,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "予備校를 ‘입시학원’으로 자연스럽게 옮겼고 오늘 참석 예정이라는 의미도 유지했다."
+    },
+    {
+      "block_number": 16,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "지망 학교를 이미 정했는지 묻는 완료형 질문과 응답 흐름이 정확하다."
+    },
+    {
+      "block_number": 17,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아버지의 지시 때문에 마지못해 계속 다닌다는 낮은 의지와 진행상을 보존했다."
+    },
+    {
+      "block_number": 18,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 설명을 받아들이는 짧은 응답으로 원문과 합의 프레임에 맞는다."
+    },
+    {
+      "block_number": 19,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아직 시간이 있다는 긍정 진술을 자연스럽게 유지했으며 질문으로 바뀌지 않았다."
+    },
+    {
+      "block_number": 20,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대에게 차를 마실 의향을 묻는 자연스러운 제안형 질문이다."
+    },
+    {
+      "block_number": 21,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "‘사진도’의 ‘도’가 사진마저 없다는 추가 강조를 만든다."
+      ],
+      "naturalness_issues": [
+        "한 자막에 두 문장과 여러 절이 몰려 두 줄 자막으로 읽기 어렵다."
+      ],
+      "reason": "핵심 서사는 맞지만 추가 강조가 생겼고 한 큐의 문장량이 과도해 표현과 분할 보정이 필요하다."
+    },
+    {
+      "block_number": 22,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "중간 질문의 행위와 시제가 합의되지 않았으며 제안도 생략되어 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 23,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정 응답인 ‘네’가 잠긴 원문과 합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 24,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "독립된 긍정 응답으로 원문·화자·화행과 일치한다."
+    },
+    {
+      "block_number": 25,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "전화 응답 관용구를 자연스럽고 간결하게 옮겼다."
+    },
+    {
+      "block_number": 26,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 확인에 긍정하는 공손한 응답으로 의미와 화행이 정확하다."
+    },
+    {
+      "block_number": 27,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "‘항상 신세 지고 있습니다’는 일본어 직역투가 두드러진다."
+      ],
+      "reason": "의미와 격식은 맞지만 한국어 통화 인사로는 번역투가 강해 자연스러운 표현으로 다듬어야 한다."
+    },
+    {
+      "block_number": 28,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 긍정 응답으로 음향 증거와 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 29,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "질문 여부가 합의되지 않았고 제안도 생략되어 응답의 힘을 확정할 수 없다."
+    },
+    {
+      "block_number": 30,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 말을 이해하고 수용하는 긍정 응답을 정확히 옮겼다."
+    },
+    {
+      "block_number": 31,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "화자 자신이 추후 물어보겠다는 미래 진술이며 ‘제가’도 합의된 행위자를 명시할 뿐이다."
+    },
+    {
+      "block_number": 32,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정 응답인 ‘네’가 음향 증거와 완전 합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 33,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "격식 높은 통화 흐름에서 종결어미 없는 ‘그럼 이만’은 갑자기 낮고 무뚝뚝하다."
+      ],
+      "reason": "통화 종료 화행은 맞지만 원문의 높은 격식과 앞선 말투를 유지하도록 종결 표현을 다듬어야 한다."
+    },
+    {
+      "block_number": 34,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "‘네’를 뒷받침하는 음향 근거와 독립 출처가 없다."
+      ],
+      "naturalness_issues": [
+        "표시 시간이 0.14초에 불과해 판독하기 어렵다."
+      ],
+      "reason": "잠긴 원문과 합의는 긍정 응답이지만 음향 근거가 전혀 없고 노출도 지나치게 짧아 격리해야 한다."
+    }
+  ]
+}

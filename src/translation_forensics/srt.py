@@ -55,12 +55,15 @@ def seconds_to_timecode(value: float) -> str:
 
 def _decode_utf8(path: Path) -> tuple[str, str]:
     raw = path.read_bytes()
-    for encoding in ("utf-8-sig", "utf-8"):
+    if raw.startswith(b"\xef\xbb\xbf"):
         try:
-            return raw.decode(encoding), encoding
-        except UnicodeDecodeError:
-            pass
-    raise SRTError(f"UTF-8로 읽을 수 없습니다: {path}")
+            return raw.decode("utf-8-sig"), "utf-8-sig"
+        except UnicodeDecodeError as exc:
+            raise SRTError(f"UTF-8로 읽을 수 없습니다: {path}") from exc
+    try:
+        return raw.decode("utf-8"), "utf-8"
+    except UnicodeDecodeError as exc:
+        raise SRTError(f"UTF-8로 읽을 수 없습니다: {path}") from exc
 
 
 def parse_srt_text(text: str, *, source: str = "<text>") -> list[SubtitleBlock]:

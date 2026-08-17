@@ -1,0 +1,13 @@
+{
+  "scene_id": "scene-0001-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 31,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향의 「聞いておきます」와 합의 프레임의 긍정·미래 진술 및 '묻다' 의미에 부합하며, 추가되거나 충돌하는 의미가 없다."
+    }
+  ]
+}

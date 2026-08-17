@@ -56,8 +56,57 @@ def test_structured_provider_retries_and_replays_cache(tmp_path: Path) -> None:
     assert client.responses.last_kwargs["max_output_tokens"] == 8_000
     assert client.responses.last_kwargs["store"] is False
     assert client.responses.last_kwargs["tools"] == []
+    assert client.responses.last_kwargs["timeout"] == 600.0
     assert len(first["environment_sha256"]) == 64
     assert budget.spent_usd > 0
+
+
+def test_structured_provider_rejects_schema_invalid_response_and_charges_call(tmp_path: Path) -> None:
+    class InvalidResponses:
+        def create(self, **kwargs):
+            return SimpleNamespace(
+                id="invalid",
+                output_text=json.dumps({"wrong": []}),
+                usage=SimpleNamespace(input_tokens=10, output_tokens=2),
+            )
+
+    client = SimpleNamespace(responses=InvalidResponses())
+    budget = BudgetTracker(10.0)
+    provider = OpenAIProvider(
+        cache_dir=tmp_path / "cache",
+        budget=budget,
+        allow_network=True,
+        api_key="test",
+        client=client,
+        max_retries=0,
+    )
+    with pytest.raises(ValueError, match="schema error"):
+        provider.generate_decisions(
+            title_id="T", prompt="prompt", payload={"x": 1}, schema=SCHEMA
+        )
+    assert budget.spent_usd > 0
+    assert budget.reserved_usd == 0
+
+
+def test_structured_provider_treats_malformed_cache_as_miss(tmp_path: Path) -> None:
+    client = FakeClient()
+    provider = OpenAIProvider(
+        cache_dir=tmp_path / "cache",
+        budget=BudgetTracker(10.0),
+        allow_network=True,
+        api_key="test",
+        client=client,
+    )
+    provider.generate_decisions(
+        title_id="T", prompt="prompt", payload={"x": 1}, schema=SCHEMA
+    )
+    cache_file = next((tmp_path / "cache").glob("*.json"))
+    cache_file.write_text("{truncated", encoding="utf-8")
+    provider.generate_decisions(
+        title_id="T", prompt="prompt", payload={"x": 1}, schema=SCHEMA
+    )
+    assert client.responses.calls == 2
+    assert json.loads(cache_file.read_text(encoding="utf-8"))
 
 
 def test_resume_cost_restoration_obeys_same_budget() -> None:

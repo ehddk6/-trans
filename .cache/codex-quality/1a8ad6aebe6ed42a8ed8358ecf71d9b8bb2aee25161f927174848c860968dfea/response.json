@@ -1,0 +1,29 @@
+{
+  "scene_id": "scene-0009",
+  "blocks": [
+    {
+      "block_number": 183,
+      "source_faithful_korean": "으쌰, 으쌰",
+      "viewer_natural_korean": "으쌰, 으쌰",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00145:faster-whisper-large-v3",
+        "asr:window-00145:reazonspeech-k2-v2",
+        "asr:window-00146:faster-whisper-large-v3",
+        "asr:window-00146:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 184,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00148:faster-whisper-large-v3",
+        "asr:window-00148:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

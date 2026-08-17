@@ -1,0 +1,21 @@
+{
+  "scene_id": "scene-0006-repair-2",
+  "blocks": [
+    {
+      "block_number": 277,
+      "source_faithful_korean": "더 이상은 아버지한테 말할 거야.",
+      "viewer_natural_korean": "더 이상 이러면 아버지한테 이를 거야.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00572:reazonspeech-k2-v2",
+        "utterance:utterance-00573:faster-whisper-large-v3",
+        "utterance:utterance-00574:reazonspeech-k2-v2",
+        "utterance:utterance-00575:faster-whisper-large-v3",
+        "utterance:utterance-00576:reazonspeech-k2-v2",
+        "asr-rerun:conflict-group-00008:faster-whisper-large-v3",
+        "asr-rerun:conflict-group-00008:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

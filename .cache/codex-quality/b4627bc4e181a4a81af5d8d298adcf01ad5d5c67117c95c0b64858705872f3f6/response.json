@@ -1,0 +1,767 @@
+{
+  "scene_id": "scene-0002",
+  "reviews": [
+    {
+      "block_number": 35,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락되어 대화가 끊김"
+      ],
+      "reason": "핵심 슬롯의 독립 판독 충돌이 남았고 제안은 줄임표뿐이라 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 36,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락되어 대화가 끊김"
+      ],
+      "reason": "핵심 슬롯의 독립 판독 충돌이 남았고 제안은 줄임표뿐이라 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 37,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락되어 대화가 끊김"
+      ],
+      "reason": "질문 여부와 발화 기능의 판독이 갈려 줄임표를 확정 자막으로 승인할 수 없다."
+    },
+    {
+      "block_number": 38,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "질문형과 낮은 강도가 합의 프레임에 맞고 한국어도 자연스럽다."
+    },
+    {
+      "block_number": 39,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "요청의 주체·행동·대상과 질문형이 음향 및 합의 프레임에 모두 부합한다."
+    },
+    {
+      "block_number": 40,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락되어 대화가 끊김"
+      ],
+      "reason": "발화 기능·행동·시제가 합의되지 않아 단일한 번역 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 41,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "action",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 명령 발화가 누락됨"
+      ],
+      "reason": "명령 강도·행동·대상의 독립 판독이 충돌해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 42,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "location"
+      ],
+      "unsupported_additions": [
+        "예비학교라는 기관 유형"
+      ],
+      "naturalness_issues": [
+        "‘예비학교’는 予備校의 자연스럽거나 정확한 한국어 명칭이 아님"
+      ],
+      "reason": "予備校를 ‘예비학교’로 옮겨 장소 의미가 달라졌다. 나머지 문장 구조는 지원된다."
+    },
+    {
+      "block_number": 43,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "정중한 질문형으로 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 44,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "귀가 후 말하겠다는 미래 진술을 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 45,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "진행 중 행동을 묻는 질문의 힘과 강도가 정확하다."
+    },
+    {
+      "block_number": 46,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "지시어가 빠져 앞뒤 대화의 연결이 약해짐"
+      ],
+      "reason": "신뢰 원문의 ‘それ…’가 가진 지시 대상이 줄임표에서 완전히 누락됐다."
+    },
+    {
+      "block_number": 47,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 긍정 응답으로 원문과 합의 프레임에 정확히 맞는다."
+    },
+    {
+      "block_number": 48,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 질문이 누락됨"
+      ],
+      "reason": "결혼 행위의 시제·상 판독이 충돌해 질문의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 49,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "target",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 질문이 누락됨"
+      ],
+      "reason": "행위자·대상·시제 판독이 갈려 줄임표를 확정 번역으로 승인할 수 없다."
+    },
+    {
+      "block_number": 50,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 진술이 누락됨"
+      ],
+      "reason": "행위자와 강도 판독이 합의되지 않아 단일한 진술 의미를 지지하지 못한다."
+    },
+    {
+      "block_number": 51,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 진술이 누락됨"
+      ],
+      "reason": "행위자와 강도에 독립 판독 충돌이 남아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 52,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 진술이 누락됨"
+      ],
+      "reason": "행위자·행동·시제 판독이 충돌해 제안된 블록의 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 53,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 진술이 누락됨"
+      ],
+      "reason": "극성·행동·시제 판독이 합의되지 않아 의미 확정이 불가능하다."
+    },
+    {
+      "block_number": 54,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만 남아 대화가 단절됨"
+      ],
+      "reason": "잠긴 원문은 혼합 언어로 파손됐고 정지 발화도 54~55에 걸쳐 있어 이 블록의 의미 배분이 불확실하다."
+    },
+    {
+      "block_number": 55,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표가 긴급한 중지 발화를 누락함"
+      ],
+      "reason": "중지 의미는 들리지만 발화 기능 판독이 충돌해 이 블록의 확정 자막으로 승인할 수 없다."
+    },
+    {
+      "block_number": 56,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락됨"
+      ],
+      "reason": "원문이 비문이고 제공된 음향 창에 해당 발화가 없어 의미를 검증할 수 없다."
+    },
+    {
+      "block_number": 57,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락됨"
+      ],
+      "reason": "원문은 깨진 문자로 unusable이며 발화 기능도 합의되지 않아 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 58,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speaker",
+        "actor",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 질문이 누락됨"
+      ],
+      "reason": "화자·행위자·시제 판독이 충돌해 질문의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 59,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 진술이 누락됨"
+      ],
+      "reason": "극성과 시제 판독이 합의되지 않아 접근 방향을 포함한 진술을 확정할 수 없다."
+    },
+    {
+      "block_number": 60,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "action",
+        "target",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락됨"
+      ],
+      "reason": "발화 기능과 명령 강도 등 다수 핵심 슬롯이 충돌해 의미를 복원할 근거가 부족하다."
+    },
+    {
+      "block_number": 61,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 강한 진술이 누락됨"
+      ],
+      "reason": "극성과 대상 판독이 충돌해 고강도 진술의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 62,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "command_strength",
+        "actor",
+        "action",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 명령 발화가 누락됨"
+      ],
+      "reason": "중지 방향 외 핵심 명령 슬롯이 광범위하게 충돌해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 63,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "actor",
+        "target",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 진술이 누락됨"
+      ],
+      "reason": "극성·행위자·대상·강도 판독이 갈려 단일한 진술을 지지하지 못한다."
+    },
+    {
+      "block_number": 64,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "refusal_permission",
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 부정 발화가 누락됨"
+      ],
+      "reason": "발화 기능·거부성·행위자·강도 판독이 충돌해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 65,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "polarity",
+        "command_strength",
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 중지 발화가 누락됨"
+      ],
+      "reason": "중지 행동 외 명령의 힘과 극성 등이 합의되지 않아 확정 번역이 불가능하다."
+    },
+    {
+      "block_number": 66,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "polarity",
+        "command_strength",
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 중지 발화가 누락됨"
+      ],
+      "reason": "중지 행동 외 명령의 힘과 극성 등이 합의되지 않아 확정 번역이 불가능하다."
+    },
+    {
+      "block_number": 67,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "근거 없는 줄임표가 대화 흐름을 끊음"
+      ],
+      "reason": "음향 근거가 전혀 없고 잠긴 일본어도 비문이라 이 블록의 의미를 검증할 수 없다."
+    },
+    {
+      "block_number": 68,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "target",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 질문이 누락됨"
+      ],
+      "reason": "행위자·대상·시제 판독이 갈려 질문 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 69,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 강한 진술이 누락됨"
+      ],
+      "reason": "극성·행위자·대상 판독이 충돌해 고강도 진술을 확정할 수 없다."
+    },
+    {
+      "block_number": 70,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "돈에 관한 진술 전체가 줄임표로 누락됨"
+      ],
+      "reason": "신뢰 원문은 돈을 명시한 진술인데 제안은 그 핵심 대상을 전혀 전달하지 않는다."
+    },
+    {
+      "block_number": 71,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 질문이 누락됨"
+      ],
+      "reason": "극성과 행동 판독이 충돌해 돈을 둘러싼 질문의 확정 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 72,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "선행 진술과 반복 반박이 모두 생략됨"
+      ],
+      "reason": "합의 프레임은 혼합 극성인데 ‘아니야!’만 남겨 긍정 진술 부분과 반복 강도를 잃었다."
+    },
+    {
+      "block_number": 73,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락됨"
+      ],
+      "reason": "발화 기능과 질문 여부가 합의되지 않아 제안된 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 74,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "키스 요청의 주체·대상·방향·강도가 합의 프레임과 정확히 일치한다."
+    },
+    {
+      "block_number": 75,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "actor",
+        "action",
+        "target",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 명령 발화가 누락됨"
+      ],
+      "reason": "명령의 행동·주체·대상·강도와 시제가 모두 불확실해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 76,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락됨"
+      ],
+      "reason": "ASR의 관용적 종료 문구는 장면과 맞지 않고 잠긴 원문도 비문이라 발화 의미를 지지하지 못한다."
+    },
+    {
+      "block_number": 77,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락됨"
+      ],
+      "reason": "같은 장면 무관 ASR 종료 문구가 재사용됐고 원문도 비문이라 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 78,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "actor",
+        "target",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 보여 달라는 발화가 누락됨"
+      ],
+      "reason": "보여 주는 행동 외 발화 기능·주체·대상·강도가 합의되지 않아 확정할 수 없다."
+    },
+    {
+      "block_number": 79,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "actor",
+        "target",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 강한 요구가 누락됨"
+      ],
+      "reason": "보여 달라는 방향 외 명령 강도·주체·대상·시제가 충돌해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 80,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "‘야바이’의 평가와 높은 강도가 ‘아…’로 약화됨"
+      ],
+      "reason": "신뢰 원문과 합의 프레임은 고강도 반응인데 제안은 낮고 모호한 감탄만 남긴다."
+    },
+    {
+      "block_number": 81,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘와…’는 높은 강도의 긍정적 감탄을 간결하고 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 82,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락됨"
+      ],
+      "reason": "발화 기능과 질문 여부의 판독이 갈려 제안된 블록 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 83,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재 상태에 대한 긍정 확인 질문을 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 84,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 반복 요청이 누락됨"
+      ],
+      "reason": "보여 달라는 요청은 식별되지만 명령 강도와 시제가 합의되지 않아 확정할 수 없다."
+    },
+    {
+      "block_number": 85,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘와…’가 합의된 고강도 감탄 반응을 자연스럽고 읽기 쉽게 전달한다."
+    },
+    {
+      "block_number": 86,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "반복된 ‘야바이’의 높은 강도가 ‘아…’로 약화됨"
+      ],
+      "reason": "음향과 원문은 반복된 고강도 반응인데 제안은 모호하고 낮은 감탄으로 축소했다."
+    },
+    {
+      "block_number": 87,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락됨"
+      ],
+      "reason": "음향은 허가 질문 가능성을 보이지만 잠긴 원문과 불일치하고 프레임도 합의되지 않았다."
+    },
+    {
+      "block_number": 88,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 종료 확인 질문이 누락됨"
+      ],
+      "reason": "종료 방향의 질문은 들리지만 발화 기능과 시제가 합의되지 않아 확정할 수 없다."
+    },
+    {
+      "block_number": 89,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "polarity",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 대화 응답이 누락됨"
+      ],
+      "reason": "원문이 unusable이고 이중 ASR 충돌도 있어 응답의 극성과 행동을 확정할 수 없다."
+    },
+    {
+      "block_number": 90,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 발화가 누락됨"
+      ],
+      "reason": "잠긴 원문은 비문이고 음향은 단일 ‘何’ 조각뿐이라 발화 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 91,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 긴급한 중지 요구가 누락됨"
+      ],
+      "reason": "긴급 중지 의미는 있으나 발화 기능과 행위자 판독이 충돌해 확정 자막으로 승인할 수 없다."
+    },
+    {
+      "block_number": 92,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speaker",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 질문이 누락됨"
+      ],
+      "reason": "화자와 행동 판독이 충돌해 혈연 관련 고강도 질문의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 93,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 응답이 누락됨"
+      ],
+      "reason": "응답의 극성이 합의되지 않아 ‘いや、でも’의 의미를 단일 번역으로 확정할 수 없다."
+    },
+    {
+      "block_number": 94,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "actor",
+        "target",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "줄임표만으로 실제 진술이 누락됨"
+      ],
+      "reason": "말하기 행동 외 극성·주체·대상·시제·강도가 충돌해 진술 의미를 확정할 수 없다."
+    }
+  ]
+}

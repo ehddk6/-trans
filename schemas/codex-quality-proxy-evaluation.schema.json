@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/codex-quality-proxy-evaluation.schema.json",
+  "title": "Codex quality proxy evaluation",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "status",
+    "engineering_proxy_only",
+    "human_equivalence_certified",
+    "evaluation_scope",
+    "partial_evaluation",
+    "denominator_block_count",
+    "eligible_block_count",
+    "eligible_block_numbers",
+    "title_gate_passed",
+    "promotion_permanently_blocked",
+    "human_equal",
+    "human_final",
+    "final_promotion_allowed"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/codex-quality-proxy-evaluation"},
+    "schema_version": {"type": "string", "minLength": 1},
+    "title_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["pass", "fail", "partial-pass", "partial-fail"]},
+    "engineering_proxy_only": {"const": true},
+    "human_equivalence_certified": {"const": false},
+    "evaluation_scope": {"enum": ["full-title", "eligible-blocks-only"]},
+    "partial_evaluation": {"type": "boolean"},
+    "denominator_block_count": {"type": "integer", "minimum": 1},
+    "eligible_block_count": {"type": "integer", "minimum": 0},
+    "eligible_block_numbers": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+    "title_gate_passed": {"type": "boolean"},
+    "promotion_permanently_blocked": {"type": "boolean"},
+    "eligible_block_selection_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "human_equal": {"const": false},
+    "human_final": {"const": false},
+    "final_promotion_allowed": {"const": false}
+  },
+  "allOf": [
+    {
+      "if": {"required": ["partial_evaluation"], "properties": {"partial_evaluation": {"const": true}}},
+      "then": {
+        "properties": {
+          "evaluation_scope": {"const": "eligible-blocks-only"},
+          "title_gate_passed": {"const": false},
+          "promotion_permanently_blocked": {"const": true}
+        },
+        "required": ["eligible_block_selection_sha256"]
+      }
+    },
+    {
+      "if": {"required": ["partial_evaluation"], "properties": {"partial_evaluation": {"const": false}}},
+      "then": {"properties": {"evaluation_scope": {"const": "full-title"}}}
+    }
+  ],
+  "additionalProperties": true
+}

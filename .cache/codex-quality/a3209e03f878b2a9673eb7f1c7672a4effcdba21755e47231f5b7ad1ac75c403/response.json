@@ -1,0 +1,56 @@
+{
+  "scene_id": "scene-0007-conflict-rerun",
+  "frames": [
+    {
+      "block_number": 177,
+      "speech_act": "prohibition",
+      "question": false,
+      "polarity": "negative",
+      "refusal_permission": "prohibition",
+      "command_strength": "urgent",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "stop",
+      "target": null,
+      "location": null,
+      "tense_aspect": null,
+      "direction": "stop",
+      "intensity": "high",
+      "confidence": "medium"
+    },
+    {
+      "block_number": 178,
+      "speech_act": "command",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "command",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "obey",
+      "target": "self",
+      "location": null,
+      "tense_aspect": null,
+      "direction": null,
+      "intensity": "high",
+      "confidence": "medium"
+    },
+    {
+      "block_number": 179,
+      "speech_act": "request",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "request",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "obey",
+      "target": "self",
+      "location": null,
+      "tense_aspect": null,
+      "direction": null,
+      "intensity": "medium",
+      "confidence": "medium"
+    }
+  ]
+}

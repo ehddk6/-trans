@@ -12,6 +12,11 @@ dependencies = ["jsonschema>=4.21"]
 [project.optional-dependencies]
 forensics = ["joblib", "numpy", "pandas", "scipy", "scikit-learn"]
 asr = ["faster-whisper"]
+quality-asr = [
+  "faster-whisper",
+  "sherpa-onnx>=1.13.4",
+  "reazonspeech-k2-asr @ git+https://github.com/reazon-research/ReazonSpeech.git#subdirectory=pkg/k2-asr",
+]
 machine-draft = ["deep-translator", "requests"]
 cloud = ["openai"]
 dev = ["pytest"]

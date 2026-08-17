@@ -1,0 +1,93 @@
+{
+  "scene_id": "scene-0010",
+  "blocks": [
+    {
+      "block_number": 185,
+      "source_faithful_korean": "정말 점점 더 빨라지고 있어.",
+      "viewer_natural_korean": "정말 점점 더 빨라지고 있어.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00152:faster-whisper-large-v3",
+        "asr:window-00152:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 186,
+      "source_faithful_korean": "좋네.",
+      "viewer_natural_korean": "좋네.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00154:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 187,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00157:faster-whisper-large-v3",
+        "asr:window-00157:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 188,
+      "source_faithful_korean": "나도 핥아 줘.",
+      "viewer_natural_korean": "나도 핥아 줘.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00158:faster-whisper-large-v3",
+        "asr:window-00158:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 189,
+      "source_faithful_korean": "더, 더 핥아 줘.",
+      "viewer_natural_korean": "더 핥아 줘.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00159:faster-whisper-large-v3",
+        "asr:window-00159:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 190,
+      "source_faithful_korean": "멈춰.",
+      "viewer_natural_korean": "멈춰.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00160:faster-whisper-large-v3",
+        "asr:window-00160:reazonspeech-k2-v2",
+        "asr:window-00161:faster-whisper-large-v3",
+        "asr:window-00161:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 191,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00162:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 192,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "unresolved",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00163:faster-whisper-large-v3",
+        "asr:window-00163:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "scene_id": "scene-0004-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 170,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음성의 「中もいいでしょ」와 긍정 의문·허용 확인의 합의 프레임에 부합하며 자연스럽다."
+    },
+    {
+      "block_number": 182,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "음성은 시끄럽다는 진술인데 후보는 감탄과 칭찬으로 의미·극성이 다름",
+        "강한 긍정 감탄은 음성에서 확인되지 않음"
+      ],
+      "unsupported_additions": [
+        "대단함 또는 놀라움을 나타내는 감탄"
+      ],
+      "naturalness_issues": [],
+      "reason": "정렬 음성은 「うるさいからうるさいって」로 들려 「すごい」 계열 번역을 지지하지 않는다."
+    },
+    {
+      "block_number": 190,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "후보의 속도 판단이 음성의 혈연관계 부정 진술과 충돌",
+        "음성의 부정 극성과 후보의 긍정 속성 진술이 충돌"
+      ],
+      "unsupported_additions": [
+        "빠르다는 속도 정보"
+      ],
+      "naturalness_issues": [],
+      "reason": "Whisper 계열 음성은 혈연관계 부정을 말하고 다른 재실행도 속도 의미를 확인하지 못한다."
+    }
+  ]
+}

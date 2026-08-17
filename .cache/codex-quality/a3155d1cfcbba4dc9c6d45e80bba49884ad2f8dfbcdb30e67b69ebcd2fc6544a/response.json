@@ -1,0 +1,13 @@
+{
+  "scene_id": "scene-0012",
+  "reviews": [
+    {
+      "block_number": 237,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "원문 자막은 사용 불가하고 단일 비정렬 ASR은 발성만 시사한다. 말뜻을 단정하지 않은 생략 표시는 abstained 판정에 부합한다."
+    }
+  ]
+}

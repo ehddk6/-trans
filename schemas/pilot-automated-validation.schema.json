@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-automated-validation/v1",
+  "title": "SSIS-908 deterministic pilot validation report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "status",
+    "automated_validation_passed",
+    "expected_block_count",
+    "frozen_baseline",
+    "japanese_evidence",
+    "candidate_provenance",
+    "checks",
+    "failed_checks",
+    "non_blocking_warning_counts",
+    "human_reviewed",
+    "pilot_evaluated",
+    "human_final_allowed",
+    "final_promotion_allowed",
+    "claim_scope"
+  ],
+  "$defs": {
+    "file_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "gate": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["pass", "fail"]}
+      }
+    }
+  },
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-automated-validation"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "status": {"enum": ["pass", "fail"]},
+    "automated_validation_passed": {"type": "boolean"},
+    "expected_block_count": {"const": 298},
+    "frozen_baseline": {"$ref": "#/$defs/file_ref"},
+    "japanese_evidence": {"$ref": "#/$defs/file_ref"},
+    "candidate_provenance": {"$ref": "#/$defs/file_ref"},
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "locked_srt_structure",
+        "character_safety",
+        "readability",
+        "provenance",
+        "evidence_references",
+        "prompt_contracts",
+        "synthetic_quality_regressions"
+      ],
+      "properties": {
+        "locked_srt_structure": {"$ref": "#/$defs/gate"},
+        "character_safety": {"$ref": "#/$defs/gate"},
+        "readability": {"$ref": "#/$defs/gate"},
+        "provenance": {"$ref": "#/$defs/gate"},
+        "evidence_references": {"$ref": "#/$defs/gate"},
+        "prompt_contracts": {"$ref": "#/$defs/gate"},
+        "synthetic_quality_regressions": {"$ref": "#/$defs/gate"}
+      }
+    },
+    "failed_checks": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "locked_srt_structure",
+          "character_safety",
+          "readability",
+          "provenance",
+          "evidence_references",
+          "prompt_contracts",
+          "synthetic_quality_regressions"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "non_blocking_warning_counts": {
+      "type": "object",
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "human_reviewed": {"const": false},
+    "pilot_evaluated": {"const": false},
+    "human_final_allowed": {"const": false},
+    "final_promotion_allowed": {"const": false},
+    "claim_scope": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "pass"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "automated_validation_passed": {"const": true},
+          "failed_checks": {"maxItems": 0},
+          "checks": {
+            "properties": {
+              "locked_srt_structure": {"properties": {"status": {"const": "pass"}}},
+              "character_safety": {"properties": {"status": {"const": "pass"}}},
+              "readability": {"properties": {"status": {"const": "pass"}}},
+              "provenance": {"properties": {"status": {"const": "pass"}}},
+              "evidence_references": {"properties": {"status": {"const": "pass"}}},
+              "prompt_contracts": {"properties": {"status": {"const": "pass"}}},
+              "synthetic_quality_regressions": {"properties": {"status": {"const": "pass"}}}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

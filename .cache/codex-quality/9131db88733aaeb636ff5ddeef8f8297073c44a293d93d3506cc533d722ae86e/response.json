@@ -1,0 +1,502 @@
+{
+  "scene_id": "scene-0011",
+  "blocks": [
+    {
+      "block_number": 193,
+      "source_faithful_korean": "기분 좋게 해 주면 돼.",
+      "viewer_natural_korean": "기분 좋게 해 주면 돼.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00167:faster-whisper-large-v3",
+        "asr:window-00167:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 194,
+      "source_faithful_korean": "하아, 기분 좋네.",
+      "viewer_natural_korean": "하아, 기분 좋아.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00168:faster-whisper-large-v3",
+        "asr:window-00168:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 195,
+      "source_faithful_korean": "으읏, 우와…",
+      "viewer_natural_korean": "으읏, 우와…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00169:faster-whisper-large-v3",
+        "asr:window-00169:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 196,
+      "source_faithful_korean": "아아…",
+      "viewer_natural_korean": "아아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00171:faster-whisper-large-v3",
+        "asr:window-00171:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 197,
+      "source_faithful_korean": "아아아…",
+      "viewer_natural_korean": "아아아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00172:faster-whisper-large-v3",
+        "asr:window-00172:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 198,
+      "source_faithful_korean": "아아아…",
+      "viewer_natural_korean": "아아아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00173:faster-whisper-large-v3",
+        "asr:window-00173:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 199,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00174:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 200,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00176:faster-whisper-large-v3",
+        "asr:window-00176:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 201,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00177:faster-whisper-large-v3",
+        "asr:window-00177:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 202,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00178:faster-whisper-large-v3",
+        "asr:window-00178:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 203,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00178:faster-whisper-large-v3",
+        "asr:window-00178:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 204,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00179:faster-whisper-large-v3",
+        "asr:window-00179:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 205,
+      "source_faithful_korean": "너무 괴로워.",
+      "viewer_natural_korean": "너무 괴로워.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00181:faster-whisper-large-v3",
+        "asr:window-00181:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 206,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00182:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 207,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00183:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 208,
+      "source_faithful_korean": "아, 하앗…",
+      "viewer_natural_korean": "아, 하앗…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00184:faster-whisper-large-v3",
+        "asr:window-00184:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 209,
+      "source_faithful_korean": "아아아…",
+      "viewer_natural_korean": "아아아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00185:faster-whisper-large-v3",
+        "asr:window-00185:reazonspeech-k2-v2",
+        "asr:window-00186:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 210,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00187:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 211,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00188:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 212,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00189:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 213,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00190:reazonspeech-k2-v2",
+        "asr:window-00191:faster-whisper-large-v3",
+        "asr:window-00191:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 214,
+      "source_faithful_korean": "난 이용당했을 뿐이야.",
+      "viewer_natural_korean": "난 이용당했을 뿐이야.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00192:faster-whisper-large-v3",
+        "asr:window-00192:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 215,
+      "source_faithful_korean": "왜 더 일찍 말해 주지 않았어?",
+      "viewer_natural_korean": "왜 더 일찍 말해 주지 않았어?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00192:faster-whisper-large-v3",
+        "asr:window-00192:reazonspeech-k2-v2",
+        "asr:window-00193:faster-whisper-large-v3",
+        "asr:window-00193:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 216,
+      "source_faithful_korean": "난 더러워졌어.",
+      "viewer_natural_korean": "난 더러워졌어.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00193:faster-whisper-large-v3",
+        "asr:window-00193:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 217,
+      "source_faithful_korean": "응.",
+      "viewer_natural_korean": "응.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00194:reazonspeech-k2-v2",
+        "asr:window-00195:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 218,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00195:reazonspeech-k2-v2",
+        "asr:window-00196:reazonspeech-k2-v2",
+        "asr:window-00197:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 219,
+      "source_faithful_korean": "나도 계속 좋아했어.",
+      "viewer_natural_korean": "나도 계속 좋아했어.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00197:reazonspeech-k2-v2",
+        "asr:window-00198:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 220,
+      "source_faithful_korean": "응.",
+      "viewer_natural_korean": "응.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00198:reazonspeech-k2-v2",
+        "asr:window-00199:faster-whisper-large-v3",
+        "asr:window-00199:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 221,
+      "source_faithful_korean": "하아…",
+      "viewer_natural_korean": "하아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00199:faster-whisper-large-v3",
+        "asr:window-00199:reazonspeech-k2-v2",
+        "asr:window-00200:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 222,
+      "source_faithful_korean": "하아…",
+      "viewer_natural_korean": "하아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00200:reazonspeech-k2-v2",
+        "asr:window-00201:reazonspeech-k2-v2",
+        "asr:window-00202:faster-whisper-large-v3",
+        "asr:window-00202:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 223,
+      "source_faithful_korean": "…?",
+      "viewer_natural_korean": "…?",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00202:faster-whisper-large-v3",
+        "asr:window-00202:reazonspeech-k2-v2",
+        "asr:window-00203:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 224,
+      "source_faithful_korean": "응.",
+      "viewer_natural_korean": "응.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00203:reazonspeech-k2-v2",
+        "asr:window-00204:faster-whisper-large-v3",
+        "asr:window-00204:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 225,
+      "source_faithful_korean": "응.",
+      "viewer_natural_korean": "응.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00204:faster-whisper-large-v3",
+        "asr:window-00204:reazonspeech-k2-v2",
+        "asr:window-00205:reazonspeech-k2-v2",
+        "asr:window-00206:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 226,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00205:reazonspeech-k2-v2",
+        "asr:window-00206:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 227,
+      "source_faithful_korean": "맛있어.",
+      "viewer_natural_korean": "맛있어.",
+      "source_status": "accepted",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00207:reazonspeech-k2-v2",
+        "asr:window-00208:faster-whisper-large-v3",
+        "asr:window-00208:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 228,
+      "source_faithful_korean": "윽…",
+      "viewer_natural_korean": "윽…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00208:faster-whisper-large-v3",
+        "asr:window-00208:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 229,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00209:faster-whisper-large-v3",
+        "asr:window-00209:reazonspeech-k2-v2",
+        "asr:window-00210:faster-whisper-large-v3",
+        "asr:window-00210:reazonspeech-k2-v2",
+        "asr:window-00211:faster-whisper-large-v3",
+        "asr:window-00211:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 230,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00210:faster-whisper-large-v3",
+        "asr:window-00210:reazonspeech-k2-v2",
+        "asr:window-00211:faster-whisper-large-v3",
+        "asr:window-00211:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 231,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00212:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 232,
+      "source_faithful_korean": "응.",
+      "viewer_natural_korean": "응.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00213:faster-whisper-large-v3",
+        "asr:window-00213:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 233,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00215:reazonspeech-k2-v2",
+        "asr:window-00216:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 234,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00217:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 235,
+      "source_faithful_korean": "자도 돼?",
+      "viewer_natural_korean": "자도 돼?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00219:faster-whisper-large-v3",
+        "asr:window-00219:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 236,
+      "source_faithful_korean": "엄청 기분 좋아.",
+      "viewer_natural_korean": "정말 기분 좋아.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00220:faster-whisper-large-v3",
+        "asr:window-00220:reazonspeech-k2-v2",
+        "asr:window-00221:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "scene_id": "scene-0004-conflict-rerun",
+  "frames": [
+    {
+      "block_number": 78,
+      "speech_act": "prohibition",
+      "question": false,
+      "polarity": "negative",
+      "refusal_permission": "prohibition",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "self",
+      "action": "feel_good",
+      "target": null,
+      "location": null,
+      "tense_aspect": "present",
+      "direction": null,
+      "intensity": "medium",
+      "confidence": "high"
+    }
+  ]
+}

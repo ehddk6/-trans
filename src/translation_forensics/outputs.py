@@ -41,7 +41,21 @@ def _copy_new(source: Path, destination: Path) -> None:
     shutil.copy2(source, destination)
 
 
-def package_title_outputs(title: str, reference_path: Path, source_path: Path, viewer_path: Path, output_dir: Path, *, stage: str = "text-crosschecked", version: int | None = None, japanese_path: Path | None = None, previous_path: Path | None = None, photos_path: Path | None = None, scenes_path: Path | None = None, asr_path: Path | None = None, translation_decisions_path: Path | None = None, semantic_frames_path: Path | None = None, hypothesis_ledger_path: Path | None = None, speaker_state_path: Path | None = None, alignment_evidence_path: Path | None = None, mqm_errors_path: Path | None = None, backtranslation_check_path: Path | None = None, evaluation_summary_path: Path | None = None, blind_review_pack_path: Path | None = None, release_gate_path: Path | None = None, timeline_validation_path: Path | None = None, project_root: Path | None = None, notes: list[str] | None = None, all_blocks_reviewed: bool = False, direct_human_listening: bool = False, evidence_complete: bool = False) -> dict[str, Any]:
+def _read_jsonl(path: Path | None) -> list[dict[str, Any]]:
+    if not path or not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), 1):
+        if not line.strip():
+            continue
+        value = json.loads(line)
+        if not isinstance(value, dict):
+            raise ValueError(f"JSONL object required: {path}:{line_number}")
+        rows.append(value)
+    return rows
+
+
+def package_title_outputs(title: str, reference_path: Path, source_path: Path, viewer_path: Path, output_dir: Path, *, stage: str = "text-crosschecked", version: int | None = None, japanese_path: Path | None = None, previous_path: Path | None = None, photos_path: Path | None = None, scenes_path: Path | None = None, asr_path: Path | None = None, translation_decisions_path: Path | None = None, translation_queue_path: Path | None = None, semantic_frames_path: Path | None = None, hypothesis_ledger_path: Path | None = None, speaker_state_path: Path | None = None, alignment_evidence_path: Path | None = None, mqm_errors_path: Path | None = None, backtranslation_check_path: Path | None = None, evaluation_summary_path: Path | None = None, blind_review_pack_path: Path | None = None, release_gate_path: Path | None = None, timeline_validation_path: Path | None = None, project_root: Path | None = None, notes: list[str] | None = None, all_blocks_reviewed: bool = False, direct_human_listening: bool = False, evidence_complete: bool = False) -> dict[str, Any]:
     if stage not in STAGES:
         raise ValueError(f"검증 단계가 잘못되었습니다: {stage}")
     if stage == "closed-world-validated":
@@ -60,8 +74,7 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
         timeline = json.loads(timeline_validation_path.read_text(encoding="utf-8"))
         if not timeline_is_usable(timeline):
             raise RuntimeError("timeline-validation이 클립·승격을 허용하지 않습니다.")
-    if asr_path and asr_path.exists():
-        read_asr_candidates(asr_path)
+    asr_rows = read_asr_candidates(asr_path) if asr_path and asr_path.exists() else []
     if stage == "audio-human-verified" and not direct_human_listening:
         raise RuntimeError("audio-human-verified에는 직접 원음 청취 확인이 필요합니다.")
     if stage in {"evaluation-validated", "final"}:
@@ -81,7 +94,9 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
     if stage == "final" and not translation_decisions_path:
         raise RuntimeError("final에는 의미 번역 결정 JSONL이 필요합니다.")
     if translation_decisions_path:
-        decision_report = validate_translation_decisions(reference_path, translation_decisions_path, strict=True)
+        if not translation_queue_path or not translation_queue_path.exists():
+            raise RuntimeError("번역 결정이 있는 패키징에는 evidence_refs를 대조할 translation queue가 필요합니다.")
+        decision_report = validate_translation_decisions(reference_path, translation_decisions_path, strict=True, translation_queue_path=translation_queue_path)
         if decision_report.get("status") != "pass":
             raise RuntimeError("의미 번역 결정 검증이 실패했습니다. apply-translations --strict 결과를 먼저 확인하세요.")
     forensic_paths = (semantic_frames_path, hypothesis_ledger_path)
@@ -152,9 +167,34 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
     source, _, _ = parse_srt(source_path)
     viewer, _, _ = parse_srt(viewer_path)
     previous = parse_srt(previous_path)[0] if previous_path and previous_path.exists() else None
-    write_csv(paths["change"], build_change_log(reference, previous, source, viewer, status=stage, japanese=japanese), ["block_number", "start_time", "end_time", "source_japanese", "previous_korean", "source_faithful_korean", "viewer_natural_korean", "change_type", "main_issue", "evidence_summary", "confidence", "review_note"])
-    write_csv(paths["evidence"], build_evidence_ledger(reference, status=stage, asr_rows=None, japanese_available=japanese is not None, previous_available=previous is not None, photos_available=photos_path is not None, screen_available=False), ["block_number", "timecode", "japanese_reference", "alternative_japanese_asr", "original_unbiased_asr", "dialogue_unbiased_asr", "original_no_vad_asr", "original_prompted_asr", "photos", "screen", "neighboring_context", "previous_korean", "error_memory", "verification_status", "evidence_independence_note"])
-    write_csv(paths["uncertainty"], build_uncertainty_map(reference, status=stage), ["block_number", "uncertain_block", "uncertain_slots", "possible_meaning_range", "adopted_broad_expression", "additional_evidence_needed", "current_verification_status", "impact"])
+    decisions = _read_jsonl(translation_decisions_path)
+    write_csv(
+        paths["change"],
+        build_change_log(reference, previous, source, viewer, status=stage, japanese=japanese, decisions=decisions),
+        ["block_number", "start_time", "end_time", "source_japanese", "previous_korean", "source_faithful_korean", "viewer_natural_korean", "change_type", "main_issue", "evidence_summary", "confidence", "review_note"],
+    )
+    write_csv(
+        paths["evidence"],
+        build_evidence_ledger(
+            reference,
+            status=stage,
+            asr_rows=asr_rows,
+            scenes_path=scenes_path,
+            decisions=decisions,
+            japanese=japanese,
+            previous=previous,
+            japanese_available=japanese is not None,
+            previous_available=previous is not None,
+            photos_available=photos_path is not None,
+            screen_available=False,
+        ),
+        ["block_number", "timecode", "japanese_reference", "alternative_japanese_asr", "original_unbiased_asr", "dialogue_unbiased_asr", "original_no_vad_asr", "original_prompted_asr", "photos", "screen", "neighboring_context", "previous_korean", "decision_status", "decision_evidence_refs", "error_memory", "verification_status", "evidence_independence_note"],
+    )
+    write_csv(
+        paths["uncertainty"],
+        build_uncertainty_map(reference, status=stage, decisions=decisions),
+        ["block_number", "uncertain_block", "uncertain_slots", "possible_meaning_range", "adopted_broad_expression", "additional_evidence_needed", "current_verification_status", "impact"],
+    )
     if scenes_path and scenes_path.exists():
         verdicts = build_asr_verdicts(scenes_path, asr_path)
     else:
@@ -167,6 +207,12 @@ def package_title_outputs(title: str, reference_path: Path, source_path: Path, v
     manifest_inputs = [reference_path, source_path, viewer_path]
     if translation_decisions_path and translation_decisions_path.exists():
         manifest_inputs.append(translation_decisions_path)
+    if translation_queue_path and translation_queue_path.exists():
+        manifest_inputs.append(translation_queue_path)
+    if asr_path and asr_path.exists():
+        manifest_inputs.append(asr_path)
+    if scenes_path and scenes_path.exists():
+        manifest_inputs.append(scenes_path)
     manifest_artifacts = [path for key, path in paths.items() if key != "run_manifest" and path.exists()]
     create_run_manifest(project_root or reference_path.parent, paths["run_manifest"], title=title, stage=stage, inputs=manifest_inputs, artifacts=manifest_artifacts)
     return {"status": "packaged", "title": title, "stage": stage, "version": version, "output_dir": str(output_dir), "files": {key: str(value) for key, value in paths.items()}, "validation": validation}

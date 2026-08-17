@@ -1,0 +1,13 @@
+{
+  "scene_id": "scene-0014-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 440,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘깊숙이 핥아’는 반복된 ‘奥まで’의 강도를 간결하게 살리며, 긍정 명령·행위·방향과 일치한다."
+    }
+  ]
+}

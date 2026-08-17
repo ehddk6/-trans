@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-blind-review-pack/v1",
+  "title": "SSIS-908 local blind-review pack manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name", "schema_version", "title_id", "pack_id", "reviewer_slot",
+    "status", "local_only", "external_delivery_performed",
+    "candidate_provenance_hidden", "randomization_seed_hidden",
+    "same_blind_layout_for_both_reviewers", "expected_block_count", "block_count",
+    "direct_listening_required_for_every_block", "evaluation_order",
+    "mqm_severity_definitions", "human_reviewed", "pilot_evaluated",
+    "final_promotion_allowed"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-blind-review-pack"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "pack_id": {"type": "string", "minLength": 1},
+    "reviewer_slot": {"enum": ["reviewer-1", "reviewer-2"]},
+    "status": {"enum": ["awaiting-human-review", "blocked"]},
+    "local_only": {"const": true},
+    "external_delivery_performed": {"const": false},
+    "candidate_provenance_hidden": {"const": true},
+    "randomization_seed_hidden": {"const": true},
+    "same_blind_layout_for_both_reviewers": {"const": true},
+    "expected_block_count": {"const": 298},
+    "block_count": {"type": "integer", "minimum": 0, "maximum": 298},
+    "direct_listening_required_for_every_block": {"const": true},
+    "evaluation_order": {
+      "const": ["semantic_fidelity", "contextual_consistency", "natural_korean", "semantic_recheck"]
+    },
+    "mqm_severity_definitions": {
+      "type": "object",
+      "required": ["critical", "major", "minor"],
+      "additionalProperties": false,
+      "properties": {
+        "critical": {"type": "string", "minLength": 1},
+        "major": {"type": "string", "minLength": 1},
+        "minor": {"type": "string", "minLength": 1}
+      }
+    },
+    "randomization_commitment_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "blind_rows_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "audio_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "human_reviewed": {"const": false},
+    "pilot_evaluated": {"const": false},
+    "final_promotion_allowed": {"const": false},
+    "errors": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "resume_condition": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "awaiting-human-review"}}},
+      "then": {
+        "required": ["randomization_commitment_sha256", "blind_rows_sha256", "audio_manifest_sha256"],
+        "properties": {"block_count": {"const": 298}}
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "blocked"}}},
+      "then": {
+        "required": ["errors", "resume_condition"],
+        "properties": {"block_count": {"const": 0}}
+      }
+    }
+  ]
+}

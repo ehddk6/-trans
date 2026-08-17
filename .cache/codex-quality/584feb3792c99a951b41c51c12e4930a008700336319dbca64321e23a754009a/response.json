@@ -1,0 +1,57 @@
+{
+  "scene_id": "scene-0013",
+  "reviews": [
+    {
+      "block_number": 402,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action/tense_aspect: 현재의 쾌감 진술을 행위 수행 의지로 변경"
+      ],
+      "unsupported_additions": [
+        "수행할 행위와 화자의 의지"
+      ],
+      "naturalness_issues": [],
+      "reason": "음성은 ‘조금 기분 좋다’는 현재 감각 진술로, ‘하겠습니다/할게요’의 의미를 지지하지 않는다."
+    },
+    {
+      "block_number": 403,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act/refusal_permission: 감각 진술을 상대방에 대한 허락으로 변경"
+      ],
+      "unsupported_additions": [
+        "상대방의 행동에 대한 허락"
+      ],
+      "naturalness_issues": [
+        "‘아, 부디’는 독립된 허락 표현으로 부자연스럽다."
+      ],
+      "reason": "음성에는 허락 표현이 없으며, 제안문은 감각 진술을 ‘그러세요’라는 허락으로 바꾼다."
+    },
+    {
+      "block_number": 404,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "source_faithful_korean의 ‘부디’는 허락보다 간청의 발화 힘을 띤다."
+      ],
+      "unsupported_additions": [
+        "‘부디’가 더하는 간절한 요청의 강도"
+      ],
+      "naturalness_issues": [
+        "‘아, 부디’는 한국어 대화에서 독립된 허락 표현으로 어색하다."
+      ],
+      "reason": "신뢰된 일본어 원문과 합의 프레임은 허락을 지지하지만, source-faithful 문구의 발화 힘과 자연스러움은 수정이 필요하다."
+    },
+    {
+      "block_number": 405,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity/repetition: 네 차례 반복된 음성을 단일 감탄음으로 축소"
+      ],
+      "unsupported_additions": [
+        "음성에 없는 ‘아’ 계열 감탄음"
+      ],
+      "naturalness_issues": [],
+      "reason": "음성은 ‘クイ’를 네 차례 반복하며, ‘아아/아…’라는 감탄음을 지지하지 않는다."
+    }
+  ]
+}

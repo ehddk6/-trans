@@ -45,6 +45,18 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _portable_manifest_input(path: Path, root: Path) -> dict[str, str]:
+    resolved = path.expanduser().resolve()
+    root = root.expanduser().resolve()
+    try:
+        portable = resolved.relative_to(root).as_posix()
+        path_base = "workspace"
+    except ValueError:
+        portable = resolved.name
+        path_base = "basename-only"
+    return {"path": portable, "path_base": path_base, "sha256": _sha256(resolved)}
+
+
 def _json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8-sig"))
     if not isinstance(value, dict):
@@ -460,6 +472,8 @@ def _critique_record(review: dict[str, Any], attempt: int) -> dict[str, Any]:
 
 
 def _model_calls_traceable(records: list[dict[str, Any]]) -> bool:
+    if not records:
+        return False
     required = {
         "schema_name", "schema_version", "call_kind", "provider", "model",
         "request_id", "request_sha256", "response_sha256", "evidence_sha256",
@@ -629,18 +643,18 @@ def run_autonomous_release(
         checkpoint = checkpoint_dir / f"decisions-{offset:06d}.json"
         if resume and checkpoint.exists():
             saved = _json(checkpoint)
-            if isinstance(saved.get("response"), dict):
-                response = saved["response"]
-                saved_call = saved.get("call_record")
-                if isinstance(saved_call, dict):
-                    restored_call = {**saved_call, "checkpoint_replay": True}
-                    call_records.append(restored_call)
-                    restore_spent = getattr(getattr(provider, "budget", None), "restore_spent", None)
-                    if callable(restore_spent):
-                        restore_spent(float(saved_call.get("cost_usd", 0.0) or 0.0))
-            else:
-                # Compatibility with the first development checkpoint format.
-                response = saved
+            if not isinstance(saved.get("response"), dict) or not isinstance(saved.get("call_record"), dict):
+                raise ValueError(
+                    f"Untraceable legacy checkpoint cannot be resumed: {checkpoint}. "
+                    "Delete the checkpoint or restart without --resume."
+                )
+            response = saved["response"]
+            saved_call = saved["call_record"]
+            restored_call = {**saved_call, "checkpoint_replay": True}
+            call_records.append(restored_call)
+            restore_spent = getattr(getattr(provider, "budget", None), "restore_spent", None)
+            if callable(restore_spent):
+                restore_spent(float(saved_call.get("cost_usd", 0.0) or 0.0))
         else:
             payload = {
                 "schema_name": "translation-forensics/autonomous-generation-request",
@@ -898,7 +912,7 @@ def run_autonomous_release(
         "schema_version": "1",
         "title_id": title_id,
         "release_kind": AUTONOMOUS_RELEASE_KIND,
-        "inputs": [{"path": str(path), "sha256": _sha256(path)} for path in [structure_path, japanese_path, *[path for path in (previous_path, scenes_path, local_asr_path) if path and path.exists()]]],
+        "inputs": [_portable_manifest_input(path, structure_path.parent.parent) for path in [structure_path, japanese_path, *[path for path in (previous_path, scenes_path, local_asr_path) if path and path.exists()]]],
         "outputs": [{"path": path.relative_to(output_dir).as_posix(), "sha256": _sha256(path)} for path in artifact_paths],
         "prompt_hashes": {"decision": _sha256(decision_prompt_path), "critic": _sha256(critic_prompt_path)},
         "network_enabled": True,
@@ -935,46 +949,192 @@ def validate_autonomous_release(package_dir: Path) -> dict[str, Any]:
     evidence_path = package_dir / "autonomous-evidence.jsonl"
     calls_path = package_dir / "model-call-manifest.jsonl"
     structure_path = package_dir / "structure.srt"
-    errors: list[str] = []
-    for path in (manifest_path, report_path, proof_path, decisions_path, structure_path):
-        if not path.exists():
-            errors.append(f"missing artifact: {path.name}")
+    qa_path = package_dir / "qa-report.json"
+    required = {
+        "autonomous-release-manifest.json": manifest_path,
+        "autonomous-release-report.json": report_path,
+        "autonomous-proof.json": proof_path,
+        "autonomous-decisions.jsonl": decisions_path,
+        "autonomous-critiques.jsonl": critiques_path,
+        "autonomous-evidence.jsonl": evidence_path,
+        "model-call-manifest.jsonl": calls_path,
+        "structure.srt": structure_path,
+        "uncertainty-map.jsonl": package_dir / "uncertainty-map.jsonl",
+        "title-memory.json": package_dir / "title-memory.json",
+        "machine-alignment.json": package_dir / "machine-alignment.json",
+        "evidence-graph.json": package_dir / "evidence-graph.json",
+        "qa-report.json": qa_path,
+    }
+    errors = [f"missing artifact: {name}" for name, path in required.items() if not path.exists()]
     if errors:
         return {"status": "fail", "package": str(package_dir), "errors": errors}
-    manifest = _json(manifest_path)
-    report = _json(report_path)
-    proof = _json(proof_path)
-    outputs = manifest.get("outputs", [])
+
+    try:
+        manifest = _json(manifest_path)
+        report = _json(report_path)
+        proof = _json(proof_path)
+        qa_report = _json(qa_path)
+        reference, _, _ = parse_srt(structure_path)
+        decisions = _jsonl(decisions_path)
+        critiques = _jsonl(critiques_path)
+        evidence = _jsonl(evidence_path)
+        calls = _jsonl(calls_path)
+    except Exception as exc:
+        return {"status": "fail", "package": str(package_dir), "errors": [f"package parse failure: {exc}"]}
+
+    outputs = manifest.get("outputs")
+    output_paths: set[str] = set()
+    if not isinstance(outputs, list):
+        errors.append("manifest outputs must be an array")
+        outputs = []
     for item in outputs:
-        path = Path(str(item.get("path", "")))
-        if not path.is_absolute():
-            path = package_dir / path
-        if not path.exists() or _sha256(path) != item.get("sha256"):
-            errors.append(f"output hash mismatch: {path.name}")
+        if not isinstance(item, dict):
+            errors.append("manifest output record must be an object")
+            continue
+        raw = str(item.get("path") or "")
+        raw_path = Path(raw)
+        if not raw or raw_path.is_absolute() or ".." in raw_path.parts:
+            errors.append(f"unsafe manifest output path: {raw!r}")
+            continue
+        resolved = (package_dir / raw_path).resolve()
+        try:
+            resolved.relative_to(package_dir)
+        except ValueError:
+            errors.append(f"manifest output escapes package: {raw}")
+            continue
+        normalized = resolved.relative_to(package_dir).as_posix()
+        if normalized in output_paths:
+            errors.append(f"duplicate manifest output: {normalized}")
+            continue
+        output_paths.add(normalized)
+        if not resolved.is_file():
+            errors.append(f"manifest output is missing: {normalized}")
+        elif _sha256(resolved) != item.get("sha256"):
+            errors.append(f"output hash mismatch: {normalized}")
+
+    required_manifest_outputs = {
+        "structure.srt",
+        "autonomous-decisions.jsonl",
+        "autonomous-critiques.jsonl",
+        "autonomous-evidence.jsonl",
+        "model-call-manifest.jsonl",
+        "uncertainty-map.jsonl",
+        "title-memory.json",
+        "machine-alignment.json",
+        "evidence-graph.json",
+        "qa-report.json",
+        "autonomous-release-report.json",
+        "autonomous-proof.json",
+    }
+    for missing in sorted(required_manifest_outputs - output_paths):
+        errors.append(f"required output is not recorded in manifest: {missing}")
+
     source_candidates = list(package_dir.glob("*.source-faithful-ko.autonomous-release-v*.srt"))
     viewer_candidates = list(package_dir.glob("*.viewer-complete-ko.autonomous-release-v*.srt"))
     if len(source_candidates) != 1 or len(viewer_candidates) != 1:
         errors.append("exactly one source and viewer autonomous SRT are required")
     else:
-        qa = validate_pair(structure_path, source_candidates[0], viewer_candidates[0])
-        if qa.get("status") == "fail" or not qa.get("structure_same"):
+        for candidate in (*source_candidates, *viewer_candidates):
+            if candidate.relative_to(package_dir).as_posix() not in output_paths:
+                errors.append(f"SRT is not recorded in manifest: {candidate.name}")
+        srt_qa = validate_pair(structure_path, source_candidates[0], viewer_candidates[0])
+        if srt_qa.get("status") == "fail" or not srt_qa.get("structure_same"):
             errors.append("autonomous SRT structural/text validation failed")
-    reference, _, _ = parse_srt(structure_path)
-    decisions = _jsonl(decisions_path)
-    if {int(row.get("block_number", 0)) for row in decisions} != {block.number for block in reference}:
-        errors.append("decision coverage mismatch")
-    for row in decisions:
-        if row.get("source_status") not in SOURCE_STATUSES:
-            errors.append(f"invalid source status: {row.get('block_number')}")
-        if not str(row.get("viewer_natural_korean") or "").strip():
-            errors.append(f"empty viewer block: {row.get('block_number')}")
-        if row.get("source_status") == "accepted" and any(str(code).startswith("critical:") for code in row.get("risk_codes", [])):
-            errors.append(f"accepted critical conflict: {row.get('block_number')}")
+
+    expected = [block.number for block in reference]
+    evidence_numbers: list[int] = []
+    allowed_refs: dict[int, set[str]] = {}
+    try:
+        evidence_numbers = [int(row.get("block_number", 0)) for row in evidence]
+        allowed_refs = _allowed_evidence_refs(evidence)
+    except (KeyError, TypeError, ValueError) as exc:
+        errors.append(f"invalid evidence record: {exc}")
+    if len(evidence_numbers) != len(set(evidence_numbers)) or set(evidence_numbers) != set(expected):
+        errors.append("evidence coverage mismatch")
+    title_id = str(report.get("title_id") or "")
+    if not title_id:
+        errors.append("release report title_id is missing")
+    if any(row.get("title_id") != title_id for row in evidence):
+        errors.append("evidence title_id mismatch")
+    try:
+        validated_decisions = _validate_decisions(title_id, expected, decisions, allowed_refs)
+    except Exception as exc:
+        errors.append(f"decision validation failed: {exc}")
+        validated_decisions = decisions
+
+    expected_set = set(expected)
+    reviewed: set[int] = set()
+    for row in critiques:
+        try:
+            number = int(row.get("block_number", 0))
+            attempt = int(row.get("attempt", 0))
+        except (TypeError, ValueError):
+            errors.append("critique block_number/attempt is invalid")
+            continue
+        if row.get("title_id") != title_id or number not in expected_set:
+            errors.append(f"critique title/block mismatch: {number}")
+        if row.get("verdict") not in {"accept", "repair", "quarantine"} or attempt < 0:
+            errors.append(f"invalid critique record: {number}")
+        reviewed.add(number)
+
+    evidence_by_number: dict[int, dict[str, Any]] = {}
+    for row in evidence:
+        try:
+            evidence_by_number[int(row.get("block_number", 0))] = row
+        except (TypeError, ValueError):
+            continue
+    risky: set[int] = set()
+    for row in validated_decisions:
+        try:
+            number = int(row.get("block_number", 0))
+        except (TypeError, ValueError):
+            continue
+        evidence_row = evidence_by_number.get(number, {})
+        if (
+            row.get("confidence") != "high"
+            or row.get("source_status") == "abstained"
+            or row.get("viewer_status") != "supported"
+            or row.get("risk_codes")
+            or row.get("inferred_slots")
+            or row.get("competing_interpretations")
+            or evidence_row.get("risk_codes")
+        ):
+            risky.add(number)
+    for number in sorted(risky - reviewed):
+        errors.append(f"risky decision lacks critic review: {number}")
+
+    calls_traceable = _model_calls_traceable(calls)
+    if not calls_traceable:
+        errors.append("model-call provenance is missing, empty, or invalid")
+    try:
+        expected_cost = round(sum(float(row.get("cost_usd", 0.0) or 0.0) for row in calls), 6)
+    except (TypeError, ValueError):
+        expected_cost = -1.0
+        errors.append("model-call cost field is invalid")
+    try:
+        reported_calls = int(report.get("model_calls", -1))
+    except (TypeError, ValueError):
+        reported_calls = -1
+        errors.append("release report model_calls is invalid")
+    if reported_calls != len(calls):
+        errors.append("release report model_calls does not match call manifest")
+    try:
+        reported_cost = float(report.get("estimated_cost_usd", -1.0))
+    except (TypeError, ValueError):
+        reported_cost = -1.0
+        errors.append("release report estimated cost is invalid")
+    if abs(reported_cost - expected_cost) > 1e-6:
+        errors.append("release report estimated cost does not match call manifest")
+    if report.get("all_model_calls_traceable") is not calls_traceable:
+        errors.append("release report model-call provenance flag is inconsistent")
+    if proof.get("all_model_calls_traceable") is not calls_traceable:
+        errors.append("proof model-call provenance flag is inconsistent")
+
     schema_checks = (
-        ("autonomous-evidence-bundle.schema.json", _jsonl(evidence_path) if evidence_path.exists() else []),
+        ("autonomous-evidence-bundle.schema.json", evidence),
         ("autonomous-decision.schema.json", decisions),
-        ("autonomous-critique.schema.json", _jsonl(critiques_path) if critiques_path.exists() else []),
-        ("model-call-manifest.schema.json", _jsonl(calls_path) if calls_path.exists() else []),
+        ("autonomous-critique.schema.json", critiques),
+        ("model-call-manifest.schema.json", calls),
         ("autonomous-proof.schema.json", [proof]),
     )
     for schema_name, records in schema_checks:
@@ -987,21 +1147,32 @@ def validate_autonomous_release(package_dir: Path) -> dict[str, Any]:
             first_error = next(iter(validator.iter_errors(record)), None)
             if first_error is not None:
                 errors.append(f"{schema_name} record {index}: {first_error.message}")
-    if report.get("release_kind") != AUTONOMOUS_RELEASE_KIND or report.get("human_final_allowed") is not False:
-        errors.append("release kind or human-final boundary is invalid")
-    if report.get("all_model_calls_traceable") is not True:
-        errors.append("model-call provenance is incomplete")
+
+    if report.get("release_kind") != AUTONOMOUS_RELEASE_KIND:
+        errors.append("release kind is invalid")
+    if report.get("status") != "autonomous-release-packaged":
+        errors.append("release report is not in packaged state")
+    if report.get("human_final_allowed") is not False or report.get("final_promotion_allowed") is not False:
+        errors.append("release report human-final boundary is invalid")
+    if qa_report.get("status") == "fail":
+        errors.append("packaged QA report is failing")
     if proof.get("human_reference_equality") != "unidentifiable" or proof.get("100_percent_equal") is not False:
         errors.append("human-reference claim boundary is invalid")
+    if proof.get("human_final_allowed") is not False or proof.get("final_promotion_allowed") is not False:
+        errors.append("proof human-final boundary is invalid")
+    if manifest.get("title_id") != title_id:
+        errors.append("manifest title_id mismatch")
     if manifest.get("final_promotion_allowed") is not False:
         errors.append("autonomous package must not allow final promotion")
+
     return {
         "status": "pass" if not errors else "fail",
         "package": str(package_dir),
-        "title_id": report.get("title_id"),
+        "title_id": title_id,
         "blocks": len(reference),
         "source_accepted": report.get("source_accepted"),
         "source_abstained": report.get("source_abstained"),
+        "model_calls": len(calls),
         "errors": errors,
         "human_final_allowed": False,
         "final_promotion_allowed": False,

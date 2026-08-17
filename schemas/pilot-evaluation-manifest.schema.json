@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-evaluation-manifest/v1",
+  "title": "SSIS-908 pilot evaluation manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "status",
+    "result",
+    "lifecycle_status",
+    "pilot_evaluated",
+    "human_reviewed",
+    "expected_block_count",
+    "frozen_baseline",
+    "candidate_release",
+    "timeline_alignment",
+    "review_packet",
+    "reviewer_submissions",
+    "adjudication_record",
+    "pilot_metrics",
+    "automated_validation",
+    "outcome_basis",
+    "claim_boundary",
+    "unperformed_validations",
+    "remaining_risks",
+    "generated_artifacts"
+  ],
+  "$defs": {
+    "file_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?![A-Za-z]:)(?!/)"
+        },
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "reason", "resume_condition"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "resume_condition": {"type": "string", "minLength": 1}
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "detail"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "detail": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-evaluation-manifest"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "status": {"enum": ["awaiting-human-review", "pilot-evaluated"]},
+    "result": {"type": ["string", "null"], "enum": [null, "pass", "fail", "inconclusive"]},
+    "lifecycle_status": {
+      "enum": [
+        "awaiting-human-review",
+        "pilot-evaluated/pass",
+        "pilot-evaluated/fail",
+        "pilot-evaluated/inconclusive"
+      ]
+    },
+    "pilot_evaluated": {"type": "boolean"},
+    "human_reviewed": {"type": "boolean"},
+    "expected_block_count": {"type": "integer", "minimum": 1},
+    "frozen_baseline": {"$ref": "#/$defs/file_ref"},
+    "candidate_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "source_faithful", "viewer_natural", "provenance", "models", "pipeline_order"],
+      "properties": {
+        "status": {"type": "string", "minLength": 1},
+        "source_faithful": {"$ref": "#/$defs/file_ref"},
+        "viewer_natural": {"$ref": "#/$defs/file_ref"},
+        "provenance": {"$ref": "#/$defs/file_ref"},
+        "models": {
+          "type": "object",
+          "required": ["translation_decision", "independent_critique_repair"],
+          "properties": {
+            "translation_decision": {"const": "gpt-5.6-terra"},
+            "independent_critique_repair": {"const": "gpt-5.6-sol"}
+          }
+        },
+        "pipeline_order": {
+          "const": [
+            "terra-translation-decision",
+            "sol-independent-critique-repair",
+            "semantic-recheck"
+          ]
+        }
+      }
+    },
+    "timeline_alignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact", "status", "clip_preparation_allowed"],
+      "properties": {
+        "artifact": {"$ref": "#/$defs/file_ref"},
+        "status": {"enum": ["resolved", "unresolved"]},
+        "clip_preparation_allowed": {"type": "boolean"}
+      }
+    },
+    "review_packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "local_only",
+        "external_delivery_performed",
+        "audio_review_manifest",
+        "blind_review_packets",
+        "internal_key",
+        "key_frozen_before_candidate_generation"
+      ],
+      "properties": {
+        "status": {"enum": ["ready", "blocked"]},
+        "local_only": {"const": true},
+        "external_delivery_performed": {"const": false},
+        "audio_review_manifest": {"$ref": "#/$defs/file_ref"},
+        "blind_review_packets": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"$ref": "#/$defs/file_ref"}
+        },
+        "internal_key": {"$ref": "#/$defs/file_ref"},
+        "key_frozen_before_candidate_generation": {"type": "boolean"}
+      }
+    },
+    "reviewer_submissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected_count", "received_count", "complete", "attestations", "decisions"],
+      "properties": {
+        "expected_count": {"const": 2},
+        "received_count": {"type": "integer", "minimum": 0, "maximum": 2},
+        "complete": {"type": "boolean"},
+        "attestations": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 2,
+          "items": {"$ref": "#/$defs/file_ref"}
+        },
+        "decisions": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 2,
+          "items": {"$ref": "#/$defs/file_ref"}
+        }
+      }
+    },
+    "adjudication_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact",
+        "expected_block_count",
+        "adjudicated_block_count",
+        "blocking_block_count",
+        "unresolved_block_count"
+      ],
+      "properties": {
+        "artifact": {"$ref": "#/$defs/file_ref"},
+        "expected_block_count": {"type": "integer", "minimum": 1},
+        "adjudicated_block_count": {"type": "integer", "minimum": 0},
+        "blocking_block_count": {"type": "integer", "minimum": 0},
+        "unresolved_block_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "pilot_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact", "error_ledger", "status", "result", "gate_order", "gates", "reason"],
+      "properties": {
+        "artifact": {"$ref": "#/$defs/file_ref"},
+        "error_ledger": {"$ref": "#/$defs/file_ref"},
+        "status": {"enum": ["awaiting-human-review", "pilot-evaluated"]},
+        "result": {"type": ["string", "null"], "enum": [null, "pass", "fail", "inconclusive"]},
+        "gate_order": {"type": "array", "minItems": 3, "items": {"type": "string", "minLength": 1}},
+        "gates": {"type": "object", "minProperties": 3},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "automated_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact", "status", "passed", "failed_checks"],
+      "properties": {
+        "artifact": {"$ref": "#/$defs/file_ref"},
+        "status": {"enum": ["pass", "fail"]},
+        "passed": {"type": "boolean"},
+        "failed_checks": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "outcome_basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evaluation_order", "reason", "pass_contract", "fail_conditions", "inconclusive_conditions"],
+      "properties": {
+        "evaluation_order": {
+          "const": ["semantic_fidelity", "contextual_consistency", "natural_korean", "semantic_recheck"]
+        },
+        "reason": {"type": "string", "minLength": 1},
+        "pass_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "new_critical_semantic_error_count",
+            "minimum_error_block_reduction_percent",
+            "minimum_naturalness_win_percent",
+            "maximum_naturalness_loss_percent",
+            "automated_validation_required",
+            "all_298_blocks_required"
+          ],
+          "properties": {
+            "new_critical_semantic_error_count": {"const": 0},
+            "minimum_error_block_reduction_percent": {"const": 50.0},
+            "minimum_naturalness_win_percent": {"const": 65.0},
+            "maximum_naturalness_loss_percent": {"const": 15.0},
+            "automated_validation_required": {"const": true},
+            "all_298_blocks_required": {"const": true}
+          }
+        },
+        "fail_conditions": {"type": "array", "minItems": 3, "items": {"type": "string", "minLength": 1}},
+        "inconclusive_conditions": {"type": "array", "minItems": 3, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "quality_improvement_claim_allowed",
+        "cross_title_generalization_allowed",
+        "final_promotion_allowed",
+        "human_reviewed_candidate_promotion_allowed",
+        "human_final_allowed"
+      ],
+      "properties": {
+        "scope": {"const": "SSIS-908 pilot only"},
+        "quality_improvement_claim_allowed": {"type": "boolean"},
+        "cross_title_generalization_allowed": {"const": false},
+        "final_promotion_allowed": {"const": false},
+        "human_reviewed_candidate_promotion_allowed": {"const": false},
+        "human_final_allowed": {"const": false}
+      }
+    },
+    "unperformed_validations": {"type": "array", "items": {"$ref": "#/$defs/issue"}},
+    "remaining_risks": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/risk"}},
+    "generated_artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pilot_evaluation_report"],
+      "properties": {
+        "pilot_evaluation_report": {"$ref": "#/$defs/file_ref"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "awaiting-human-review"}}},
+      "then": {
+        "properties": {
+          "result": {"const": null},
+          "lifecycle_status": {"const": "awaiting-human-review"},
+          "pilot_evaluated": {"const": false},
+          "human_reviewed": {"const": false}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "pilot-evaluated"},
+          "result": {"const": "pass"}
+        },
+        "required": ["status", "result"]
+      },
+      "then": {
+        "properties": {
+          "pilot_evaluated": {"const": true},
+          "human_reviewed": {"const": true}
+        }
+      }
+    }
+  ]
+}

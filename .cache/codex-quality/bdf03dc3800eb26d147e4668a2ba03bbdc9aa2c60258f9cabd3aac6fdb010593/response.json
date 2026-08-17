@@ -1,0 +1,159 @@
+{
+  "scene_id": "scene-0002",
+  "blocks": [
+    {
+      "block_number": 61,
+      "source_faithful_korean": "응, 고마워.",
+      "viewer_natural_korean": "응, 고마워.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00007:faster-whisper-large-v3",
+        "asr:window-00007:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 62,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "asr:window-00007:faster-whisper-large-v3",
+        "asr:window-00007:reazonspeech-k2-v2",
+        "asr:window-00008:faster-whisper-large-v3",
+        "asr:window-00008:reazonspeech-k2-v2",
+        "asr:window-00009:faster-whisper-large-v3",
+        "asr:window-00009:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 63,
+      "source_faithful_korean": "왜 그래? 못 하겠어.",
+      "viewer_natural_korean": "왜 그래? 못 하겠어.",
+      "source_status": "accepted",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00009:faster-whisper-large-v3",
+        "asr:window-00009:reazonspeech-k2-v2",
+        "asr:window-00010:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 64,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00010:reazonspeech-k2-v2",
+        "asr:window-00011:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 65,
+      "source_faithful_korean": "전 직장에서 과로로 몸이 망가져 휴직했어요.",
+      "viewer_natural_korean": "전 직장에서 과로로 몸이 망가져 휴직했어요.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00011:reazonspeech-k2-v2",
+        "asr:window-00012:faster-whisper-large-v3",
+        "asr:window-00012:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 66,
+      "source_faithful_korean": "응.",
+      "viewer_natural_korean": "응.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00012:faster-whisper-large-v3",
+        "asr:window-00012:reazonspeech-k2-v2",
+        "asr:window-00013:faster-whisper-large-v3",
+        "asr:window-00013:reazonspeech-k2-v2",
+        "asr:window-00014:faster-whisper-large-v3",
+        "asr:window-00014:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 67,
+      "source_faithful_korean": "오늘부터 우리 팀에 새 동료가 합류합니다.",
+      "viewer_natural_korean": "오늘부터 우리 팀에 새 동료가 합류해요.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00014:faster-whisper-large-v3",
+        "asr:window-00014:reazonspeech-k2-v2",
+        "asr:window-00015:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 68,
+      "source_faithful_korean": "뭐 마시고 있어?",
+      "viewer_natural_korean": "뭐 마셔?",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00017:reazonspeech-k2-v2",
+        "asr:window-00018:faster-whisper-large-v3",
+        "asr:window-00018:reazonspeech-k2-v2",
+        "asr:window-00019:faster-whisper-large-v3",
+        "asr:window-00019:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 69,
+      "source_faithful_korean": "응.",
+      "viewer_natural_korean": "응.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00019:faster-whisper-large-v3",
+        "asr:window-00019:reazonspeech-k2-v2",
+        "asr:window-00020:faster-whisper-large-v3",
+        "asr:window-00020:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 70,
+      "source_faithful_korean": "이쪽에 앉아.",
+      "viewer_natural_korean": "이쪽에 앉아.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00020:faster-whisper-large-v3",
+        "asr:window-00020:reazonspeech-k2-v2",
+        "asr:window-00021:faster-whisper-large-v3",
+        "asr:window-00021:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 71,
+      "source_faithful_korean": "그럼 이 여자 나한테 줘.",
+      "viewer_natural_korean": "그럼 이 여자 나한테 줘.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00022:faster-whisper-large-v3",
+        "asr:window-00022:reazonspeech-k2-v2",
+        "asr:window-00023:faster-whisper-large-v3",
+        "asr:window-00023:reazonspeech-k2-v2",
+        "asr:window-00024:faster-whisper-large-v3",
+        "asr:window-00024:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 72,
+      "source_faithful_korean": "이런 관계는 그만두고 싶어요.",
+      "viewer_natural_korean": "이런 관계는 이제 그만두고 싶어요.",
+      "source_status": "accepted",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00024:faster-whisper-large-v3",
+        "asr:window-00024:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

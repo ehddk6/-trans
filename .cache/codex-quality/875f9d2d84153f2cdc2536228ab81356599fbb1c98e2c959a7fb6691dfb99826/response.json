@@ -1,0 +1,16 @@
+{
+  "scene_id": "scene-0006-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 277,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "‘이 이상은’은 직역투이며 조건·한계 의미가 불분명하다.",
+        "‘더는 아버지한테 말할 거야’는 긍정 서술과 ‘더는’의 결합이 부자연스러워 ‘이 이상 계속하면’이라는 뜻이 흐려진다."
+      ],
+      "reason": "말한다는 미래 진술은 유지됐지만, ‘これ以上は’의 조건·경고 의미가 자연스러운 한국어로 전달되지 않는다."
+    }
+  ]
+}

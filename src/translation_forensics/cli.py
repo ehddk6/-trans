@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import logging
@@ -9,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,6 +24,9 @@ from .automatic_draft import build_automatic_draft
 from .autonomous_release import prove_autonomous_claim, run_autonomous_release, validate_autonomous_release
 from .asr_evidence import read_asr_candidates
 from .closed_world import prove_quality_claim, run_closed_world, validate_closed_world_package
+from .codex_exec_provider import CodexExecError, CodexExecProvider, CodexUsageLimitError
+from .codex_quality import CodexQualityError, evaluate_codex_quality, evaluate_evidence_ceiling, run_codex_quality_title, validate_codex_quality
+from .consistency import initialize_consistency_ledger, validate_consistency_ledger
 from .discovery import DiscoveryError, inspect_roles, resolve_role
 from .drafts import build_korean_aligned_draft
 from .forensics_adapter import analyze_title
@@ -36,21 +41,73 @@ from .mqm import validate_mqm_csv
 from .manifest import append_history, build_project_manifest, write_json
 from .memory_ledger import initialize_memory_ledger, validate_memory_ledger
 from .machine_final import package_machine_final, repair_machine_final_asr
+from .local_asr import (
+    FOCUSED_REPAIR_POLICY,
+    LocalASRError,
+    build_timestamped_utterance_evidence,
+    merge_repaired_acoustic_evidence,
+    run_full_local_asr,
+    run_pre_ceiling_evidence_repair,
+)
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 from .openai_provider import BudgetTracker, OpenAIProvider, ProviderUnavailableError, BudgetExceededError
 from .outputs import STAGES, package_title_outputs
+from .pilot_audio_review import PilotAlignmentError, build_pilot_audio_review_packet, evaluate_pilot_alignment, write_blocked_audio_review_manifest, write_pilot_alignment
+from .pilot_blind_review import (
+    PilotBlindReviewBlocked,
+    PilotBlindReviewError,
+    adjudicate_pilot_reviews,
+    build_pilot_blind_review_packets,
+    initialize_pilot_blind_internal_key,
+    validate_pilot_reviewer_submission,
+    write_blocked_pilot_review_artifacts,
+)
+from .pilot_candidate import PilotCandidateError, build_pilot_candidate, validate_pilot_candidate, write_pilot_sol_reviews
+from .pilot_automated_validation import (
+    PilotAutomatedValidationError,
+    validate_pilot_automated,
+    write_pilot_automated_validation,
+)
+from .pilot_metrics import (
+    MAXIMUM_NATURALNESS_LOSS_PERCENT,
+    MINIMUM_ERROR_BLOCK_REDUCTION_PERCENT,
+    MINIMUM_NATURALNESS_WIN_PERCENT,
+    PilotMetricsError,
+    evaluate_critical_major_error_block_reduction_file,
+    evaluate_naturalness_comparison_file,
+    evaluate_new_critical_semantic_errors_file,
+    evaluate_pilot_balance_contract_file,
+    write_error_block_reduction_result,
+    write_naturalness_comparison_result,
+    write_new_critical_semantic_error_result,
+    write_pilot_balance_contract_results,
+)
+from .pilot_report import (
+    BASELINE_SHA256 as PILOT_BASELINE_SHA256,
+    PilotReportError,
+    build_pilot_evaluation_report,
+    write_pilot_evaluation_report,
+)
+from .process_title import ProcessTitleConfig, process_title
 from .prompt_contract import validate_prompt_contract
 from .review_pack import build_review_pack, validate_review_decisions
 from .reverse_check import initialize_reverse_check, validate_reverse_check
 from .release_metrics import calculate_review_budget_metrics, validate_release_gate
 from .run_manifest import create_run_manifest
 from .reporting import build_asr_verdicts, build_review_context, build_scene_map, write_csv
+from .review_prioritization import build_uncertainty_review_queue
 from .semantic_translation import apply_translation_decisions, build_translation_queue, initialize_translation_decisions, merge_translation_decisions
 from .offline_hybrid import build_offline_hybrid
 from .translation_model import ALLOWED_TRANSLATION_MODELS, DEFAULT_TRANSLATION_MODEL
+from .translation_quality import validate_quality_regression_suite
 from .scenes import build_review_scenes, read_review_queue, write_review_scenes
 from .srt import compare_structure, parse_srt
 from .timeline import initialize_timeline_anchor_template, read_timeline_anchors, timeline_is_usable, validate_timeline
 from .sol_review import initialize_sol_review_records, validate_sol_review_records
+from .source_quality import write_source_quality_audit
 from .terminology import initialize_terminology, terminology_conflicts, validate_terminology
 from .targeted_retranslation import apply_targeted_retranslations
 from .validation import validate_pair, write_validation_report
@@ -328,6 +385,444 @@ def cmd_init_timeline_anchors(args: argparse.Namespace) -> int:
     _emit(result, args); return 0
 
 
+def cmd_build_pilot_alignment(args: argparse.Namespace) -> int:
+    try:
+        report = evaluate_pilot_alignment(
+            args.title,
+            args.structure.expanduser().resolve(),
+            args.audio.expanduser().resolve(),
+            args.anchors.expanduser().resolve(),
+            args.offset_map.expanduser().resolve(),
+            expected_blocks=args.expected_blocks,
+            tolerance_seconds=args.tolerance,
+        )
+        if not args.dry_run:
+            write_pilot_alignment(args.output.expanduser().resolve(), report)
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(report, args)
+    return 0 if report["status"] == "resolved" else 1
+
+
+def cmd_build_pilot_audio_review(args: argparse.Namespace) -> int:
+    try:
+        if args.dry_run:
+            alignment = json.loads(args.alignment.expanduser().resolve().read_text(encoding="utf-8"))
+            result = {
+                "status": "dry-run" if alignment.get("status") == "resolved" and alignment.get("clip_preparation_allowed") is True else "blocked",
+                "alignment_status": alignment.get("status"),
+                "expected_block_count": args.expected_blocks,
+                "output": str(args.output.expanduser().resolve()),
+            }
+        else:
+            result = build_pilot_audio_review_packet(
+                args.title,
+                args.structure.expanduser().resolve(),
+                args.ja.expanduser().resolve(),
+                args.audio.expanduser().resolve(),
+                args.alignment.expanduser().resolve(),
+                args.output.expanduser().resolve(),
+                expected_blocks=args.expected_blocks,
+                context_before_seconds=args.context_before,
+                context_after_seconds=args.context_after,
+                context_radius=args.context_radius,
+            )
+    except PilotAlignmentError as exc:
+        try:
+            blocked = write_blocked_audio_review_manifest(
+                args.title,
+                args.alignment.expanduser().resolve(),
+                args.output.expanduser().resolve(),
+                expected_blocks=args.expected_blocks,
+                reason=str(exc),
+            )
+        except (OSError, FileExistsError) as write_exc:
+            _emit({"status": "blocked", "error": str(exc), "manifest_error": str(write_exc)}, args); return 2
+        _emit(blocked, args); return 2
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError, FileExistsError) as exc:
+        _emit({"status": "blocked", "error": str(exc)}, args); return 2
+    _emit(result, args)
+    return 0 if result.get("status") in {"ready", "dry-run"} else 2
+
+
+def cmd_build_pilot_candidate(args: argparse.Namespace) -> int:
+    try:
+        if args.dry_run:
+            result = {
+                "status": "dry-run",
+                "title_id": args.title,
+                "expected_block_count": args.expected_blocks,
+                "pipeline_order": [
+                    "terra-translation-decision",
+                    "sol-independent-critique-repair",
+                    "semantic-recheck",
+                ],
+                "output": str(args.output.expanduser().resolve()),
+            }
+        else:
+            result = build_pilot_candidate(
+                title_id=args.title,
+                structure_path=args.structure.expanduser().resolve(),
+                baseline_path=args.baseline.expanduser().resolve(),
+                terra_decisions_path=args.terra_decisions.expanduser().resolve(),
+                sol_reviews_path=args.sol_reviews.expanduser().resolve(),
+                terra_prompt_path=args.terra_prompt.expanduser().resolve(),
+                sol_prompt_path=args.sol_prompt.expanduser().resolve(),
+                provenance_schema_path=args.provenance_schema.expanduser().resolve(),
+                output_dir=args.output.expanduser().resolve(),
+                project_root=_project_root(args),
+                expected_blocks=args.expected_blocks,
+                expected_baseline_sha256=args.expected_baseline_sha256,
+            )
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError, PilotCandidateError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args)
+    return 0
+
+
+def cmd_record_pilot_sol_reviews(args: argparse.Namespace) -> int:
+    try:
+        if args.dry_run:
+            result = {
+                "status": "dry-run",
+                "title_id": args.title,
+                "reviewer_model": "gpt-5.6-sol",
+                "expected_block_count": args.expected_blocks,
+                "output": str(args.output.expanduser().resolve()),
+            }
+        else:
+            result = write_pilot_sol_reviews(
+                terra_decisions_path=args.terra_decisions.expanduser().resolve(),
+                review_plan_path=args.review_plan.expanduser().resolve(),
+                output_path=args.output.expanduser().resolve(),
+                expected_blocks=args.expected_blocks,
+            )
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError, PilotCandidateError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args)
+    return 0
+
+
+def cmd_validate_pilot_candidate(args: argparse.Namespace) -> int:
+    try:
+        result = validate_pilot_candidate(
+            output_dir=args.candidate.expanduser().resolve(),
+            structure_path=args.structure.expanduser().resolve(),
+            baseline_path=args.baseline.expanduser().resolve(),
+            provenance_schema_path=args.provenance_schema.expanduser().resolve(),
+            project_root=_project_root(args),
+            expected_blocks=args.expected_blocks,
+            expected_baseline_sha256=args.expected_baseline_sha256,
+        )
+    except (OSError, ValueError, json.JSONDecodeError, PilotCandidateError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args)
+    return 0 if result.get("status") == "pass" else 2
+
+
+def cmd_validate_pilot_automated(args: argparse.Namespace) -> int:
+    try:
+        result = validate_pilot_automated(
+            title_id=args.title,
+            structure_path=args.structure,
+            baseline_path=args.baseline,
+            candidate_dir=args.candidate,
+            provenance_schema_path=args.provenance_schema,
+            terra_manifest_path=args.terra_manifest,
+            autonomous_manifest_path=args.autonomous_manifest,
+            regression_suite_path=args.regressions,
+            report_schema_path=args.report_schema,
+            project_root=_project_root(args),
+            expected_blocks=args.expected_blocks,
+            expected_baseline_sha256=args.expected_baseline_sha256,
+        )
+        if not args.dry_run:
+            write_pilot_automated_validation(args.output.expanduser().resolve(), result)
+    except (
+        OSError,
+        ValueError,
+        json.JSONDecodeError,
+        FileExistsError,
+        PilotAutomatedValidationError,
+    ) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0 if result.get("status") == "pass" else 2
+
+
+def cmd_init_pilot_blind_key(args: argparse.Namespace) -> int:
+    try:
+        if args.dry_run:
+            result = {
+                "status": "dry-run",
+                "title_id": args.title,
+                "expected_block_count": args.expected_blocks,
+                "output": str(args.output.expanduser().resolve()),
+                "candidate_must_not_exist": str(args.candidate_expected.expanduser().resolve()),
+            }
+        else:
+            result = initialize_pilot_blind_internal_key(
+                title_id=args.title,
+                baseline_path=args.baseline.expanduser().resolve(),
+                candidate_expected_path=args.candidate_expected.expanduser().resolve(),
+                evaluation_contract_path=args.evaluation_contract.expanduser().resolve(),
+                mqm_schema_path=args.mqm_schema.expanduser().resolve(),
+                output_path=args.output.expanduser().resolve(),
+                project_root=_project_root(args),
+                random_seed=args.random_seed,
+                expected_blocks=args.expected_blocks,
+                expected_baseline_sha256=args.expected_baseline_sha256,
+            )
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError, PilotBlindReviewError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args)
+    return 0
+
+
+def cmd_build_pilot_blind_review(args: argparse.Namespace) -> int:
+    try:
+        if args.dry_run:
+            audio_manifest = json.loads(args.audio_review_manifest.expanduser().resolve().read_text(encoding="utf-8"))
+            ready = audio_manifest.get("status") == "ready" and audio_manifest.get("clip_preparation_allowed") is True
+            result = {
+                "status": "dry-run" if ready else "blocked",
+                "title_id": args.title,
+                "expected_block_count": args.expected_blocks,
+                "output": str(args.output.expanduser().resolve()),
+                "audio_review_status": audio_manifest.get("status"),
+            }
+        else:
+            audio_manifest = json.loads(args.audio_review_manifest.expanduser().resolve().read_text(encoding="utf-8"))
+            ready = (
+                audio_manifest.get("status") == "ready"
+                and audio_manifest.get("clip_preparation_allowed") is True
+                and audio_manifest.get("block_count") == args.expected_blocks
+            )
+            if ready:
+                result = build_pilot_blind_review_packets(
+                    title_id=args.title,
+                    structure_path=args.structure.expanduser().resolve(),
+                    baseline_path=args.baseline.expanduser().resolve(),
+                    candidate_path=args.candidate.expanduser().resolve(),
+                    candidate_provenance_path=args.candidate_provenance.expanduser().resolve(),
+                    audio_manifest_path=args.audio_review_manifest.expanduser().resolve(),
+                    internal_key_path=args.internal_key.expanduser().resolve(),
+                    output_dir=args.output.expanduser().resolve(),
+                    expected_blocks=args.expected_blocks,
+                    expected_baseline_sha256=args.expected_baseline_sha256,
+                )
+            else:
+                reason = (
+                    "timeline/audio review gate is not ready: "
+                    f"status={audio_manifest.get('status')}, "
+                    f"clip_preparation_allowed={audio_manifest.get('clip_preparation_allowed')}, "
+                    f"block_count={audio_manifest.get('block_count')}/{args.expected_blocks}"
+                )
+                result = write_blocked_pilot_review_artifacts(
+                    title_id=args.title,
+                    structure_path=args.structure.expanduser().resolve(),
+                    baseline_path=args.baseline.expanduser().resolve(),
+                    candidate_path=args.candidate.expanduser().resolve(),
+                    candidate_provenance_path=args.candidate_provenance.expanduser().resolve(),
+                    audio_manifest_path=args.audio_review_manifest.expanduser().resolve(),
+                    evaluation_contract_path=args.evaluation_contract.expanduser().resolve(),
+                    mqm_schema_path=args.mqm_schema.expanduser().resolve(),
+                    blind_review_dir=args.output.expanduser().resolve(),
+                    internal_key_path=args.internal_key.expanduser().resolve(),
+                    adjudication_output_path=args.adjudication_output.expanduser().resolve(),
+                    project_root=_project_root(args),
+                    random_seed=args.random_seed,
+                    reason=reason,
+                    expected_blocks=args.expected_blocks,
+                    expected_baseline_sha256=args.expected_baseline_sha256,
+                )
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError, PilotBlindReviewError, PilotBlindReviewBlocked) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args)
+    return 0
+
+
+def cmd_validate_pilot_reviewer_submission(args: argparse.Namespace) -> int:
+    try:
+        result = validate_pilot_reviewer_submission(
+            pack_path=args.pack.expanduser().resolve(),
+            attestation_path=args.attestation.expanduser().resolve(),
+            decisions_path=args.decisions.expanduser().resolve(),
+            expected_blocks=args.expected_blocks,
+        )
+    except (OSError, ValueError, json.JSONDecodeError, zipfile.BadZipFile, PilotBlindReviewError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    public = {key: value for key, value in result.items() if key not in {"attestation", "decisions"}}
+    _emit(public, args)
+    return 0
+
+
+def cmd_adjudicate_pilot_reviews(args: argparse.Namespace) -> int:
+    try:
+        result = adjudicate_pilot_reviews(
+            reviewer_1_pack_path=args.reviewer_1_pack.expanduser().resolve(),
+            reviewer_1_attestation_path=args.reviewer_1_attestation.expanduser().resolve(),
+            reviewer_1_decisions_path=args.reviewer_1_decisions.expanduser().resolve(),
+            reviewer_2_pack_path=args.reviewer_2_pack.expanduser().resolve(),
+            reviewer_2_attestation_path=args.reviewer_2_attestation.expanduser().resolve(),
+            reviewer_2_decisions_path=args.reviewer_2_decisions.expanduser().resolve(),
+            internal_key_path=args.internal_key.expanduser().resolve(),
+            consensus_path=args.consensus.expanduser().resolve(),
+            output_path=args.output.expanduser().resolve(),
+            expected_blocks=args.expected_blocks,
+            expected_baseline_sha256=args.expected_baseline_sha256,
+        )
+    except (OSError, ValueError, json.JSONDecodeError, zipfile.BadZipFile, FileExistsError, PilotBlindReviewError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args)
+    return 0 if result.get("adjudication_complete") is True else 1
+
+
+def cmd_evaluate_pilot_new_critical(args: argparse.Namespace) -> int:
+    try:
+        if args.dry_run:
+            result = {
+                "status": "dry-run",
+                "adjudication": str(args.adjudication.expanduser().resolve()),
+                "expected_block_count": args.expected_blocks,
+                "output": str(args.output.expanduser().resolve()),
+            }
+        else:
+            result = evaluate_new_critical_semantic_errors_file(
+                args.adjudication.expanduser().resolve(),
+                expected_blocks=args.expected_blocks,
+            )
+            write_new_critical_semantic_error_result(args.output.expanduser().resolve(), result)
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError, PilotMetricsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0 if result.get("gate_passed") is True or result.get("status") == "dry-run" else 1
+
+
+def cmd_evaluate_pilot_error_reduction(args: argparse.Namespace) -> int:
+    try:
+        if args.dry_run:
+            result = {
+                "status": "dry-run",
+                "adjudication": str(args.adjudication.expanduser().resolve()),
+                "expected_block_count": args.expected_blocks,
+                "minimum_reduction_percent": MINIMUM_ERROR_BLOCK_REDUCTION_PERCENT,
+                "output": str(args.output.expanduser().resolve()),
+            }
+        else:
+            result = evaluate_critical_major_error_block_reduction_file(
+                args.adjudication.expanduser().resolve(),
+                expected_blocks=args.expected_blocks,
+            )
+            write_error_block_reduction_result(args.output.expanduser().resolve(), result)
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError, PilotMetricsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0 if result.get("gate_passed") is True or result.get("status") == "dry-run" else 1
+
+
+def cmd_evaluate_pilot_naturalness(args: argparse.Namespace) -> int:
+    try:
+        if args.dry_run:
+            result = {
+                "status": "dry-run",
+                "adjudication": str(args.adjudication.expanduser().resolve()),
+                "expected_block_count": args.expected_blocks,
+                "minimum_improvement_win_percent": MINIMUM_NATURALNESS_WIN_PERCENT,
+                "maximum_improvement_loss_percent": MAXIMUM_NATURALNESS_LOSS_PERCENT,
+                "output": str(args.output.expanduser().resolve()),
+            }
+        else:
+            result = evaluate_naturalness_comparison_file(
+                args.adjudication.expanduser().resolve(),
+                expected_blocks=args.expected_blocks,
+            )
+            write_naturalness_comparison_result(args.output.expanduser().resolve(), result)
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError, PilotMetricsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0 if result.get("gate_passed") is True or result.get("status") == "dry-run" else 1
+
+
+def cmd_evaluate_pilot_balance_contract(args: argparse.Namespace) -> int:
+    try:
+        if args.dry_run:
+            result = {
+                "status": "dry-run",
+                "adjudication": str(args.adjudication.expanduser().resolve()),
+                "expected_block_count": args.expected_blocks,
+                "metrics_output": str(args.metrics_output.expanduser().resolve()),
+                "error_ledger_output": str(args.error_ledger_output.expanduser().resolve()),
+            }
+        else:
+            result, error_ledger = evaluate_pilot_balance_contract_file(
+                args.adjudication.expanduser().resolve(),
+                expected_blocks=args.expected_blocks,
+            )
+            write_pilot_balance_contract_results(
+                args.metrics_output.expanduser().resolve(),
+                args.error_ledger_output.expanduser().resolve(),
+                result,
+                error_ledger,
+            )
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError, PilotMetricsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0 if result.get("all_required_gates_passed") is True or result.get("status") == "dry-run" else 1
+
+
+def cmd_build_pilot_evaluation_report(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    try:
+        manifest, report = build_pilot_evaluation_report(
+            project_root=root,
+            baseline_path=args.baseline.expanduser().resolve(),
+            candidate_source_path=args.candidate_source.expanduser().resolve(),
+            candidate_viewer_path=args.candidate_viewer.expanduser().resolve(),
+            candidate_provenance_path=args.candidate_provenance.expanduser().resolve(),
+            timeline_alignment_path=args.timeline_alignment.expanduser().resolve(),
+            audio_review_manifest_path=args.audio_review_manifest.expanduser().resolve(),
+            blind_review_packet_paths=[path.expanduser().resolve() for path in args.blind_review_packet],
+            internal_key_path=args.internal_key.expanduser().resolve(),
+            reviewer_attestation_paths=[path.expanduser().resolve() for path in args.reviewer_attestation],
+            reviewer_decision_paths=[path.expanduser().resolve() for path in args.reviewer_decisions],
+            adjudication_path=args.adjudication.expanduser().resolve(),
+            metrics_path=args.metrics.expanduser().resolve(),
+            error_ledger_path=args.error_ledger.expanduser().resolve(),
+            automated_validation_path=args.automated_validation.expanduser().resolve(),
+            report_output_path=args.report_output.expanduser().resolve(),
+            expected_blocks=args.expected_blocks,
+            expected_baseline_sha256=args.expected_baseline_sha256,
+        )
+        if not args.dry_run:
+            write_pilot_evaluation_report(
+                args.manifest_output.expanduser().resolve(),
+                args.report_output.expanduser().resolve(),
+                manifest,
+                report,
+                schema_path=Path(__file__).resolve().parents[2]
+                / "schemas"
+                / "pilot-evaluation-manifest.schema.json",
+            )
+    except (OSError, ValueError, json.JSONDecodeError, FileExistsError, PilotReportError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    result = {
+        "status": "dry-run" if args.dry_run else manifest["status"],
+        "result": manifest["result"],
+        "lifecycle_status": manifest["lifecycle_status"],
+        "manifest": str(args.manifest_output.expanduser().resolve()),
+        "report": str(args.report_output.expanduser().resolve()),
+    }
+    _emit(result, args)
+    return 0
+
+
 def _default_queue(workspace: Path, title: str) -> Path:
     base = workspace / "intermediate" / f"{title}.review-queue.structure-fallback-v1.csv"
     if not base.exists():
@@ -597,6 +1092,499 @@ def _first_existing(paths: list[Path]) -> Path | None:
     return next((path.resolve() for path in paths if path.exists()), None)
 
 
+def cmd_audit_source_quality(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, None)
+    japanese = args.ja.expanduser().resolve() if args.ja else _manifest_role_path(workspace, "ja")
+    if japanese is None:
+        _emit({"status": "fail", "error": f"{args.title}: Japanese SRT를 찾을 수 없습니다."}, args)
+        return 2
+    output = (args.output or workspace / "autonomous-quality-v1" / "source-quality").expanduser().resolve()
+    if args.dry_run:
+        _emit(
+            {
+                "status": "dry-run",
+                "title_id": args.title,
+                "japanese": str(japanese),
+                "asr_evidence": str(args.asr_evidence.expanduser().resolve()) if args.asr_evidence else None,
+                "output": str(output),
+            },
+            args,
+        )
+        return 0
+    try:
+        result = write_source_quality_audit(
+            title_id=args.title,
+            japanese_path=japanese,
+            asr_evidence_path=args.asr_evidence.expanduser().resolve() if args.asr_evidence else None,
+            output_dir=output,
+            resume=args.resume,
+        )
+    except (FileExistsError, FileNotFoundError, OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0
+
+
+def _quality_titles(raw: str) -> list[str]:
+    titles = list(dict.fromkeys(value.strip() for value in raw.split(",") if value.strip()))
+    if not titles:
+        raise ValueError("--titles must contain at least one title")
+    return titles
+
+
+def _write_codex_quota_checkpoint(
+    *,
+    title_id: str,
+    package_dir: Path,
+    cache_dir: Path,
+    error: CodexUsageLimitError,
+) -> dict[str, Any]:
+    package_receipts = list(package_dir.glob("scenes/**/*.receipt.json")) if package_dir.is_dir() else []
+    cached_receipts: list[dict[str, Any]] = []
+    if cache_dir.is_dir():
+        for receipt_path in cache_dir.glob("*/receipt.json"):
+            try:
+                receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if receipt.get("title_id") == title_id and receipt.get("status") == "succeeded":
+                cached_receipts.append(receipt)
+    role_counts: dict[str, int] = {}
+    for receipt in cached_receipts:
+        role = str(receipt.get("role") or "unknown")
+        role_counts[role] = role_counts.get(role, 0) + 1
+    checkpoint = {
+        "schema_name": "translation-forensics/codex-quality-execution-checkpoint",
+        "schema_version": "1",
+        "status": "awaiting-codex-quota",
+        "title_id": title_id,
+        "failed_call": {"call_id": error.call_id, "role": error.role},
+        "retry_after_reported_by_service": error.retry_after,
+        "completed_model_calls_in_cache": len(cached_receipts),
+        "completed_model_calls_materialized_in_package": len(package_receipts),
+        "completed_model_calls_by_role": dict(sorted(role_counts.items())),
+        "resume_supported": True,
+        "resume_command": f"translation-forensics run-codex-quality --titles {title_id} --resume",
+        "api_key_used": False,
+        "model_fallback_used": False,
+        "release_kind": "autonomous-quality-candidate",
+        "human_equal": False,
+        "human_final": False,
+        "final_promotion_allowed": False,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    write_json(package_dir / "execution-checkpoint.json", checkpoint)
+    return checkpoint
+
+
+def cmd_run_codex_quality(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    try:
+        titles = _quality_titles(args.titles)
+    except ValueError as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    plans: list[dict[str, Any]] = []
+    for title in titles:
+        workspace = _workspace(root, title, None)
+        structure = _manifest_role_path(workspace, "structure")
+        japanese = _manifest_role_path(workspace, "ja")
+        audio = _manifest_role_path(workspace, "audio")
+        package = (
+            args.output.expanduser().resolve() / title
+            if args.output
+            else workspace / "autonomous-quality-v1" / "package-v3"
+        )
+        plans.append(
+            {
+                "title_id": title,
+                "workspace": workspace,
+                "structure": structure,
+                "japanese": japanese,
+                "audio": audio,
+                "package": package,
+            }
+        )
+    missing = [
+        f"{plan['title_id']}:{field}"
+        for plan in plans
+        for field in ("structure", "japanese", "audio")
+        if plan[field] is None
+    ]
+    if missing:
+        _emit({"status": "blocked", "error": "Missing required inputs", "missing": missing}, args)
+        return 2
+    if args.dry_run:
+        _emit(
+            {
+                "status": "dry-run",
+                "titles": titles,
+                "full_local_asr": args.full_local_asr,
+                "repair_evidence": args.repair_evidence,
+                "resume": args.resume,
+                "api_key_required": False,
+                "external_codex_transfer": True,
+                "runs": [
+                    {key: str(value) if isinstance(value, Path) else value for key, value in plan.items()}
+                    for plan in plans
+                ],
+            },
+            args,
+        )
+        return 0
+
+    cache_dir = (args.cache_dir or root / ".cache" / "codex-quality").expanduser().resolve()
+    provider = CodexExecProvider(
+        cache_dir=cache_dir,
+        timeout_seconds=args.codex_timeout,
+    )
+    preflight = provider.preflight()
+    if preflight["status"] != "pass":
+        _emit({"status": "blocked", "phase": "codex-preflight", "preflight": preflight}, args)
+        return 2
+
+    results: list[dict[str, Any]] = []
+    for plan in plans:
+        title = str(plan["title_id"])
+        workspace = plan["workspace"]
+        quality_root = workspace / "autonomous-quality-v1"
+        local_asr_dir = quality_root / "local-asr-v2"
+        utterance_dir = quality_root / "utterance-evidence-v3"
+        acoustic_path = utterance_dir / "block-acoustic-evidence.jsonl"
+        try:
+            if args.full_local_asr:
+                asr_result = run_full_local_asr(
+                    title_id=title,
+                    audio_path=plan["audio"],
+                    structure_path=plan["structure"],
+                    output_dir=local_asr_dir,
+                    force_cpu=args.cpu,
+                    allow_model_download=not args.offline,
+                    resume=args.resume,
+                    max_windows=args.max_windows,
+                )
+            elif acoustic_path.is_file():
+                asr_result = {"status": "reused", "output": str(local_asr_dir)}
+            else:
+                local_manifest = local_asr_dir / "local-asr-manifest.json"
+                if not local_manifest.is_file():
+                    raise FileNotFoundError(
+                        f"{title}: local ASR evidence is missing; rerun with --full-local-asr"
+                    )
+                asr_result = {"status": "reused", "output": str(local_asr_dir)}
+            utterance_result = build_timestamped_utterance_evidence(
+                title_id=title,
+                structure_path=plan["structure"],
+                local_asr_dir=local_asr_dir,
+                output_dir=utterance_dir,
+                force_cpu=args.cpu,
+                allow_model_download=not args.offline,
+                resume=args.resume,
+            )
+            source_quality_dir = quality_root / "source-quality-v3"
+            source_map_path = source_quality_dir / "source-quality-map.jsonl"
+            source_result = write_source_quality_audit(
+                title_id=title,
+                japanese_path=plan["japanese"],
+                asr_evidence_path=acoustic_path,
+                output_dir=source_quality_dir,
+                resume=args.resume,
+            )
+            effective_acoustic_path = acoustic_path
+            effective_source_map_path = source_map_path
+            repair_result: dict[str, Any] | None = None
+            effective_repair_report_path: Path | None = None
+            if args.repair_evidence:
+                base_acoustic = {
+                    int(row["block_number"]): row
+                    for row in (
+                        json.loads(line)
+                        for line in acoustic_path.read_text(encoding="utf-8").splitlines()
+                        if line.strip()
+                    )
+                }
+                structure_blocks, _, _ = parse_srt(plan["structure"])
+                source_quality = {
+                    int(row["block_number"]): row
+                    for row in (
+                        json.loads(line)
+                        for line in source_map_path.read_text(encoding="utf-8").splitlines()
+                        if line.strip()
+                    )
+                }
+                initial_ceiling = evaluate_evidence_ceiling(
+                    title_id=title,
+                    expected_blocks=[block.number for block in structure_blocks],
+                    source_quality=source_quality,
+                    acoustic=base_acoustic,
+                )
+                if initial_ceiling["status"] != "pass":
+                    ineligible = [
+                        block
+                        for block in structure_blocks
+                        if block.number not in set(initial_ceiling["eligible_block_numbers"])
+                    ]
+                    focused_repair = bool(getattr(args, "focused_repair", False))
+                    repair_kind = "focused" if focused_repair else "pre-ceiling"
+                    repair_dir = quality_root / ("focused-repair-v1" if focused_repair else "pre-ceiling-repair-v4")
+                    repair_policy = FOCUSED_REPAIR_POLICY if focused_repair else None
+                    repair_lineage = {
+                        "audio_sha256": _sha256_file(plan["audio"]),
+                        "structure_sha256": _sha256_file(plan["structure"]),
+                        "base_acoustic_sha256": _sha256_file(acoustic_path),
+                        "base_source_quality_sha256": _sha256_file(source_map_path),
+                        "japanese_sha256": _sha256_file(plan["japanese"]),
+                        "title_id": title,
+                    }
+                    repaired_rows = run_pre_ceiling_evidence_repair(
+                        title_id=title,
+                        audio_path=plan["audio"],
+                        blocks=ineligible,
+                        base_acoustic=base_acoustic,
+                        output_dir=repair_dir,
+                        force_cpu=args.cpu,
+                        allow_model_download=not args.offline,
+                        resume=args.resume,
+                        lineage=repair_lineage,
+                        attribution_blocks=structure_blocks,
+                        policy=repair_policy,
+                        repair_kind=repair_kind,
+                    )
+                    merged_acoustic_path = repair_dir / "block-acoustic-evidence-merged.jsonl"
+                    repair_report_path = repair_dir / "repair-report.json"
+                    repair_report_for_merge = json.loads(repair_report_path.read_text(encoding="utf-8"))
+                    merge_identity = {
+                        "cache_identity": repair_report_for_merge.get("cache_identity"),
+                        "base_acoustic_sha256": _sha256_file(acoustic_path),
+                        "repaired_evidence_sha256": repair_report_for_merge.get("evidence_sha256"),
+                    }
+                    merge_meta_path = merged_acoustic_path.with_suffix(".meta.json")
+                    reusable_merge = False
+                    if args.resume and merged_acoustic_path.is_file() and merge_meta_path.is_file():
+                        try:
+                            existing_merge_meta = json.loads(merge_meta_path.read_text(encoding="utf-8"))
+                            reusable_merge = (
+                                all(existing_merge_meta.get(key) == value for key, value in merge_identity.items())
+                                and existing_merge_meta.get("merged_acoustic_sha256") == _sha256_file(merged_acoustic_path)
+                            )
+                        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+                            reusable_merge = False
+                    if reusable_merge:
+                        effective_acoustic_path = merged_acoustic_path
+                    else:
+                        if merged_acoustic_path.exists():
+                            merged_acoustic_path = repair_dir / (
+                                f"block-acoustic-evidence-merged-{str(merge_identity['cache_identity'])[:12]}.jsonl"
+                            )
+                            merge_meta_path = merged_acoustic_path.with_suffix(".meta.json")
+                        effective_acoustic_path = merge_repaired_acoustic_evidence(
+                            base_acoustic_path=acoustic_path,
+                            repaired_rows=repaired_rows,
+                            output_path=merged_acoustic_path,
+                        )
+                        merge_identity["merged_acoustic_sha256"] = _sha256_file(effective_acoustic_path)
+                        merge_meta_path.write_text(
+                            json.dumps(merge_identity, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+                            encoding="utf-8",
+                            newline="\n",
+                        )
+                    source_quality_dir = quality_root / "source-quality-v4-repaired"
+                    effective_source_map_path = source_quality_dir / "source-quality-map.jsonl"
+                    source_result = write_source_quality_audit(
+                        title_id=title,
+                        japanese_path=plan["japanese"],
+                        asr_evidence_path=effective_acoustic_path,
+                        output_dir=source_quality_dir,
+                        resume=args.resume,
+                    )
+                    repair_report = repair_dir / "repair-report.json"
+                    effective_repair_report_path = repair_report
+                    repair_result = json.loads(repair_report.read_text(encoding="utf-8"))
+                    final_acoustic = {
+                        int(row["block_number"]): row
+                        for row in (
+                            json.loads(line)
+                            for line in effective_acoustic_path.read_text(encoding="utf-8").splitlines()
+                            if line.strip()
+                        )
+                    }
+                    final_source_quality = {
+                        int(row["block_number"]): row
+                        for row in (
+                            json.loads(line)
+                            for line in effective_source_map_path.read_text(encoding="utf-8").splitlines()
+                            if line.strip()
+                        )
+                    }
+                    final_ceiling = evaluate_evidence_ceiling(
+                        title_id=title,
+                        expected_blocks=[block.number for block in structure_blocks],
+                        source_quality=final_source_quality,
+                        acoustic=final_acoustic,
+                    )
+                    repair_result.update(
+                        {
+                            "initial_ceiling": {
+                                "eligible_block_count": initial_ceiling["eligible_block_count"],
+                                "eligible_block_numbers": initial_ceiling["eligible_block_numbers"],
+                                "maximum_possible_accepted_rate": initial_ceiling["maximum_possible_accepted_rate"],
+                            },
+                            "final_ceiling": {
+                                "eligible_block_count": final_ceiling["eligible_block_count"],
+                                "eligible_block_numbers": final_ceiling["eligible_block_numbers"],
+                                "maximum_possible_accepted_rate": final_ceiling["maximum_possible_accepted_rate"],
+                                "status": final_ceiling["status"],
+                            },
+                            "net_new_eligible_block_numbers": sorted(
+                                set(final_ceiling["eligible_block_numbers"])
+                                - set(initial_ceiling["eligible_block_numbers"])
+                            ),
+                            "merged_acoustic_path": effective_acoustic_path.name,
+                            "merged_acoustic_sha256": _sha256_file(effective_acoustic_path),
+                            "merged_acoustic_meta_path": merge_meta_path.name,
+                            "merged_acoustic_meta_sha256": _sha256_file(merge_meta_path),
+                            "regenerated_source_quality_path": effective_source_map_path.name,
+                            "regenerated_source_quality_sha256": _sha256_file(effective_source_map_path),
+                            "source_quality_audit_input": {
+                                "japanese_sha256": _sha256_file(plan["japanese"]),
+                                "acoustic_sha256": _sha256_file(effective_acoustic_path),
+                                "audit_policy_version": "source-quality-v4-repaired",
+                            },
+                        }
+                    )
+                    repair_report.write_text(
+                        json.dumps(repair_result, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8",
+                        newline="\n",
+                    )
+            package_result = run_codex_quality_title(
+                title_id=title,
+                structure_path=plan["structure"],
+                source_quality_map_path=effective_source_map_path,
+                acoustic_evidence_path=effective_acoustic_path,
+                audio_path=plan["audio"],
+                output_dir=plan["package"],
+                provider=provider,
+                prompt_dir=root / "prompts",
+                schema_dir=root / "schemas",
+                evidence_repair_path=effective_repair_report_path,
+                max_scene_blocks=args.max_scene_blocks,
+                maximum_scene_gap_seconds=args.max_scene_gap,
+                max_repairs=args.max_repairs,
+                force_cpu=args.cpu,
+                allow_model_download=not args.offline,
+                resume=args.resume,
+                local_asr_call_count=int((repair_result or {}).get("local_asr_call_count", 0)),
+                partial_evidence_evaluation=bool(getattr(args, "partial_evidence_evaluation", False)),
+            )
+            results.append(
+                {
+                    "title_id": title,
+                    "status": package_result.get("status"),
+                    "source_quality": source_result.get("status_counts"),
+                    "local_asr_status": asr_result.get("status"),
+                    "utterance_evidence_status": utterance_result.get("status"),
+                    "evidence_repair": repair_result,
+                    "package": package_result.get("output"),
+                }
+            )
+        except CodexUsageLimitError as exc:
+            checkpoint = _write_codex_quota_checkpoint(
+                title_id=title,
+                package_dir=plan["package"],
+                cache_dir=cache_dir,
+                error=exc,
+            )
+            _emit(
+                {
+                    "status": "awaiting-codex-quota",
+                    "title_id": title,
+                    "error": str(exc),
+                    "checkpoint": str(plan["package"] / "execution-checkpoint.json"),
+                    "retry_after_reported_by_service": exc.retry_after,
+                    "completed": results,
+                },
+                args,
+            )
+            return 2
+        except (
+            CodexExecError,
+            CodexQualityError,
+            LocalASRError,
+            FileExistsError,
+            FileNotFoundError,
+            OSError,
+            RuntimeError,
+            ValueError,
+            json.JSONDecodeError,
+        ) as exc:
+            _emit({"status": "fail", "title_id": title, "error": str(exc), "completed": results}, args)
+            return 2
+    _emit({"status": "completed", "results": results}, args)
+    return 0
+
+
+def cmd_validate_codex_quality(args: argparse.Namespace) -> int:
+    try:
+        result = validate_codex_quality(args.package.expanduser().resolve())
+    except (FileNotFoundError, OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0 if result["status"] == "pass" else 1
+
+
+def cmd_evaluate_codex_quality(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    provider = CodexExecProvider(
+        cache_dir=(args.cache_dir or root / ".cache" / "codex-quality").expanduser().resolve(),
+        timeout_seconds=args.codex_timeout,
+    )
+    if args.dry_run:
+        _emit(
+            {
+                "status": "dry-run",
+                "package": str(args.package.expanduser().resolve()),
+                "baseline": str(args.baseline.expanduser().resolve()),
+                "sample_size": args.sample_size,
+                "evaluators": ["gpt-5.6-terra", "gpt-5.6-sol"],
+                "engineering_proxy_only": True,
+            },
+            args,
+        )
+        return 0
+    preflight = provider.preflight()
+    if preflight["status"] != "pass":
+        _emit({"status": "blocked", "phase": "codex-preflight", "preflight": preflight}, args)
+        return 2
+    try:
+        result = evaluate_codex_quality(
+            package_dir=args.package.expanduser().resolve(),
+            baseline=args.baseline.expanduser().resolve(),
+            provider=provider,
+            prompt_dir=root / "prompts",
+            schema_dir=root / "schemas",
+            sample_size=args.sample_size,
+            batch_size=args.batch_size,
+            resume=args.resume,
+        )
+    except (
+        CodexExecError,
+        CodexQualityError,
+        FileExistsError,
+        FileNotFoundError,
+        OSError,
+        ValueError,
+        json.JSONDecodeError,
+    ) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0 if result["status"] == "pass" else 1
+
+
 def cmd_run_autonomous_release(args: argparse.Namespace) -> int:
     root = _project_root(args)
     try:
@@ -760,14 +1748,20 @@ def cmd_build_translation_queue(args: argparse.Namespace) -> int:
     review_context = args.review_context or workspace / "intermediate" / "review-context.jsonl"
     review_queue = args.review_queue or workspace / "intermediate" / f"{args.title}.review-queue.structure-fallback-v4.csv"
     capture_index = args.capture_index
+    consistency_ledger = args.consistency_ledger or workspace / "intermediate" / f"{args.title}.translation-consistency-v1.jsonl"
+    terminology = args.terminology
+    speaker_state = args.speaker_state or workspace / "intermediate" / f"{args.title}.speaker-state-v1.json"
+    for label, explicit in (("consistency_ledger", args.consistency_ledger), ("terminology", terminology), ("speaker_state", args.speaker_state)):
+        if explicit and not explicit.expanduser().exists():
+            _emit({"status": "fail", "error": f"{label} 파일이 없습니다: {explicit}"}, args); return 2
     output = args.output or workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl"
     report = args.report or workspace / "intermediate" / f"{args.title}.translation-queue-v1.report.json"
     if args.dry_run:
-        _emit({"status": "dry-run", "structure": str(structure), "ja": str(ja), "previous_ko": str(previous) if previous else None, "photos": str(photos) if photos else None, "output": str(output), "report": str(report), "translation_model": args.translation_model}, args); return 0
+        _emit({"status": "dry-run", "structure": str(structure), "ja": str(ja), "previous_ko": str(previous) if previous else None, "photos": str(photos) if photos else None, "consistency_ledger": str(consistency_ledger), "terminology": str(terminology) if terminology else None, "speaker_state": str(speaker_state), "output": str(output), "report": str(report), "translation_model": args.translation_model}, args); return 0
     if output.exists() or report.exists():
         _emit({"status": "fail", "error": "기존 translation queue를 덮어쓰지 않습니다.", "output": str(output), "report": str(report)}, args); return 2
     try:
-        result = build_translation_queue(structure, ja, previous, output, report, review_context_path=review_context if review_context.exists() else None, review_queue_path=review_queue if review_queue.exists() else None, capture_index_path=capture_index if capture_index and capture_index.exists() else None, translation_model=args.translation_model, title_id=args.title)
+        result = build_translation_queue(structure, ja, previous, output, report, review_context_path=review_context if review_context.exists() else None, review_queue_path=review_queue if review_queue.exists() else None, capture_index_path=capture_index if capture_index and capture_index.exists() else None, consistency_ledger_path=consistency_ledger if consistency_ledger.exists() else None, terminology_path=terminology.expanduser().resolve() if terminology and terminology.exists() else None, speaker_state_path=speaker_state if speaker_state.exists() else None, translation_model=args.translation_model, title_id=args.title)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0
@@ -782,17 +1776,20 @@ def cmd_apply_translations(args: argparse.Namespace) -> int:
     except DiscoveryError as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     decisions = args.decisions.expanduser().resolve()
+    translation_queue = args.translation_queue or workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl"
     source_output = args.source_output or workspace / "intermediate" / f"{args.title}.source-faithful-ko.text-crosschecked-v1.srt"
     viewer_output = args.viewer_output or workspace / "intermediate" / f"{args.title}.viewer-natural-ko.text-crosschecked-v1.srt"
     report = args.report or workspace / "intermediate" / f"{args.title}.translation-application-v1.report.json"
     if args.dry_run:
-        _emit({"status": "dry-run", "structure": str(structure), "decisions": str(decisions), "source_output": str(source_output), "viewer_output": str(viewer_output), "strict": args.strict, "translation_model": args.translation_model}, args); return 0
+        _emit({"status": "dry-run", "structure": str(structure), "decisions": str(decisions), "translation_queue": str(translation_queue), "source_output": str(source_output), "viewer_output": str(viewer_output), "strict": args.strict, "translation_model": args.translation_model}, args); return 0
     if not decisions.exists():
         _emit({"status": "fail", "error": f"번역 결정 파일이 없습니다: {decisions}"}, args); return 2
+    if args.strict and not translation_queue.exists():
+        _emit({"status": "fail", "error": "--strict 적용에는 결정의 evidence_refs를 검증할 translation queue가 필요합니다.", "translation_queue": str(translation_queue)}, args); return 2
     if source_output.exists() or viewer_output.exists() or report.exists():
         _emit({"status": "fail", "error": "기존 번역 적용 결과를 덮어쓰지 않습니다.", "source_output": str(source_output), "viewer_output": str(viewer_output), "report": str(report)}, args); return 2
     try:
-        result = apply_translation_decisions(structure, decisions, source_output, viewer_output, report, strict=args.strict, translation_model=args.translation_model)
+        result = apply_translation_decisions(structure, decisions, source_output, viewer_output, report, strict=args.strict, translation_model=args.translation_model, translation_queue_path=translation_queue if args.strict else None)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0 if result.get("status") != "fail" else 1
@@ -812,6 +1809,77 @@ def cmd_init_translation_decisions(args: argparse.Namespace) -> int:
     try:
         result = initialize_translation_decisions(queue, output, translation_model=args.translation_model)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_init_consistency_ledger(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    output = args.output or workspace / "intermediate" / f"{args.title}.translation-consistency-v1.jsonl"
+    if args.dry_run:
+        _emit({"status": "dry-run", "output": str(output)}, args); return 0
+    try:
+        result = initialize_consistency_ledger(output)
+    except (OSError, ValueError, FileExistsError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0
+
+
+def cmd_validate_consistency_ledger(args: argparse.Namespace) -> int:
+    try:
+        result = validate_consistency_ledger(args.input.expanduser().resolve())
+        if args.output and not args.dry_run:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"기존 consistency ledger 보고서를 덮어쓰지 않습니다: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_validate_quality_regressions(args: argparse.Namespace) -> int:
+    try:
+        result = validate_quality_regression_suite(args.input.expanduser().resolve())
+        if args.output and not args.dry_run:
+            output = args.output.expanduser().resolve()
+            if output.exists():
+                raise FileExistsError(f"기존 quality regression 보고서를 덮어쓰지 않습니다: {output}")
+            write_json(output, result)
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    _emit(result, args); return 0 if result["status"] == "pass" else 1
+
+
+def cmd_build_uncertainty_review_queue(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    workspace = _workspace(root, args.title, str(args.workspace) if args.workspace else None)
+    input_root = workspace / "inputs" if (workspace / "inputs").exists() else workspace
+    try:
+        structure = resolve_role(input_root, "structure", args.structure, args.title, required=True)
+    except DiscoveryError as exc:
+        _emit({"status": "fail", "error": str(exc)}, args); return 2
+    decisions = args.decisions or workspace / "intermediate" / f"{args.title}.translation-decisions-template-v1.jsonl"
+    translation_queue = args.translation_queue or workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl"
+    forensics_queue = args.forensics_queue or workspace / "intermediate" / f"{args.title}.review-queue.structure-fallback-v4.csv"
+    output = args.output or workspace / "intermediate" / f"{args.title}.review-queue.uncertainty-v1.csv"
+    source = args.source_faithful.expanduser().resolve() if args.source_faithful else None
+    viewer = args.viewer_natural.expanduser().resolve() if args.viewer_natural else None
+    if args.dry_run:
+        _emit({"status": "dry-run", "structure": str(structure), "decisions": str(decisions), "translation_queue": str(translation_queue), "forensics_queue": str(forensics_queue), "source_faithful": str(source) if source else None, "viewer_natural": str(viewer) if viewer else None, "output": str(output)}, args); return 0
+    try:
+        result = build_uncertainty_review_queue(
+            structure,
+            output,
+            decisions_path=decisions if decisions.exists() else None,
+            translation_queue_path=translation_queue if translation_queue.exists() else None,
+            forensics_queue_path=forensics_queue if forensics_queue.exists() else None,
+            source_path=source,
+            viewer_path=viewer,
+            project_root=root,
+        )
+    except (OSError, ValueError, FileExistsError, json.JSONDecodeError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0
 
@@ -1459,10 +2527,11 @@ def cmd_package(args: argparse.Namespace) -> int:
     except DiscoveryError as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     output = args.output or workspace / "final"
+    translation_queue = args.translation_queue or (workspace / "intermediate" / f"{args.title}.translation-queue-v1.jsonl" if args.decisions else None)
     if args.dry_run:
-        _emit({"status": "dry-run", "output": str(output), "stage": args.stage}, args); return 0
+        _emit({"status": "dry-run", "output": str(output), "stage": args.stage, "translation_queue": str(translation_queue) if translation_queue else None}, args); return 0
     try:
-        result = package_title_outputs(args.title, reference, args.source_faithful.expanduser().resolve(), args.viewer_natural.expanduser().resolve(), output, stage=args.stage, version=args.version, japanese_path=args.ja, previous_path=args.previous_ko, photos_path=args.photos, scenes_path=args.scenes, asr_path=args.asr, translation_decisions_path=args.decisions, semantic_frames_path=args.semantic_frames, hypothesis_ledger_path=args.hypothesis_ledger, speaker_state_path=args.speaker_state, alignment_evidence_path=args.alignment_evidence, mqm_errors_path=args.mqm_errors, backtranslation_check_path=args.backtranslation_check, evaluation_summary_path=args.evaluation_summary, blind_review_pack_path=args.blind_review_pack, release_gate_path=args.release_gate, timeline_validation_path=args.timeline_validation, project_root=root, all_blocks_reviewed=args.all_blocks_reviewed, direct_human_listening=args.direct_human_listening, evidence_complete=args.evidence_complete)
+        result = package_title_outputs(args.title, reference, args.source_faithful.expanduser().resolve(), args.viewer_natural.expanduser().resolve(), output, stage=args.stage, version=args.version, japanese_path=args.ja, previous_path=args.previous_ko, photos_path=args.photos, scenes_path=args.scenes, asr_path=args.asr, translation_decisions_path=args.decisions, translation_queue_path=translation_queue, semantic_frames_path=args.semantic_frames, hypothesis_ledger_path=args.hypothesis_ledger, speaker_state_path=args.speaker_state, alignment_evidence_path=args.alignment_evidence, mqm_errors_path=args.mqm_errors, backtranslation_check_path=args.backtranslation_check, evaluation_summary_path=args.evaluation_summary, blind_review_pack_path=args.blind_review_pack, release_gate_path=args.release_gate, timeline_validation_path=args.timeline_validation, project_root=root, all_blocks_reviewed=args.all_blocks_reviewed, direct_human_listening=args.direct_human_listening, evidence_complete=args.evidence_complete)
     except (RuntimeError, ValueError, FileExistsError, OSError) as exc:
         _emit({"status": "fail", "error": str(exc)}, args); return 2
     _emit(result, args); return 0
@@ -1484,6 +2553,77 @@ def cmd_run(args: argparse.Namespace) -> int:
     return analyze_status
 
 
+def cmd_process_title(args: argparse.Namespace) -> int:
+    root = _project_root(args)
+    config = ProcessTitleConfig(
+        project_root=root,
+        title_id=args.title,
+        media=args.media,
+        reference_ja=args.reference_ja,
+        reference_ja_approved=args.reference_ja_approved,
+        japanese_bundle=args.japanese_bundle,
+        legacy_captures=args.legacy_captures,
+        translation_policy=args.translation_policy,
+        visual_policy=args.visual_policy,
+        max_visual_units=args.max_visual_units,
+        max_frames_per_unit=args.max_frames_per_unit,
+        auto_capture_frames=args.auto_capture_frames,
+        quality_policy=args.quality_policy,
+        translation_batch_size=args.translation_batch_size,
+        qwen_root=args.qwen_root,
+        review_decisions=args.review_decisions,
+        resume=args.resume,
+        codex_timeout_seconds=args.codex_timeout,
+        audit_attempt=args.audit_attempt,
+        output_root=args.output_root,
+    )
+    if args.dry_run:
+        try:
+            config.validate()
+        except ValueError as exc:
+            _emit({"status": "fail", "error": str(exc)}, args)
+            return 2
+        _emit(
+            {
+                "status": "dry-run",
+                "title_id": args.title,
+                "media": str(args.media.expanduser().resolve()),
+                "japanese_source": (
+                    "existing-bundle" if args.japanese_bundle else
+                    "approved-reference" if args.reference_ja else "ensemble"
+                ),
+                "translation_policy": args.translation_policy,
+                "visual_policy": args.visual_policy,
+                "max_visual_units": args.max_visual_units,
+                "max_frames_per_unit": args.max_frames_per_unit,
+                "external_image_transfer_authorized": args.visual_policy == "targeted",
+                "final_promotion_allowed": False,
+            },
+            args,
+        )
+        return 0
+    try:
+        result = process_title(config)
+    except CodexUsageLimitError as exc:
+        _emit(
+            {
+                "status": "blocked",
+                "reason": "codex-usage-limit",
+                "role": exc.role,
+                "call_id": exc.call_id,
+                "retry_after": exc.retry_after,
+                "error": str(exc),
+            },
+            args,
+        )
+        return 2
+    except (CodexExecError, RuntimeError, ValueError, OSError, json.JSONDecodeError) as exc:
+        _emit({"status": "fail", "error": str(exc)}, args)
+        return 2
+    _emit(result, args)
+    return 0
+
+
 def cmd_build_offline_hybrid(args: argparse.Namespace) -> int:
     build_offline_hybrid(args.titles_file, args.workspace_root, args.output)
     return 0
@@ -1497,12 +2637,29 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("inspect", help="입력 역할과 SRT 구조 검사"); _add_common(p); _add_title(p); _input_args(p); p.set_defaults(func=cmd_inspect)
     p = sub.add_parser("validate-timeline", help="구조 SRT와 미디어의 초·중·후반 시간축 앵커 검증"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--audio", type=Path); p.add_argument("--video", type=Path); p.add_argument("--anchors", type=Path, help="anchor_id,srt_time_seconds,media_time_seconds,source CSV"); p.add_argument("--approved-offset-map", type=Path); p.add_argument("--tolerance", type=float, default=0.25); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_timeline)
     p = sub.add_parser("init-timeline-anchors", help="사람 확인용 초·중·후반 시간축 앵커 템플릿 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_init_timeline_anchors)
+    p = sub.add_parser("build-pilot-alignment", help="사람 청취 앵커와 승인 offset map으로 파일럿 시간축 하드 게이트 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", required=True, type=Path); p.add_argument("--audio", required=True, type=Path); p.add_argument("--anchors", required=True, type=Path); p.add_argument("--offset-map", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--tolerance", type=float, default=0.25); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_build_pilot_alignment)
+    p = sub.add_parser("build-pilot-audio-review", help="resolved 시간축에서 전 블록 원음·일본어·장면 문맥 청취 패킷 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", required=True, type=Path); p.add_argument("--ja", required=True, type=Path); p.add_argument("--audio", required=True, type=Path); p.add_argument("--alignment", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--context-before", type=float, default=2.0); p.add_argument("--context-after", type=float, default=2.0); p.add_argument("--context-radius", type=int, default=1); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_build_pilot_audio_review)
+    p = sub.add_parser("build-pilot-candidate", help="Terra 결정, Sol 독립 비평·수리, 의미 재검사를 거친 SSIS-908 후보 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", required=True, type=Path); p.add_argument("--baseline", required=True, type=Path); p.add_argument("--terra-decisions", required=True, type=Path); p.add_argument("--sol-reviews", required=True, type=Path); p.add_argument("--terra-prompt", required=True, type=Path); p.add_argument("--sol-prompt", required=True, type=Path); p.add_argument("--provenance-schema", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--expected-baseline-sha256", default="8653a42dc952152994c75e9d43265c49eddc1b7d581cf05d8012fd87e3c3e25b"); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_build_pilot_candidate)
+    p = sub.add_parser("record-pilot-sol-reviews", help="완료된 독립 Sol 전 블록 비평·수리 계획을 검증 가능한 레코드로 기록"); _add_common(p); _add_title(p); p.add_argument("--terra-decisions", required=True, type=Path); p.add_argument("--review-plan", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_record_pilot_sol_reviews)
+    p = sub.add_parser("validate-pilot-candidate", help="SSIS-908 후보 구조·해시·Terra/Sol/의미 재검사 계보 검증"); _add_common(p); _add_title(p); p.add_argument("--candidate", required=True, type=Path); p.add_argument("--structure", required=True, type=Path); p.add_argument("--baseline", required=True, type=Path); p.add_argument("--provenance-schema", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--expected-baseline-sha256", default="8653a42dc952152994c75e9d43265c49eddc1b7d581cf05d8012fd87e3c3e25b"); p.set_defaults(func=cmd_validate_pilot_candidate)
+    p = sub.add_parser("validate-pilot-automated", help="SSIS-908 구조·문자·가독성·계보·근거·프롬프트·합성 회귀 통합 검증"); _add_common(p); _add_title(p); p.add_argument("--structure", required=True, type=Path); p.add_argument("--baseline", required=True, type=Path); p.add_argument("--candidate", required=True, type=Path); p.add_argument("--provenance-schema", required=True, type=Path); p.add_argument("--terra-manifest", required=True, type=Path); p.add_argument("--autonomous-manifest", required=True, type=Path); p.add_argument("--regressions", required=True, type=Path); p.add_argument("--report-schema", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--expected-baseline-sha256", default="8653a42dc952152994c75e9d43265c49eddc1b7d581cf05d8012fd87e3c3e25b"); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_validate_pilot_automated)
+    p = sub.add_parser("init-pilot-blind-key", help="후보 생성 전에 평가 계약·MQM·무작위 배치 내부 키 봉인"); _add_common(p); _add_title(p); p.add_argument("--baseline", required=True, type=Path); p.add_argument("--candidate-expected", required=True, type=Path); p.add_argument("--evaluation-contract", required=True, type=Path); p.add_argument("--mqm-schema", required=True, type=Path); p.add_argument("--random-seed", required=True); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--expected-baseline-sha256", default="8653a42dc952152994c75e9d43265c49eddc1b7d581cf05d8012fd87e3c3e25b"); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_init_pilot_blind_key)
+    p = sub.add_parser("build-pilot-blind-review", help="resolved 원음 패킷에서 두 독립 검수자용 동일 배치 A/B 패킷 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", required=True, type=Path); p.add_argument("--baseline", required=True, type=Path); p.add_argument("--candidate", required=True, type=Path); p.add_argument("--candidate-provenance", required=True, type=Path); p.add_argument("--audio-review-manifest", required=True, type=Path); p.add_argument("--evaluation-contract", required=True, type=Path); p.add_argument("--mqm-schema", required=True, type=Path); p.add_argument("--internal-key", required=True, type=Path); p.add_argument("--random-seed", required=True); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--expected-baseline-sha256", default="8653a42dc952152994c75e9d43265c49eddc1b7d581cf05d8012fd87e3c3e25b"); p.add_argument("--adjudication-output", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_build_pilot_blind_review)
+    p = sub.add_parser("validate-pilot-reviewer-submission", help="검수자 전 블록 직접 청취·독립성·MQM 제출 완전성 검사"); _add_common(p); p.add_argument("--pack", required=True, type=Path); p.add_argument("--attestation", required=True, type=Path); p.add_argument("--decisions", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.set_defaults(func=cmd_validate_pilot_reviewer_submission)
+    p = sub.add_parser("adjudicate-pilot-reviews", help="두 독립 제출의 불일치 합의를 검증하고 봉인 키로 최종 결정 기록"); _add_common(p); p.add_argument("--reviewer-1-pack", required=True, type=Path); p.add_argument("--reviewer-1-attestation", required=True, type=Path); p.add_argument("--reviewer-1-decisions", required=True, type=Path); p.add_argument("--reviewer-2-pack", required=True, type=Path); p.add_argument("--reviewer-2-attestation", required=True, type=Path); p.add_argument("--reviewer-2-decisions", required=True, type=Path); p.add_argument("--internal-key", required=True, type=Path); p.add_argument("--consensus", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--expected-baseline-sha256", default="8653a42dc952152994c75e9d43265c49eddc1b7d581cf05d8012fd87e3c3e25b"); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_adjudicate_pilot_reviews)
+    p = sub.add_parser("evaluate-pilot-new-critical", help="최종 조정 MQM에서 개선본에 새로 생긴 critical 의미·화행 오류 0건 게이트 판정"); _add_common(p); p.add_argument("--adjudication", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_evaluate_pilot_new_critical)
+    p = sub.add_parser("evaluate-pilot-error-reduction", help="기준본 대비 critical/major 의미·맥락 오류 고유 블록 50%% 감소 게이트 판정"); _add_common(p); p.add_argument("--adjudication", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_evaluate_pilot_error_reduction)
+    p = sub.add_parser("evaluate-pilot-naturalness", help="동률 포함 전체 조정 블록 기준 개선본 자연스러움 승률 65%%·패배율 15%% 게이트 판정"); _add_common(p); p.add_argument("--adjudication", required=True, type=Path); p.add_argument("--expected-blocks", type=int, default=298); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_evaluate_pilot_naturalness)
     p = sub.add_parser("analyze", help="Subtitle Forensics 실행 또는 구조 기반 검토 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--output", type=Path); p.add_argument("--vendor-root", type=Path); p.set_defaults(func=cmd_analyze)
     p = sub.add_parser("build-korean-draft", help="일본어 구조에 맞춘 한국어 번역 초안 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--output", type=Path); p.add_argument("--report", type=Path); p.set_defaults(func=cmd_build_korean_draft)
     p = sub.add_parser("build-automatic-draft", help="기존 자동 후보와 정렬 fallback으로 전 블록 재생용 초안 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-candidate", type=Path); p.add_argument("--viewer-candidate", type=Path); p.add_argument("--single-candidate", type=Path); p.add_argument("--fallback", type=Path); p.add_argument("--decision-candidate", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_build_automatic_draft)
-    p = sub.add_parser("build-translation-queue", help="블록별 의미 번역 결정 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--photos", type=Path); p.add_argument("--review-context", type=Path); p.add_argument("--review-queue", type=Path); p.add_argument("--capture-index", type=Path); p.add_argument("--output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_build_translation_queue)
-    p = sub.add_parser("apply-translations", help="번역 결정 JSONL을 구조 고정 SRT 두 종으로 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--decisions", required=True, type=Path); p.add_argument("--source-output", type=Path); p.add_argument("--viewer-output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--strict", action="store_true", default=False); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_apply_translations)
+    p = sub.add_parser("build-translation-queue", help="블록별 의미 번역 결정 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--photos", type=Path); p.add_argument("--review-context", type=Path); p.add_argument("--review-queue", type=Path); p.add_argument("--capture-index", type=Path); p.add_argument("--consistency-ledger", type=Path, help="confirmed 장편 말투·호칭·이전 선택 문맥 원장"); p.add_argument("--terminology", type=Path, help="기존 승인 용어집; 파일 복사 없이 queue 문맥으로 어댑터 연결"); p.add_argument("--speaker-state", type=Path, help="scene별 검수된 화자·상대 문맥"); p.add_argument("--output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_build_translation_queue)
+    p = sub.add_parser("apply-translations", help="번역 결정 JSONL을 구조 고정 SRT 두 종으로 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--decisions", required=True, type=Path); p.add_argument("--translation-queue", type=Path, help="--strict에서 decision evidence_refs를 대조할 원본 번역 큐"); p.add_argument("--source-output", type=Path); p.add_argument("--viewer-output", type=Path); p.add_argument("--report", type=Path); p.add_argument("--strict", action="store_true", default=False); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_apply_translations)
     p = sub.add_parser("init-translation-decisions", help="번역 결정 템플릿 생성"); _add_common(p); _add_title(p); p.add_argument("--queue", type=Path); p.add_argument("--output", type=Path); p.add_argument("--translation-model", default=DEFAULT_TRANSLATION_MODEL, choices=ALLOWED_TRANSLATION_MODELS, help="한국어 의미 번역 모델(고정값)"); p.set_defaults(func=cmd_init_translation_decisions)
+    p = sub.add_parser("init-consistency-ledger", help="사람 검수형 장편 말투·호칭·용어 원장 생성"); _add_common(p); _add_title(p); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_init_consistency_ledger)
+    p = sub.add_parser("validate-consistency-ledger", help="장편 일관성 원장의 형식·충돌 보고 검증"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_consistency_ledger)
+    p = sub.add_parser("validate-quality-regressions", help="합성 일본어→한국어 품질 회귀 제약 묶음 검증"); _add_common(p); p.add_argument("--input", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_quality_regressions)
+    p = sub.add_parser("build-uncertainty-review-queue", help="결정·포렌식·자동 QA 이유를 묶은 투명한 검수 우선순위 큐 생성"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--translation-queue", type=Path); p.add_argument("--forensics-queue", type=Path); p.add_argument("--source-faithful", type=Path); p.add_argument("--viewer-natural", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_build_uncertainty_review_queue)
     p = sub.add_parser("merge-translation-decisions", help="검수 완료 블록을 결정 템플릿에 병합"); _add_common(p); p.add_argument("--base", required=True, type=Path); p.add_argument("--reviewed", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_merge_translation_decisions)
     p = sub.add_parser("init-forensic-records", help="의미 프레임·가설 원장을 명시적 미검수 상태로 초기화"); _add_common(p); _add_title(p); p.add_argument("--queue", type=Path); p.add_argument("--frames", type=Path); p.add_argument("--hypotheses", type=Path); p.set_defaults(func=cmd_init_forensic_records)
     p = sub.add_parser("validate-forensic-records", help="의미 프레임·가설 원장과 critical conflict escalation 검사"); _add_common(p); p.add_argument("--frames", required=True, type=Path); p.add_argument("--hypotheses", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_forensic_records)
@@ -1556,16 +2713,93 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("build-inference-context", help="블록별 ASR·문맥을 추론 복구 모델 입력으로 고정"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--hold-ledger", required=True, type=Path); p.add_argument("--scenes", required=True, type=Path); p.add_argument("--asr", required=True, type=Path); p.add_argument("--output", required=True, type=Path); p.set_defaults(func=cmd_build_inference_context)
     p = sub.add_parser("apply-inferred-recovery", help="사용자 승인 음성 추론 복구본을 v4 SRT에 적용"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--hold-ledger", required=True, type=Path); p.add_argument("--response", required=True, type=Path, action="append"); p.add_argument("--output", type=Path); p.add_argument("--version", default="v4"); p.add_argument("--hold-marker", default="…"); p.set_defaults(func=cmd_apply_inferred_recovery)
     p = sub.add_parser("run-autonomous-release", help="사람 final과 분리된 하이브리드 무인 번역·반증·패키징 실행"); _add_common(p); p.add_argument("--title", action="append"); p.add_argument("--titles-file", type=Path); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--local-asr", type=Path); p.add_argument("--local-asr-model", default="large-v3"); p.add_argument("--cpu", action="store_true"); p.add_argument("--allow-local-model-download", action="store_true"); p.add_argument("--output", type=Path); p.add_argument("--allow-network", action="store_true"); p.add_argument("--max-cost-usd", type=float); p.add_argument("--cache-dir", type=Path); p.add_argument("--resume", action="store_true"); p.add_argument("--max-workers", type=int, default=2); p.add_argument("--batch-size", type=int, default=20); p.add_argument("--max-repairs", type=int, default=2); p.set_defaults(func=cmd_run_autonomous_release)
+    p = sub.add_parser("audit-source-quality", help="일본어 SRT의 구조와 텍스트 신뢰도를 분리해 trusted/suspect/unusable 지도를 생성"); _add_common(p); _add_title(p); p.add_argument("--ja", type=Path); p.add_argument("--asr-evidence", type=Path); p.add_argument("--output", type=Path); p.add_argument("--resume", action="store_true"); p.set_defaults(func=cmd_audit_source_quality)
+    p = sub.add_parser("run-codex-quality", help="Terra 생성·Sol 독립 반증 기반 autonomous-quality-candidate 실행"); _add_common(p); p.add_argument("--titles", required=True, help="쉼표로 구분한 작품 ID"); p.add_argument("--full-local-asr", action="store_true"); p.add_argument("--repair-evidence", action="store_true", help="초기 evidence ceiling 탈락 블록에 한해 native timestamp ASR 복구 후 ceiling 재평가"); p.add_argument("--focused-repair", action="store_true", help="--repair-evidence와 함께 4~8초 블록 중심 native ASR 복구를 사용"); p.add_argument("--partial-evidence-evaluation", action="store_true", help="title gate가 실패해도 증거 통과 블록만 진단 실행; promotion은 항상 차단"); p.add_argument("--resume", action="store_true"); p.add_argument("--offline", action="store_true", help="로컬 ASR 모델 다운로드 금지"); p.add_argument("--cpu", action="store_true"); p.add_argument("--max-windows", type=int, default=0, help="개발용 ASR 창 제한; 0은 전체"); p.add_argument("--max-scene-blocks", type=int, default=60); p.add_argument("--max-scene-gap", type=float, default=60.0); p.add_argument("--max-repairs", type=int, default=2); p.add_argument("--codex-timeout", type=int, default=600); p.add_argument("--cache-dir", type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_run_codex_quality)
+    p = sub.add_parser("validate-codex-quality", help="autonomous-quality-candidate의 구조·근거·모델 분리·충돌·해시 게이트 검증"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.set_defaults(func=cmd_validate_codex_quality)
+    p = sub.add_parser("evaluate-codex-quality", help="고정 시드 120블록을 Terra/Sol 익명 A/B 대리평가"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--baseline", required=True, type=Path); p.add_argument("--sample-size", type=int, default=120); p.add_argument("--batch-size", type=int, default=20); p.add_argument("--resume", action="store_true"); p.add_argument("--codex-timeout", type=int, default=600); p.add_argument("--cache-dir", type=Path); p.set_defaults(func=cmd_evaluate_codex_quality)
     p = sub.add_parser("validate-autonomous-release", help="autonomous-release 구조·커버리지·해시·사람 final 경계 검증"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_validate_autonomous_release)
     p = sub.add_parser("prove-autonomous-claim", help="autonomous-release가 보장하는 속성과 식별 불가능한 사람 정답 주장을 분리"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_prove_autonomous_claim)
-    p = sub.add_parser("package", help="새 버전으로 최종 산출물 패키징"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path, required=True); p.add_argument("--photos", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--semantic-frames", type=Path); p.add_argument("--hypothesis-ledger", type=Path); p.add_argument("--speaker-state", type=Path); p.add_argument("--alignment-evidence", type=Path); p.add_argument("--mqm-errors", type=Path); p.add_argument("--backtranslation-check", type=Path); p.add_argument("--evaluation-summary", type=Path); p.add_argument("--blind-review-pack", type=Path); p.add_argument("--release-gate", type=Path); p.add_argument("--timeline-validation", type=Path); p.add_argument("--output", type=Path); p.add_argument("--stage", choices=STAGES, default="text-crosschecked"); p.add_argument("--version", type=int); p.add_argument("--all-blocks-reviewed", action="store_true"); p.add_argument("--direct-human-listening", action="store_true"); p.add_argument("--evidence-complete", action="store_true"); p.set_defaults(func=cmd_package)
+    p = sub.add_parser("package", help="새 버전으로 최종 산출물 패키징"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path, required=True); p.add_argument("--photos", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--translation-queue", type=Path, help="결정의 evidence_refs를 대조할 원본 번역 큐"); p.add_argument("--semantic-frames", type=Path); p.add_argument("--hypothesis-ledger", type=Path); p.add_argument("--speaker-state", type=Path); p.add_argument("--alignment-evidence", type=Path); p.add_argument("--mqm-errors", type=Path); p.add_argument("--backtranslation-check", type=Path); p.add_argument("--evaluation-summary", type=Path); p.add_argument("--blind-review-pack", type=Path); p.add_argument("--release-gate", type=Path); p.add_argument("--timeline-validation", type=Path); p.add_argument("--output", type=Path); p.add_argument("--stage", choices=STAGES, default="text-crosschecked"); p.add_argument("--version", type=int); p.add_argument("--all-blocks-reviewed", action="store_true"); p.add_argument("--direct-human-listening", action="store_true"); p.add_argument("--evidence-complete", action="store_true"); p.set_defaults(func=cmd_package)
     p = sub.add_parser("run", help="결정적 단계만 수행하고 의미 판정 전 중단"); _add_common(p); _add_title(p); _input_args(p); p.set_defaults(func=cmd_run)
-    p = sub.add_parser("build-offline-hybrid", help="API 호출 없이 로컬 결과물을 병합하여 완전 자동 완성본 생성")
+    p = sub.add_parser("process-title", help="영상에서 일본어 원문을 복원하고 Terra/Sol 한국어 이중 산출을 패키징")
+    _add_common(p)
+    _add_title(p)
+    p.add_argument("--media", required=True, type=Path, help="작품 코드가 포함된 원본 영상")
+    p.add_argument("--reference-ja", type=Path, help="승인할 일본어 참조 SRT")
+    p.add_argument("--reference-ja-approved", action="store_true", help="참조 SRT를 일본어 원문 근거로 명시 승인")
+    p.add_argument("--japanese-bundle", type=Path, help="검증된 기존 일본어 자막 번들 디렉터리")
+    p.add_argument("--legacy-captures", type=Path, help="timestamp가 파일명에 포함된 기존 프레임 디렉터리")
+    p.add_argument("--translation-policy", choices=("dual",), default="dual")
+    p.add_argument("--visual-policy", choices=("off", "metadata", "targeted"), default="targeted")
+    p.add_argument("--max-visual-units", type=int, default=20)
+    p.add_argument("--max-frames-per-unit", type=int, default=3)
+    p.add_argument(
+        "--auto-capture-frames",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="사진이 없으면 모호한 번역 단위의 대표 프레임을 영상에서 자동 추출 (기본값: 활성)",
+    )
+    p.add_argument(
+        "--quality-policy",
+        choices=("automated", "legacy"),
+        default="automated",
+        help="사람 승인 없이 자동 품질 게이트를 사용 (기본값: automated)",
+    )
+    p.add_argument("--translation-batch-size", type=int, default=40)
+    p.add_argument("--qwen-root", type=Path, help="Qwen3ASR 런타임 루트; 환경변수도 지원")
+    p.add_argument("--review-decisions", type=Path, help="사람 검수 결정 JSONL")
+    p.add_argument("--resume", action="store_true")
+    p.add_argument("--codex-timeout", type=int, default=600)
+    p.add_argument(
+        "--audit-attempt",
+        type=int,
+        default=0,
+        help="사용량 제한·timeout 뒤 Sol 감사를 새 immutable run으로 재시도할 번호",
+    )
+    p.add_argument("--output-root", type=Path, help="기본값: workspaces/<TITLE>/integrated")
+    p.set_defaults(func=cmd_process_title)
+    p = sub.add_parser("build-offline-hybrid", help="API 호출 없이 로컬 결과물을 병합한 재생용 미리보기 생성 (human final 아님)")
     _add_common(p)
     p.add_argument("--titles-file", type=Path, required=True, help="작품 목록 텍스트 파일 경로")
     p.add_argument("--workspace-root", type=Path, default=Path("workspaces"), help="워크스페이스 루트 경로")
     p.add_argument("--output", type=Path, required=True, help="출력 디렉터리 경로")
     p.set_defaults(func=cmd_build_offline_hybrid)
+
+    p = sub.add_parser(
+        "evaluate-pilot-balance-contract",
+        help="세 의미·자연스러움 하드 게이트를 결합해 SSIS-908 파일럿 판정",
+    )
+    _add_common(p)
+    p.add_argument("--adjudication", required=True, type=Path)
+    p.add_argument("--expected-blocks", type=int, default=298)
+    p.add_argument("--metrics-output", required=True, type=Path)
+    p.add_argument("--error-ledger-output", required=True, type=Path)
+    p.set_defaults(func=cmd_evaluate_pilot_balance_contract)
+
+    p = sub.add_parser(
+        "build-pilot-evaluation-report",
+        help="SSIS-908 파일럿 증거 해시·판정·주장 경계를 담은 보고서와 매니페스트 생성",
+    )
+    _add_common(p)
+    p.add_argument("--baseline", required=True, type=Path)
+    p.add_argument("--candidate-source", required=True, type=Path)
+    p.add_argument("--candidate-viewer", required=True, type=Path)
+    p.add_argument("--candidate-provenance", required=True, type=Path)
+    p.add_argument("--timeline-alignment", required=True, type=Path)
+    p.add_argument("--audio-review-manifest", required=True, type=Path)
+    p.add_argument("--blind-review-packet", required=True, action="append", type=Path)
+    p.add_argument("--internal-key", required=True, type=Path)
+    p.add_argument("--reviewer-attestation", action="append", default=[], type=Path)
+    p.add_argument("--reviewer-decisions", action="append", default=[], type=Path)
+    p.add_argument("--adjudication", required=True, type=Path)
+    p.add_argument("--metrics", required=True, type=Path)
+    p.add_argument("--error-ledger", required=True, type=Path)
+    p.add_argument("--automated-validation", required=True, type=Path)
+    p.add_argument("--expected-blocks", type=int, default=298)
+    p.add_argument("--expected-baseline-sha256", default=PILOT_BASELINE_SHA256)
+    p.add_argument("--manifest-output", required=True, type=Path)
+    p.add_argument("--report-output", required=True, type=Path)
+    p.set_defaults(func=cmd_build_pilot_evaluation_report)
 
     return parser
 
@@ -1586,4 +2820,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

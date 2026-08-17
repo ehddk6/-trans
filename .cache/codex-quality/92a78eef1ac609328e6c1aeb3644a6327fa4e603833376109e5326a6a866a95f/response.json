@@ -1,0 +1,261 @@
+{
+  "scene_id": "scene-0011",
+  "blocks": [
+    {
+      "block_number": 361,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00785:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 362,
+      "source_faithful_korean": "땀나고 있어요.",
+      "viewer_natural_korean": "땀나고 있네요.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00785:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 363,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00786:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 364,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "abstained",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 365,
+      "source_faithful_korean": "그만.",
+      "viewer_natural_korean": "그만해.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": []
+    },
+    {
+      "block_number": 366,
+      "source_faithful_korean": "목소리가 나와.",
+      "viewer_natural_korean": "소리가 나와.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00790:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 367,
+      "source_faithful_korean": "좋네.",
+      "viewer_natural_korean": "좋다.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00791:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 368,
+      "source_faithful_korean": "이참에 소리 내 봅시다.",
+      "viewer_natural_korean": "이참에 소리 내 봐요.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00792:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 369,
+      "source_faithful_korean": "입 막아.",
+      "viewer_natural_korean": "입 막아.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00793:reazonspeech-k2-v2",
+        "utterance:utterance-00794:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 370,
+      "source_faithful_korean": "그만해.",
+      "viewer_natural_korean": "그만해.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00798:reazonspeech-k2-v2",
+        "utterance:utterance-00799:faster-whisper-large-v3",
+        "utterance:utterance-00800:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 371,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00799:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 372,
+      "source_faithful_korean": "아, 맞다. 이번 연휴에 다 같이 여행 갈래?",
+      "viewer_natural_korean": "아, 맞다. 이번 연휴에 다 같이 여행 갈래?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00804:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 373,
+      "source_faithful_korean": "좋네.",
+      "viewer_natural_korean": "좋네.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00805:faster-whisper-large-v3",
+        "utterance:utterance-00806:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 374,
+      "source_faithful_korean": "갈까?",
+      "viewer_natural_korean": "갈까?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00806:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 375,
+      "source_faithful_korean": "온천 같은 건?",
+      "viewer_natural_korean": "온천은 어때?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00809:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 376,
+      "source_faithful_korean": "온천?",
+      "viewer_natural_korean": "온천?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00809:faster-whisper-large-v3",
+        "utterance:utterance-00810:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 377,
+      "source_faithful_korean": "좋네.",
+      "viewer_natural_korean": "좋네.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00812:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 378,
+      "source_faithful_korean": "?",
+      "viewer_natural_korean": "?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00813:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 379,
+      "source_faithful_korean": "…?",
+      "viewer_natural_korean": "…?",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00814:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 380,
+      "source_faithful_korean": "?",
+      "viewer_natural_korean": "?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00815:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 381,
+      "source_faithful_korean": "가나가와?",
+      "viewer_natural_korean": "가나가와?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00817:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 382,
+      "source_faithful_korean": "다 같이 야마나시에 간 적 없잖아.",
+      "viewer_natural_korean": "다 같이 야마나시에 가 본 적 없잖아.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00818:faster-whisper-large-v3",
+        "utterance:utterance-00819:faster-whisper-large-v3",
+        "utterance:utterance-00820:faster-whisper-large-v3",
+        "utterance:utterance-00821:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 383,
+      "source_faithful_korean": "아, 그렇네.",
+      "viewer_natural_korean": "아, 그렇네.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-00822:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 384,
+      "source_faithful_korean": "…",
+      "viewer_natural_korean": "…",
+      "source_status": "accepted",
+      "viewer_status": "unrecoverable",
+      "evidence_refs": [
+        "utterance:utterance-00823:faster-whisper-large-v3"
+      ]
+    },
+    {
+      "block_number": 385,
+      "source_faithful_korean": "끝났네.",
+      "viewer_natural_korean": "끝났네.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "utterance:utterance-00824:reazonspeech-k2-v2",
+        "utterance:utterance-00825:faster-whisper-large-v3",
+        "utterance:utterance-00826:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

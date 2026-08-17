@@ -1,0 +1,21 @@
+{
+  "scene_id": "scene-0001-repair-review-1",
+  "reviews": [
+    {
+      "block_number": 27,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "업무상 상투 인사를 자연스러운 한국어 감사 표현으로 옮겼으며 음성과 의미·높임말이 일치한다."
+    },
+    {
+      "block_number": 33,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "통화를 정중히 마치는 표현으로 음성과 의미가 일치하며 길이와 높임말도 적절하다."
+    }
+  ]
+}

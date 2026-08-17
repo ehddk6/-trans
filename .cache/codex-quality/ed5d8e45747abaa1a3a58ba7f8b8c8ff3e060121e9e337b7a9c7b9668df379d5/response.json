@@ -1,0 +1,354 @@
+{
+  "scene_id": "scene-0001",
+  "reviews": [
+    {
+      "block_number": 1,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "시제·상 합의가 깨져 있으며 제안문도 실제 명령과 후속 발화를 모두 누락한다."
+    },
+    {
+      "block_number": 2,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "발화 기능 합의가 없고, 제안문은 이미 일어났다는 응답을 전달하지 못한다."
+    },
+    {
+      "block_number": 3,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "speaker",
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "화자·행위자·발화 기능이 미합의이며 제안문은 감사와 격려를 모두 누락한다."
+    },
+    {
+      "block_number": 4,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "direction: 귀환을 출발 후 귀환으로 바꿈"
+      ],
+      "unsupported_additions": [
+        "'다녀올게'가 현재의 출발 행위를 추가함"
+      ],
+      "naturalness_issues": [],
+      "reason": "원문과 합의 프레임은 화자 쪽으로 돌아오는 미래 귀환이며, '다녀올게'는 방향과 행위가 다르다."
+    },
+    {
+      "block_number": 5,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "귀환 예정 시각을 묻는 질문의 행위자 합의가 없어 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 6,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "늦을 가능성과 연락 의사를 모두 보존하며 음성·원문·합의 프레임과 일치한다."
+    },
+    {
+      "block_number": 7,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "기다림의 대상이 합의되지 않았고 제안문은 발화 의미를 전혀 전달하지 않는다."
+    },
+    {
+      "block_number": 8,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "배웅 인사의 발화 기능이 미합의여서 확정 번역을 지지할 수 없다."
+    },
+    {
+      "block_number": 9,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "재혼의 시제·상이 합의되지 않았고 제안문은 핵심 사건을 누락한다."
+    },
+    {
+      "block_number": 10,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "actor: 구미 씨가 생략돼 아버지가 일한 것으로 읽힐 수 있음",
+        "action: 사무원으로 일했다는 직무 정보가 누락됨"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "새어머니 구미 씨의 첫 소개가 빠져 앞뒤 연결이 불명확함"
+      ],
+      "reason": "행위자와 사무원 경력이 누락돼 원문의 인물 소개가 바뀌고 대화 연속성도 약해진다."
+    },
+    {
+      "block_number": 11,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "현재의 상태를 결정하는 핵심 행위가 미합의여서 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 12,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아버지가 오늘 늦게 귀가한다는 미래 전달 발화를 정확하고 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 13,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 설명을 받아들이는 공손한 응답으로 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 14,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "저녁으로 원하는 음식을 묻는 질문의 행위자·행동·시점을 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 15,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "location"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "참석 장소가 합의되지 않아 학원 일정을 확정 번역으로 지지할 수 없다."
+    },
+    {
+      "block_number": 16,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "원문에 명시된 지망 학교를 자연스럽게 복원하며 결정 여부 질문과 완료상을 보존한다."
+    },
+    {
+      "block_number": 17,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "location"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 자막으로 기능하지 않음"
+      ],
+      "reason": "다니는 장소가 합의되지 않아 아버지의 지시로 통학 중이라는 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 18,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 말을 이해한 짧은 반응으로 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 19,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "아직 시간이 있다는 현재의 완화·위로 발화를 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 20,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대에게 차를 마실지 묻는 제안형 질문을 정확하고 읽기 좋게 옮겼다."
+    },
+    {
+      "block_number": 21,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "긴 내레이션을 말줄임표 하나로 대체함"
+      ],
+      "reason": "사망 사건의 극성 합의가 깨져 있으며 제안문도 모친의 과거와 외모 회상을 모두 누락한다."
+    },
+    {
+      "block_number": 22,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "location"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 연속 질문을 전달하지 못함"
+      ],
+      "reason": "행동과 장소가 미합의여서 학원·지각을 포함한 연속 질문의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 23,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정 응답을 간결하고 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 24,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 긍정 응답으로 원문과 합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 25,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "전화 인사인 'もしもし'를 자연스러운 한국어 전화 인사로 옮겼다."
+    },
+    {
+      "block_number": 26,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 신원 확인에 대한 공손한 긍정 응답을 정확히 보존한다."
+    },
+    {
+      "block_number": 27,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 전화 예절 표현을 전달하지 못함"
+      ],
+      "reason": "전화상 의례 인사의 발화 기능이 미합의여서 확정 번역을 지지할 수 없다."
+    },
+    {
+      "block_number": 28,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "공손한 긍정 응답으로 원문과 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 29,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 반응을 전달하지 못함"
+      ],
+      "reason": "질문성 및 발화 기능이 합의되지 않아 놀람이나 확인 반응을 확정할 수 없다."
+    },
+    {
+      "block_number": 30,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "이해와 수락을 나타내는 공손한 응답으로 음성·원문·합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 31,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action: 묻다를 확인하다로 변경함"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "원문과 합의 프레임은 다른 사람에게 미리 묻는 행위이며, '확인하다'는 행동 범위를 바꾼다."
+    },
+    {
+      "block_number": 32,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 긍정 응답을 정확하고 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 33,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대사 대신 말줄임표만 있어 통화 종료 인사를 전달하지 못함"
+      ],
+      "reason": "통화 종료 인사의 발화 기능이 미합의여서 확정 번역을 지지할 수 없다."
+    },
+    {
+      "block_number": 34,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "음성 근거 없이 긍정 응답 '네'를 명시함"
+      ],
+      "naturalness_issues": [],
+      "reason": "합의 프레임과 잠금 원문은 일치하지만 음성 참조와 독립 출처가 전혀 없어 제안 의미를 검증할 수 없다."
+    }
+  ]
+}

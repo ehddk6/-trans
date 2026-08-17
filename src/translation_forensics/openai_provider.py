@@ -7,9 +7,12 @@ import platform
 import sys
 import threading
 import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from jsonschema import Draft202012Validator
 
 
 TEXT_MODEL_PRICING_PER_MILLION = {
@@ -66,9 +69,17 @@ class BudgetTracker:
             self.reserved_usd += amount_usd
 
     def commit(self, reserved_usd: float, actual_usd: float) -> None:
+        reserved_usd = max(0.0, float(reserved_usd))
+        actual_usd = max(0.0, float(actual_usd))
         with self._lock:
-            self.reserved_usd = max(0.0, self.reserved_usd - max(0.0, reserved_usd))
-            self.spent_usd += max(0.0, actual_usd)
+            self.reserved_usd = max(0.0, self.reserved_usd - reserved_usd)
+            self.spent_usd += actual_usd
+            if self.spent_usd + self.reserved_usd > self.maximum_usd + 1e-9:
+                raise BudgetExceededError(
+                    "Actual OpenAI cost exceeded the configured cap after the provider response: "
+                    f"spent={self.spent_usd:.6f}, reserved={self.reserved_usd:.6f}, "
+                    f"max={self.maximum_usd:.6f}"
+                )
 
     def release(self, reserved_usd: float) -> None:
         with self._lock:
@@ -102,6 +113,7 @@ class OpenAIProvider:
         allow_network: bool,
         api_key: str | None = None,
         max_retries: int = 2,
+        request_timeout_seconds: float = 600.0,
         client: Any | None = None,
     ) -> None:
         self.cache_dir = cache_dir.expanduser().resolve()
@@ -110,6 +122,7 @@ class OpenAIProvider:
         self.allow_network = bool(allow_network)
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self.max_retries = max(0, int(max_retries))
+        self.request_timeout_seconds = max(1.0, float(request_timeout_seconds))
         self._client = client
         self._client_lock = threading.Lock()
         self._cache_lock = threading.Lock()
@@ -122,12 +135,17 @@ class OpenAIProvider:
             sdk_version = str(getattr(openai, "__version__", "unknown"))
         except ImportError:
             sdk_version = "not-installed"
+        executable = Path(sys.executable)
+        try:
+            executable_sha256 = sha256_bytes(executable.read_bytes())
+        except OSError:
+            executable_sha256 = sha256_bytes(str(executable).encode("utf-8"))
         return {
             "python": platform.python_version(),
             "implementation": platform.python_implementation(),
             "platform": platform.platform(),
             "openai_sdk": sdk_version,
-            "executable_sha256": sha256_bytes(sys.executable.encode("utf-8")),
+            "executable_sha256": executable_sha256,
         }
 
     def preflight(self) -> dict[str, Any]:
@@ -163,7 +181,9 @@ class OpenAIProvider:
                 if self._client is None:
                     from openai import OpenAI
 
-                    self._client = OpenAI(api_key=self.api_key)
+                    self._client = OpenAI(
+                        api_key=self.api_key, timeout=self.request_timeout_seconds
+                    )
         return self._client
 
     @staticmethod
@@ -215,25 +235,43 @@ class OpenAIProvider:
         cache_path = self._cache_path(cache_key)
         with self._cache_lock:
             if cache_path.exists():
-                cached = json.loads(cache_path.read_text(encoding="utf-8"))
-                response_payload = cached["response_payload"]
-                record = {
-                    **cached["call_record"],
-                    "cache_hit": True,
-                    "cost_usd": 0.0,
-                    "original_cost_usd": float(cached["call_record"].get("cost_usd", 0.0) or 0.0),
-                    "external_transfer": False,
-                    "cache_origin_external_transfer": bool(cached["call_record"].get("external_transfer", False)),
-                }
-                return response_payload, record
+                try:
+                    cached = json.loads(cache_path.read_text(encoding="utf-8"))
+                    response_payload = cached["response_payload"]
+                    cached_record = cached["call_record"]
+                    schema_error = next(
+                        iter(Draft202012Validator(schema).iter_errors(response_payload)),
+                        None,
+                    )
+                    if (
+                        not isinstance(response_payload, dict)
+                        or not isinstance(cached_record, dict)
+                        or cached_record.get("request_sha256") != sha256_json(request_fingerprint)
+                        or cached_record.get("response_sha256") != sha256_json(response_payload)
+                        or schema_error is not None
+                    ):
+                        raise ValueError("cached OpenAI response contract mismatch")
+                except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+                    pass
+                else:
+                    record = {
+                        **cached_record,
+                        "cache_hit": True,
+                        "cost_usd": 0.0,
+                        "original_cost_usd": float(cached_record.get("cost_usd", 0.0) or 0.0),
+                        "external_transfer": False,
+                        "cache_origin_external_transfer": bool(cached_record.get("external_transfer", False)),
+                    }
+                    return response_payload, record
 
         client = self._client_instance()
         reserve = self._estimate_text_reserve(model, {"prompt": prompt, "payload": payload, "schema": schema})
         self.budget.reserve(reserve)
         started = time.time()
         response: Any | None = None
-        last_error: Exception | None = None
+        settled = False
         try:
+            last_error: Exception | None = None
             for attempt in range(self.max_retries + 1):
                 try:
                     response = client.responses.create(
@@ -254,23 +292,39 @@ class OpenAIProvider:
                         tools=[],
                         store=False,
                         max_output_tokens=8_000,
+                        timeout=self.request_timeout_seconds,
                     )
                     break
-                except Exception as exc:  # provider exception hierarchy is optional
+                except Exception as exc:
                     last_error = exc
                     if attempt >= self.max_retries:
                         raise
                     time.sleep(0.25 * (2**attempt))
             if response is None:
                 raise ProviderUnavailableError(f"OpenAI 응답이 없습니다: {last_error}")
+
+            usage = _object_value(response, "usage", {}) or {}
+            input_tokens = int(_object_value(usage, "input_tokens", 0) or 0)
+            output_tokens = int(_object_value(usage, "output_tokens", 0) or 0)
+            if input_tokens or output_tokens:
+                actual_cost = self._actual_text_cost(model, input_tokens, output_tokens)
+                cost_basis = "provider-token-usage"
+            else:
+                actual_cost = reserve
+                cost_basis = "conservative-reservation-no-usage"
+
             output_text = str(_object_value(response, "output_text", "")).strip()
             if not output_text:
                 raise ValueError("OpenAI structured response output_text가 비어 있습니다.")
             response_payload = json.loads(output_text)
-            usage = _object_value(response, "usage", {}) or {}
-            input_tokens = int(_object_value(usage, "input_tokens", 0) or 0)
-            output_tokens = int(_object_value(usage, "output_tokens", 0) or 0)
-            actual_cost = self._actual_text_cost(model, input_tokens, output_tokens)
+            schema_error = next(
+                iter(Draft202012Validator(schema).iter_errors(response_payload)), None
+            )
+            if schema_error is not None:
+                raise ValueError(
+                    f"OpenAI structured response schema error: {schema_error.message}"
+                )
+            settled = True
             self.budget.commit(reserve, actual_cost)
             record = {
                 "schema_name": "translation-forensics/model-call-manifest",
@@ -292,12 +346,14 @@ class OpenAIProvider:
                     "store": False,
                     "tools": [],
                     "max_output_tokens": 8_000,
+                    "timeout_seconds": self.request_timeout_seconds,
                 }),
                 "cache_key": cache_key,
                 "cache_hit": False,
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
                 "cost_usd": actual_cost,
+                "cost_basis": cost_basis,
                 "elapsed_seconds": round(time.time() - started, 3),
                 "external_transfer": True,
                 "store": False,
@@ -308,13 +364,38 @@ class OpenAIProvider:
             raw = response.model_dump() if hasattr(response, "model_dump") else {"output_text": output_text}
             cache_value = {"response_payload": response_payload, "call_record": record, "raw_response": raw}
             with self._cache_lock:
-                cache_path.write_text(json.dumps(cache_value, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8", newline="\n")
+                temporary = cache_path.with_name(
+                    f".{cache_path.name}.{uuid.uuid4().hex}.tmp"
+                )
+                try:
+                    temporary.write_text(
+                        json.dumps(cache_value, ensure_ascii=False, indent=2, default=str) + "\n",
+                        encoding="utf-8",
+                        newline="\n",
+                    )
+                    os.replace(temporary, cache_path)
+                finally:
+                    if temporary.exists():
+                        temporary.unlink()
             return response_payload, record
-        except Exception:
-            if response is None:
-                self.budget.release(reserve)
-            else:
-                self.budget.release(reserve)
+        except Exception as exc:
+            if not settled:
+                if response is None:
+                    self.budget.release(reserve)
+                else:
+                    usage = _object_value(response, "usage", {}) or {}
+                    input_tokens = int(_object_value(usage, "input_tokens", 0) or 0)
+                    output_tokens = int(_object_value(usage, "output_tokens", 0) or 0)
+                    actual_cost = (
+                        self._actual_text_cost(model, input_tokens, output_tokens)
+                        if input_tokens or output_tokens
+                        else reserve
+                    )
+                    settled = True
+                    try:
+                        self.budget.commit(reserve, actual_cost)
+                    except BudgetExceededError as budget_error:
+                        raise budget_error from exc
             raise
 
     def generate_decisions(
@@ -381,8 +462,9 @@ class OpenAIProvider:
         reserve = 0.25
         self.budget.reserve(reserve)
         started = time.time()
+        response: Any | None = None
+        settled = False
         try:
-            response: Any | None = None
             for attempt in range(self.max_retries + 1):
                 try:
                     with audio_path.open("rb") as handle:
@@ -405,10 +487,11 @@ class OpenAIProvider:
                 actual = self._actual_audio_cost("gpt-4o-transcribe", input_tokens, output_tokens)
                 cost_basis = "provider-token-usage"
             else:
-                # Some SDK versions omit usage for transcription responses.
-                # Charge the conservative reservation in that case.
                 actual = reserve
                 cost_basis = "conservative-per-clip-reservation"
+            if not text:
+                raise ValueError("OpenAI transcription response text가 비어 있습니다.")
+            settled = True
             self.budget.commit(reserve, actual)
             record = {
                 "schema_name": "translation-forensics/model-call-manifest",
@@ -437,8 +520,28 @@ class OpenAIProvider:
             }
             record["environment_sha256"] = sha256_json(record["environment"])
             with self._cache_lock:
-                cache_path.write_text(json.dumps({"text": text, "call_record": record}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+                cache_path.write_text(
+                    json.dumps({"text": text, "call_record": record}, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                    newline="\n",
+                )
             return text, record
-        except Exception:
-            self.budget.release(reserve)
+        except Exception as exc:
+            if not settled:
+                if response is None:
+                    self.budget.release(reserve)
+                else:
+                    usage = _object_value(response, "usage", {}) or {}
+                    input_tokens = int(_object_value(usage, "input_tokens", 0) or 0)
+                    output_tokens = int(_object_value(usage, "output_tokens", 0) or 0)
+                    actual = (
+                        self._actual_audio_cost("gpt-4o-transcribe", input_tokens, output_tokens)
+                        if input_tokens or output_tokens
+                        else reserve
+                    )
+                    settled = True
+                    try:
+                        self.budget.commit(reserve, actual)
+                    except BudgetExceededError as budget_error:
+                        raise budget_error from exc
             raise

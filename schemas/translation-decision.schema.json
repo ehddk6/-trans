@@ -16,18 +16,36 @@
     "block_number": {"type": "integer", "minimum": 1},
     "source_japanese": {"type": "string"},
     "previous_korean": {"type": "string"},
-    "source_faithful_korean": {"type": "string", "minLength": 1},
-    "viewer_natural_korean": {"type": "string", "minLength": 1},
+    "source_faithful_korean": {"type": "string"},
+    "viewer_natural_korean": {"type": "string"},
     "translation_method": {
       "type": "string",
       "enum": ["semantic_review_from_japanese", "semantic_review_with_asr", "semantic_review_with_context", "human_verified_semantic_review"]
     },
     "translation_model": {"type": "string", "const": "gpt-5.6-terra"},
-    "status": {"type": "string", "enum": ["translated", "reviewed", "approved"]},
-    "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+    "status": {"type": "string", "enum": ["translated", "reviewed", "approved", "unresolved"]},
+    "confidence": {"type": "string", "enum": ["high", "medium", "low", "unknown"]},
     "uncertain_slots": {"type": "array", "items": {"type": "string"}},
     "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "consistency_refs": {"type": "array", "items": {"type": "string"}},
+    "consistency_conflicts": {"type": "array", "items": {"type": "string"}},
+    "preserved_meaning": {"type": "array", "items": {"type": "string"}},
+    "review_required_reasons": {"type": "array", "items": {"type": "string"}},
     "review_note": {"type": "string"}
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"status": {"not": {"const": "unresolved"}}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "source_faithful_korean": {"minLength": 1},
+          "viewer_natural_korean": {"minLength": 1}
+        }
+      }
+    }
+  ],
   "additionalProperties": true
 }

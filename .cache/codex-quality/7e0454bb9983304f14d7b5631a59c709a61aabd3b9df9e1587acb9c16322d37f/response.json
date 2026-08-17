@@ -1,0 +1,32 @@
+{
+  "scene_id": "scene-0009",
+  "reviews": [
+    {
+      "block_number": 356,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "비교 대상 누락: 음성의 ‘チョコさんと’가 번역에 반영되지 않음"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "질문 형식은 맞지만 음성에 명시된 비교 대상 ‘초코 씨’를 빠뜨려 선택 구도가 달라진다."
+    },
+    {
+      "block_number": 357,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "행동 누락: ‘ピクピクさせている’",
+        "위치 누락: ‘そこに’",
+        "진행상 누락",
+        "진술·확인 발화 전체 누락"
+      ],
+      "unsupported_additions": [
+        "실제 발화 대신 근거 없는 말줄임표를 제시함"
+      ],
+      "naturalness_issues": [
+        "말줄임표만 있어 대사 연속성과 정보 전달이 끊김"
+      ],
+      "reason": "음성과 잠금 자막이 핵심 행동·극성에서 충돌하며 합의도 불성립했다. ‘…’는 들리는 발화도 보존하지 못한다."
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "scene_id": "scene-0004",
+  "blocks": [
+    {
+      "block_number": 78,
+      "source_faithful_korean": "나만 기분 좋아지면 안 되지.",
+      "viewer_natural_korean": "나만 좋으면 안 되지.",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00049:faster-whisper-large-v3",
+        "asr:window-00049:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

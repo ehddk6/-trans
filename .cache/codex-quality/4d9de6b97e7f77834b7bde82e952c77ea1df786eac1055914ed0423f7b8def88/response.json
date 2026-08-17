@@ -1,0 +1,39 @@
+{
+  "scene_id": "scene-0008",
+  "blocks": [
+    {
+      "block_number": 180,
+      "source_faithful_korean": "예쁘네.",
+      "viewer_natural_korean": "예쁘네.",
+      "source_status": "abstained",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00138:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 181,
+      "source_faithful_korean": "응.",
+      "viewer_natural_korean": "응.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00140:faster-whisper-large-v3",
+        "asr:window-00140:reazonspeech-k2-v2",
+        "asr:window-00141:faster-whisper-large-v3",
+        "asr:window-00141:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 182,
+      "source_faithful_korean": "응…",
+      "viewer_natural_korean": "응…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00142:faster-whisper-large-v3",
+        "asr:window-00142:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

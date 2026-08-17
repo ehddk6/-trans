@@ -1,0 +1,39 @@
+{
+  "scene_id": "scene-0010-conflict-rerun",
+  "frames": [
+    {
+      "block_number": 188,
+      "speech_act": "request",
+      "question": false,
+      "polarity": "positive",
+      "refusal_permission": "none",
+      "command_strength": "request",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "lick",
+      "target": "self",
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": null,
+      "intensity": "medium",
+      "confidence": "high"
+    },
+    {
+      "block_number": 190,
+      "speech_act": "command",
+      "question": false,
+      "polarity": "negative",
+      "refusal_permission": "none",
+      "command_strength": "urgent",
+      "speaker": "unknown",
+      "actor": "other",
+      "action": "stop",
+      "target": "other",
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": "stop",
+      "intensity": "high",
+      "confidence": "medium"
+    }
+  ]
+}

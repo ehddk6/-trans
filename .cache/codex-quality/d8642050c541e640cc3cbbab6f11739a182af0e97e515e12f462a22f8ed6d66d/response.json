@@ -1,0 +1,22 @@
+{
+  "scene_id": "scene-0012",
+  "frames": [
+    {
+      "block_number": 237,
+      "speech_act": "vocalization",
+      "question": false,
+      "polarity": "neutral",
+      "refusal_permission": "none",
+      "command_strength": "none",
+      "speaker": "unknown",
+      "actor": "unknown",
+      "action": null,
+      "target": "unknown",
+      "location": null,
+      "tense_aspect": "unknown",
+      "direction": "unknown",
+      "intensity": "medium",
+      "confidence": "high"
+    }
+  ]
+}

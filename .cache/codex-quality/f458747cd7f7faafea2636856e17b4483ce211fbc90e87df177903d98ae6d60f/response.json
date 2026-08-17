@@ -1,0 +1,69 @@
+{
+  "scene_id": "scene-0003",
+  "blocks": [
+    {
+      "block_number": 73,
+      "source_faithful_korean": "기분 좋아요.",
+      "viewer_natural_korean": "기분 좋아요.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00034:faster-whisper-large-v3",
+        "asr:window-00034:reazonspeech-k2-v2",
+        "asr:window-00035:faster-whisper-large-v3",
+        "asr:window-00035:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 74,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00035:faster-whisper-large-v3",
+        "asr:window-00035:reazonspeech-k2-v2",
+        "asr:window-00036:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 75,
+      "source_faithful_korean": "열어.",
+      "viewer_natural_korean": "열어.",
+      "source_status": "accepted",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00037:faster-whisper-large-v3",
+        "asr:window-00037:reazonspeech-k2-v2",
+        "asr:window-00038:faster-whisper-large-v3",
+        "asr:window-00038:reazonspeech-k2-v2",
+        "asr:window-00039:faster-whisper-large-v3",
+        "asr:window-00039:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 76,
+      "source_faithful_korean": "이렇게요?",
+      "viewer_natural_korean": "이렇게 하면 돼요?",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00039:faster-whisper-large-v3",
+        "asr:window-00039:reazonspeech-k2-v2",
+        "asr:window-00040:faster-whisper-large-v3",
+        "asr:window-00040:reazonspeech-k2-v2"
+      ]
+    },
+    {
+      "block_number": 77,
+      "source_faithful_korean": "바로.",
+      "viewer_natural_korean": "바로요.",
+      "source_status": "accepted",
+      "viewer_status": "best_effort",
+      "evidence_refs": [
+        "asr:window-00041:faster-whisper-large-v3",
+        "asr:window-00041:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

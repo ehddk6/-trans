@@ -1,0 +1,635 @@
+{
+  "scene_id": "scene-0016",
+  "reviews": [
+    {
+      "block_number": 526,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "refusal_permission"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "의미 있는 발화를 줄임표로 대체함"
+      ],
+      "reason": "두 ASR 모두 허용 표현을 잡지만 행위가 달라 정확한 뜻을 확정할 수 없다."
+    },
+    {
+      "block_number": 527,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "강도 합의가 깨져 제안 의미를 뒷받침할 수 없다."
+    },
+    {
+      "block_number": 528,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "중지 명령의 강도가 합의되지 않아 복원할 수 없다."
+    },
+    {
+      "block_number": 529,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정 응답이라는 음향 증거와 합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 530,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "발화 기능과 시제가 충돌하고, 긴 ASR 구간도 블록 의미를 특정하지 못한다."
+    },
+    {
+      "block_number": 531,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "0.06초 노출로 자막을 읽을 수 없음",
+        "음성 발화를 줄임표로 대체함"
+      ],
+      "reason": "ASR의 작별 인사와 줄임표가 맞지 않고 블록 길이도 지나치게 짧다."
+    },
+    {
+      "block_number": 532,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "돌아왔다는 사건"
+      ],
+      "naturalness_issues": [
+        "0.32초 노출에 비해 문장이 김"
+      ],
+      "reason": "참조 ASR은 작별 인사이며 ‘돌아왔을 때’를 음향적으로 지지하지 않는다."
+    },
+    {
+      "block_number": 533,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "의미 있는 대사를 줄임표로 대체함"
+      ],
+      "reason": "잠긴 원문과 ASR이 서로 어긋나 블록의 실제 발화를 확정할 수 없다."
+    },
+    {
+      "block_number": 534,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "보여 달라는 요청의 강도 합의가 깨져 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 535,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재 긍정 진술의 강도가 합의되지 않아 복원 근거가 부족하다."
+    },
+    {
+      "block_number": 536,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "불명확한 원문을 줄임표만으로 처리함"
+      ],
+      "reason": "제공된 음향 문구가 없고 잠긴 일본어도 불완전해 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 537,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "의미 있는 발화를 줄임표로 대체함"
+      ],
+      "reason": "ASR과 잠긴 원문의 행위가 맞지 않아 어느 의미도 확정할 수 없다."
+    },
+    {
+      "block_number": 538,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "말하지 않겠다는 미래 진술의 강도 합의가 깨졌다."
+    },
+    {
+      "block_number": 539,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "발화 기능과 시제가 충돌해 제안 의미를 뒷받침할 수 없다."
+    },
+    {
+      "block_number": 540,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "키스 소리 ‘チュッ’을 자연스러운 한국어 의성어로 옮겼다."
+    },
+    {
+      "block_number": 541,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "혼합 문자로 훼손된 원문",
+        "줄임표만 남은 자막"
+      ],
+      "reason": "원문이 다국어 문자로 훼손됐고 확인 가능한 음향 문구도 없다."
+    },
+    {
+      "block_number": 542,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 증거가 없고 발성 강도도 합의되지 않았다."
+    },
+    {
+      "block_number": 543,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "ASR은 통증 발화지만 행위와 강도 합의가 깨져 정확한 복원이 불가능하다."
+    },
+    {
+      "block_number": 544,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "고강도 발성을 간결한 감탄으로 옮겨 음향 및 합의와 맞는다."
+    },
+    {
+      "block_number": 545,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰 원문과 합의된 고강도 호흡성 발성에 부합한다."
+    },
+    {
+      "block_number": 546,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "발화 유형·문장 힘·시제·강도가 모두 불일치하며 음향 근거도 없다."
+    },
+    {
+      "block_number": 547,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재의 긍정 비교 진술이라는 원문과 합의 프레임을 충실히 보존한다."
+    },
+    {
+      "block_number": 548,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "미래 상태를 묻는 질문의 극성이 합의되지 않았다."
+    },
+    {
+      "block_number": 549,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "미래 진술의 극성과 강도가 모두 충돌해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 550,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재의 부정적 생각 진술을 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 551,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "화자 자신의 미래 노력 의지를 정확하고 자연스럽게 옮겼다."
+    },
+    {
+      "block_number": 552,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 미래 노력을 묻는 질문이지만 강도를 확정할 수 없다."
+    },
+    {
+      "block_number": 553,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "질문의 행위와 시제 합의가 깨져 제안 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 554,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "행위가 있는 발화를 줄임표로 대체함"
+      ],
+      "reason": "ASR과 원문 모두 행위를 시사하지만 표현이 훼손돼 정확한 명령을 확정할 수 없다."
+    },
+    {
+      "block_number": 555,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 미래 노력 대상을 따지는 강한 질문을 정확히 보존한다."
+    },
+    {
+      "block_number": 556,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "행위 주체가 생략돼 앞 대사와의 연결이 약함"
+      ],
+      "reason": "원문의 행위 주체인 ‘엄마’가 빠져 actor 슬롯이 소실됐다."
+    },
+    {
+      "block_number": 557,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "봉사 요청의 핵심은 들리지만 요청 강도가 합의되지 않았다."
+    },
+    {
+      "block_number": 558,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question",
+        "actor",
+        "action",
+        "target",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "발화 힘과 참여자·행위·대상·강도가 광범위하게 충돌한다."
+    },
+    {
+      "block_number": 559,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대의 미래 노력 의사를 확인하는 질문과 정확히 일치한다."
+    },
+    {
+      "block_number": 560,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "상대에게 봉사를 요구하는 강한 요청을 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 561,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "반복 오염 원문을 줄임표로 처리함"
+      ],
+      "reason": "잠긴 원문이 반복 오염으로 unusable이며 블록별 음향 의미도 확인되지 않는다."
+    },
+    {
+      "block_number": 562,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "반복 오염 원문을 줄임표로 처리함"
+      ],
+      "reason": "원문은 unusable이고 단일 ASR 문구도 불명확해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 563,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복 오염된 unusable 원문뿐이며 음향 증거가 없다."
+    },
+    {
+      "block_number": 564,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복 오염된 unusable 원문뿐이며 음향 증거가 없다."
+    },
+    {
+      "block_number": 565,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복 오염된 unusable 원문뿐이며 음향 증거가 없다."
+    },
+    {
+      "block_number": 566,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복 오염된 unusable 원문뿐이며 음향 증거가 없다."
+    },
+    {
+      "block_number": 567,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복 오염된 unusable 원문뿐이며 음향 증거가 없다."
+    },
+    {
+      "block_number": 568,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "반복 오염된 unusable 원문뿐이며 음향 증거가 없다."
+    },
+    {
+      "block_number": 569,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "휴식 요청 원문은 있으나 음향 증거가 없고 발화 기능과 시제가 충돌한다."
+    },
+    {
+      "block_number": 570,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action"
+      ],
+      "unsupported_additions": [
+        "자신의 최고라는 평가",
+        "가장 좋아한다는 선호"
+      ],
+      "naturalness_issues": [
+        "두 한국어안의 의미가 서로 다름"
+      ],
+      "reason": "참조 ASR은 ‘おやすみなさい’이며 자기 평가나 선호를 전혀 지지하지 않는다."
+    },
+    {
+      "block_number": 571,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "참조 ASR과 원문이 어긋나며 발화 기능·시제·강도 합의도 깨졌다."
+    },
+    {
+      "block_number": 572,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "이해했다는 응답"
+      ],
+      "naturalness_issues": [],
+      "reason": "참조 ASR은 작별 인사이므로 ‘알겠어’라는 완료 응답을 음향적으로 지지하지 않는다."
+    },
+    {
+      "block_number": 573,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "핥으라는 명령의 강도와 시제가 합의되지 않았다."
+    },
+    {
+      "block_number": 574,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "question",
+        "action",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "금지 발화의 의문성·행위·강도가 충돌해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 575,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "함께 사과하자는 제안의 행위자와 명령 강도를 보존한다."
+    },
+    {
+      "block_number": 576,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "접촉 요청의 시제와 강도가 합의되지 않아 복원할 수 없다."
+    },
+    {
+      "block_number": 577,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "단일 음절 수준의 음향만 있으며 발성 강도도 합의되지 않았다."
+    },
+    {
+      "block_number": 578,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘んん…’이라는 중간 강도 발성을 자연스러운 한국어 감탄으로 옮겼다."
+    },
+    {
+      "block_number": 579,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action"
+      ],
+      "unsupported_additions": [
+        "‘해’라는 구체적 동작 보충"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향은 ‘자, 빨리’만 지지하며 합의 프레임에도 구체적 action이 없다."
+    },
+    {
+      "block_number": 580,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 증거가 없고 발화 기능과 강도도 충돌한다."
+    },
+    {
+      "block_number": 581,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 증거가 없으며 발화 기능 합의도 깨졌다."
+    },
+    {
+      "block_number": 582,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "기분 좋게 해 달라는 요청은 들리지만 핵심 행위 합의가 깨져 격리해야 한다."
+    },
+    {
+      "block_number": 583,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "command_strength"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "신뢰 원문의 요청을 줄임표로 누락함"
+      ],
+      "reason": "신뢰 원문에는 가벼운 접촉 요청이 있으므로 줄임표만 제시한 것은 정보 누락이다."
+    },
+    {
+      "block_number": 584,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "action",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "안쪽 방향 명령은 들리지만 행위·명령 강도·시제가 합의되지 않았다."
+    },
+    {
+      "block_number": 585,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "action",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "안쪽 방향 외에는 행위·강도·시제·명령 강도를 확정할 수 없다."
+    }
+  ]
+}

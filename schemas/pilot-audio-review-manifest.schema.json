@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://translation-forensics.local/schemas/pilot-audio-review-manifest/v1",
+  "title": "Pilot full-title audio review manifest",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "status",
+    "packet_scope",
+    "local_only",
+    "external_delivery_performed",
+    "clip_preparation_allowed",
+    "expected_block_count",
+    "block_count",
+    "all_blocks_have_audio",
+    "all_blocks_have_japanese",
+    "all_blocks_have_scene_context",
+    "inputs",
+    "generation_parameters",
+    "records",
+    "clips"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-audio-review-manifest"},
+    "schema_version": {"const": "1"},
+    "title_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["ready", "blocked"]},
+    "packet_scope": {"const": "full-title"},
+    "local_only": {"const": true},
+    "external_delivery_performed": {"const": false},
+    "clip_preparation_allowed": {"type": "boolean"},
+    "expected_block_count": {"type": "integer", "minimum": 1},
+    "block_count": {"type": "integer", "minimum": 0},
+    "all_blocks_have_audio": {"type": "boolean"},
+    "all_blocks_have_japanese": {"type": "boolean"},
+    "all_blocks_have_scene_context": {"type": "boolean"},
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/file"}
+    },
+    "generation_parameters": {"type": ["object", "null"]},
+    "records": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "allOf": [
+            {"$ref": "#/$defs/file"},
+            {"type": "object", "properties": {"path": {"const": "blocks.jsonl"}}}
+          ]
+        }
+      ]
+    },
+    "clips": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/file"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "ready"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "clip_preparation_allowed": {"const": true},
+          "block_count": {"minimum": 1},
+          "all_blocks_have_audio": {"const": true},
+          "all_blocks_have_japanese": {"const": true},
+          "all_blocks_have_scene_context": {"const": true},
+          "records": {"type": "object"},
+          "inputs": {"required": ["structure", "japanese", "media", "alignment"]}
+        }
+      },
+      "else": {
+        "required": ["errors", "resume_condition"],
+        "properties": {
+          "clip_preparation_allowed": {"const": false},
+          "block_count": {"const": 0},
+          "all_blocks_have_audio": {"const": false},
+          "all_blocks_have_japanese": {"const": false},
+          "all_blocks_have_scene_context": {"const": false},
+          "records": {"type": "null"},
+          "clips": {"maxItems": 0}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "file": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

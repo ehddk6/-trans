@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/codex-quality-evidence-ceiling.schema.json",
+  "title": "Codex quality evidence ceiling",
+  "type": "object",
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "gate_configured",
+    "gate_policy",
+    "gate_policy_version",
+    "gate_config_sha256"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/codex-quality-evidence-ceiling"},
+    "schema_version": {"type": "string", "minLength": 1},
+    "title_id": {"type": "string", "minLength": 1},
+    "gate_configured": {"type": "boolean"},
+    "gate_policy": {"enum": ["registered", "unregistered-deny"]},
+    "gate_policy_version": {"type": "string", "minLength": 1},
+    "gate_config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "additionalProperties": true
+}

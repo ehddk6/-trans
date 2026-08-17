@@ -1,0 +1,704 @@
+{
+  "scene_id": "scene-0003",
+  "reviews": [
+    {
+      "block_number": 95,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "question",
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "'어떻게 참아'는 의문형으로 읽힌다. 합의된 부정 진술의 발화 힘을 유지해야 한다."
+    },
+    {
+      "block_number": 96,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대체용 말줄임표만 제시됨"
+      ],
+      "reason": "강도 합의가 깨진 거부 발화이며, 말줄임표는 검증 가능한 번역이 아니다."
+    },
+    {
+      "block_number": 97,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대체용 말줄임표만 제시됨"
+      ],
+      "reason": "행위자·극성이 합의되지 않았고 음향도 잠긴 원문과 어긋나 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 98,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대체용 말줄임표만 제시됨"
+      ],
+      "reason": "행위자·극성·강도 합의가 모두 깨졌고 음향과 원문도 불일치한다."
+    },
+    {
+      "block_number": 99,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "내용 없는 말줄임표"
+      ],
+      "reason": "음향 근거와 의미 프레임이 비어 있어 원문 조각의 뜻을 확인할 수 없다."
+    },
+    {
+      "block_number": 100,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "내용 없는 말줄임표"
+      ],
+      "reason": "음향 근거와 의미 프레임이 비어 있어 원문 조각의 뜻을 확인할 수 없다."
+    },
+    {
+      "block_number": 101,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "신뢰 원문과 합의된 부정 진술에 맞고 짧고 자연스럽다."
+    },
+    {
+      "block_number": 102,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [
+        "시끄럽다는 부정 평가"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향은 'いいぞ'라는 긍정 발화인데 '시끄러워'는 극성을 뒤집는다."
+    },
+    {
+      "block_number": 103,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action"
+      ],
+      "unsupported_additions": [
+        "'두 번째'라는 순서 정보"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향은 'いいぞ'인데 후보는 근거 없는 순서 정보를 넣어 발화 내용을 바꾼다."
+    },
+    {
+      "block_number": 104,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question",
+        "polarity",
+        "actor",
+        "action",
+        "target",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대체용 말줄임표만 제시됨"
+      ],
+      "reason": "핵심 슬롯 전반의 합의가 깨져 발화 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 105,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대체용 말줄임표만 제시됨"
+      ],
+      "reason": "속이는 행위는 들리지만 대상 합의가 깨졌고 후보도 의미를 제시하지 않는다."
+    },
+    {
+      "block_number": 106,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "합의된 짧은 의문과 원문 '何が'를 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 107,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대체용 말줄임표만 제시됨"
+      ],
+      "reason": "돈을 노리는 행위자는 합의되지 않았고 후보는 질문 의미를 누락했다."
+    },
+    {
+      "block_number": 108,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "원문의 미완성 장소 표현을 자연스럽게 유지하며 과도한 명시가 없다."
+    },
+    {
+      "block_number": 109,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question",
+        "action",
+        "command_strength",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "휴식 요청"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향은 '이렇게 추워?'라는 현재 질문이다. 후보는 이를 휴식 요청으로 바꾼다."
+    },
+    {
+      "block_number": 110,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "polarity",
+        "refusal_permission",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "싫다는 거부"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향은 뜨거워지는 상태 진술인데 후보는 부정 거부로 바꾼다."
+    },
+    {
+      "block_number": 111,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "합의는 진행상인데 '-졌어'는 완료 결과로 닫아 시상 정보를 바꾼다."
+    },
+    {
+      "block_number": 112,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대체용 말줄임표만 제시됨"
+      ],
+      "reason": "허락을 묻는 접촉 발화의 행위자·대상이 불명확하고 후보도 의미를 제시하지 않는다."
+    },
+    {
+      "block_number": 113,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "반복 요청을 말줄임표로 대체함"
+      ],
+      "reason": "보여 달라는 반복 요청은 들리지만 힘·행위자·대상 합의가 깨져 확정할 수 없다."
+    },
+    {
+      "block_number": 114,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "내용 없는 말줄임표"
+      ],
+      "reason": "핵심 발화 슬롯이 비어 있어 말줄임표 이상의 번역을 검증할 수 없다."
+    },
+    {
+      "block_number": 115,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "틀리지 않는다는 현재 부정 진술을 합의 프레임대로 보존한다."
+    },
+    {
+      "block_number": 116,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "강한 불가능·거부를 간결하고 자연스럽게 전달한다."
+    },
+    {
+      "block_number": 117,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "action"
+      ],
+      "unsupported_additions": [
+        "특정 행동을 '하다'로 명시함"
+      ],
+      "naturalness_issues": [],
+      "reason": "합의상 행위는 미정인데 '못 해'가 특정 행동 수행 불능을 명시한다."
+    },
+    {
+      "block_number": 118,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "강한 자기 거부의 극성과 발화 힘을 자연스럽게 유지한다."
+    },
+    {
+      "block_number": 119,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "target",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "사과를 말줄임표로 대체함"
+      ],
+      "reason": "사과 행위는 보이지만 발화 유형·대상·시상이 합의되지 않아 확정할 수 없다."
+    },
+    {
+      "block_number": 120,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "내용 없는 말줄임표"
+      ],
+      "reason": "음향 근거와 의미 프레임이 없어 불명확한 원문 조각을 검증할 수 없다."
+    },
+    {
+      "block_number": 121,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "target",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "질문을 말줄임표로 대체함"
+      ],
+      "reason": "질문임은 보이지만 행위자·대상·시상이 합의되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 122,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "중간 강도의 부정 거부를 짧고 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 123,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "대체용 말줄임표만 제시됨"
+      ],
+      "reason": "발성의 강도 합의가 깨졌고 후보 말줄임표는 음가나 의미를 검증할 수 없다."
+    },
+    {
+      "block_number": 124,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "호명과 보여 달라는 요청을 원문 및 합의 프레임대로 전달한다."
+    },
+    {
+      "block_number": 125,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "요청을 말줄임표로 대체함"
+      ],
+      "reason": "보여 달라는 강한 요청은 들리지만 힘·행위자·대상이 합의되지 않았다."
+    },
+    {
+      "block_number": 126,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "polarity",
+        "refusal_permission",
+        "command_strength"
+      ],
+      "unsupported_additions": [
+        "거부 표현"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향은 '제대로 보여 달라'는 요청인데 후보는 이를 거부로 뒤집는다."
+    },
+    {
+      "block_number": 127,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "거부를 말줄임표로 대체함"
+      ],
+      "reason": "거부의 강도 합의가 깨졌고 후보는 검증 가능한 의미를 제시하지 않는다."
+    },
+    {
+      "block_number": 128,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action",
+        "command_strength"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "내용 없는 말줄임표"
+      ],
+      "reason": "합의 프레임은 비어 있고 같은 음향 구간은 보여 달라는 요청이라 후보를 확정할 수 없다."
+    },
+    {
+      "block_number": 129,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "거부를 말줄임표로 대체함"
+      ],
+      "reason": "거부의 강도 합의가 깨졌고 후보는 발화 내용을 전달하지 않는다."
+    },
+    {
+      "block_number": 130,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "젖은 현재 상태를 묻는 질문을 자연스럽고 정확하게 보존한다."
+    },
+    {
+      "block_number": 131,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "요청을 말줄임표로 대체함"
+      ],
+      "reason": "진정하라는 요청의 행위자가 합의되지 않았고 후보도 의미를 제시하지 않는다."
+    },
+    {
+      "block_number": 132,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "요청을 말줄임표로 대체함"
+      ],
+      "reason": "안을 보여 달라는 요청은 들리지만 힘·행위자·대상이 합의되지 않았다."
+    },
+    {
+      "block_number": 133,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향의 'ダメ'와 합의된 강한 거부를 간결하게 보존한다."
+    },
+    {
+      "block_number": 134,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "보여 달라는 중간 강도의 요청을 자연스럽게 전달한다."
+    },
+    {
+      "block_number": 135,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "거부를 말줄임표로 대체함"
+      ],
+      "reason": "거부의 강도 합의가 깨졌고 후보는 발화 내용을 누락했다."
+    },
+    {
+      "block_number": 136,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "질문을 말줄임표로 대체함"
+      ],
+      "reason": "보여 주지 않는 이유를 묻는 틀은 있으나 행위자와 대상이 합의되지 않았다."
+    },
+    {
+      "block_number": 137,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "보여 달라는 요청과 긍정적 설득을 자연스럽게 함께 보존한다."
+    },
+    {
+      "block_number": 138,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "허락 질문을 말줄임표로 대체함"
+      ],
+      "reason": "허락을 묻는 질문의 행위자와 대상이 합의되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 139,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [
+        "이유를 묻는 '왜'"
+      ],
+      "naturalness_issues": [],
+      "reason": "합의는 질문 여부만 지지한다. 음향과 원문에서 이유 질문은 확인되지 않는다."
+    },
+    {
+      "block_number": 140,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "반복 요청을 말줄임표로 대체함"
+      ],
+      "reason": "보여 달라는 강한 요청은 들리지만 힘·행위자·대상이 합의되지 않았다."
+    },
+    {
+      "block_number": 141,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "명령을 말줄임표로 대체함"
+      ],
+      "reason": "벌리라는 명령의 힘과 행위자가 합의되지 않아 확정할 수 없다."
+    },
+    {
+      "block_number": 142,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "명령을 말줄임표로 대체함"
+      ],
+      "reason": "손을 치우라는 명령은 명확하지만 행위자 합의가 깨졌고 후보도 의미를 누락했다."
+    },
+    {
+      "block_number": 143,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "약 38초 구간의 다중 명령을 한 문장으로 과도하게 축약",
+        "자막 노출 시간이 지나치게 김"
+      ],
+      "reason": "핵심 명령은 맞지만 여러 명령을 한 줄로 줄여 대사 누락과 과도한 노출 시간이 생긴다."
+    },
+    {
+      "block_number": 144,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "여러 발화를 말줄임표로 대체함"
+      ],
+      "reason": "벌리라는 명령의 행위자·강도 합의가 깨졌고 후보는 다른 들리는 발화도 누락했다."
+    },
+    {
+      "block_number": 145,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "요청·확인 발화를 말줄임표로 대체함"
+      ],
+      "reason": "다리를 벌리라는 요청과 확인 질문의 발화 유형·행위자가 합의되지 않았다."
+    },
+    {
+      "block_number": 146,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [
+        "새로 알아차린 태도의 '-네'"
+      ],
+      "naturalness_issues": [],
+      "reason": "원문 '-てきた'의 변화 시상이 완료형으로 평탄화되고 '-네'가 관찰 태도를 덧붙인다."
+    },
+    {
+      "block_number": 147,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "손을 벌리라는 짧은 지시를 원문대로 자연스럽게 전달한다."
+    },
+    {
+      "block_number": 148,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "내용 없는 말줄임표"
+      ],
+      "reason": "양 ASR과 잠긴 원문이 충돌하고 출처도 unusable이어서 명령 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 149,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "actor",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "내용 없는 말줄임표"
+      ],
+      "reason": "양 ASR은 '시끄럽다니까'인데 잠긴 원문은 휴식 요청이며 출처도 unusable이다."
+    },
+    {
+      "block_number": 150,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "action",
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "명확한 발화를 말줄임표로 대체함"
+      ],
+      "reason": "양 ASR과 원문은 '시끄럽다니까'로 일치하지만 합의는 명령형이라 상호 충돌한다."
+    },
+    {
+      "block_number": 151,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "target",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "사과를 말줄임표로 대체함"
+      ],
+      "reason": "사과 행위의 발화 유형·대상·시상이 합의되지 않아 후보를 확정할 수 없다."
+    },
+    {
+      "block_number": 152,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "금지 명령을 말줄임표로 대체함"
+      ],
+      "reason": "중지 금지 명령의 행위자가 합의되지 않았고 후보는 발화 의미를 누락했다."
+    },
+    {
+      "block_number": 153,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 확인 질문을 구어체 한국어로 자연스럽게 보존한다."
+    },
+    {
+      "block_number": 154,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향의 짧은 발성과 합의된 중간 강도를 무리 없이 전달한다."
+    }
+  ]
+}

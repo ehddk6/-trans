@@ -1,0 +1,15 @@
+{
+  "scene_id": "scene-0019-repair-1",
+  "blocks": [
+    {
+      "block_number": 651,
+      "source_faithful_korean": "이거 좋네요.",
+      "viewer_natural_korean": "이거 좋네요.",
+      "source_status": "accepted",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "utterance:utterance-01512:faster-whisper-large-v3"
+      ]
+    }
+  ]
+}

@@ -24,7 +24,13 @@ def sha256_file(path: Path) -> str:
 
 def detect_text_encoding(path: Path) -> str:
     raw = path.read_bytes()
-    for encoding in ("utf-8-sig", "utf-8", "cp932", "cp949"):
+    if raw.startswith(b"\xef\xbb\xbf"):
+        try:
+            raw.decode("utf-8-sig")
+            return "utf-8-sig"
+        except UnicodeDecodeError:
+            return "unknown"
+    for encoding in ("utf-8", "cp932", "cp949"):
         try:
             raw.decode(encoding)
             return encoding

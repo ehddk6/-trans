@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-blind-internal-key/v1",
+  "title": "SSIS-908 sealed blind-review internal key v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name", "schema_version", "title_id", "status", "seal_status",
+    "frozen_before_candidate_generation", "expected_block_count",
+    "randomization_algorithm", "randomization_seed", "frozen_baseline",
+    "evaluation_contract", "evaluation_order", "mqm_schema",
+    "mqm_severity_definitions", "candidate_mapping", "reviewer_visible",
+    "external_delivery_performed", "key_commitment_sha256"
+  ],
+  "$defs": {
+    "file_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    }
+  },
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-blind-internal-key"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "status": {"enum": ["sealed", "blocked"]},
+    "seal_status": {"enum": ["sealed-until-adjudication", "sealed-blocked-not-for-unblinding"]},
+    "frozen_before_candidate_generation": {"type": "boolean"},
+    "frozen_at_utc": {"type": "string", "minLength": 1},
+    "expected_block_count": {"const": 298},
+    "randomization_algorithm": {"const": "sha256-first-byte-parity-v1"},
+    "randomization_seed": {"type": "string", "minLength": 1},
+    "frozen_baseline": {"$ref": "#/$defs/file_ref"},
+    "candidate_expected_path": {"type": "string", "minLength": 1},
+    "evaluation_contract": {"$ref": "#/$defs/file_ref"},
+    "evaluation_order": {
+      "const": ["semantic_fidelity", "contextual_consistency", "natural_korean", "semantic_recheck"]
+    },
+    "mqm_schema": {"$ref": "#/$defs/file_ref"},
+    "mqm_severity_definitions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["critical", "major", "minor"],
+      "properties": {
+        "critical": {"type": "string", "minLength": 1},
+        "major": {"type": "string", "minLength": 1},
+        "minor": {"type": "string", "minLength": 1}
+      }
+    },
+    "candidate_mapping": {
+      "type": "array",
+      "minItems": 298,
+      "maxItems": 298,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["block_number", "candidate_a_variant", "candidate_b_variant"],
+        "properties": {
+          "block_number": {"type": "integer", "minimum": 1, "maximum": 298},
+          "candidate_a_variant": {"enum": ["baseline", "improvement"]},
+          "candidate_b_variant": {"enum": ["baseline", "improvement"]}
+        }
+      }
+    },
+    "reviewer_visible": {"const": false},
+    "external_delivery_performed": {"const": false},
+    "unseal_condition": {"type": "string", "minLength": 1},
+    "errors": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "resume_condition": {"type": "string", "minLength": 1},
+    "key_commitment_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "sealed"}}},
+      "then": {
+        "required": ["frozen_at_utc", "candidate_expected_path", "unseal_condition"],
+        "properties": {
+          "seal_status": {"const": "sealed-until-adjudication"},
+          "frozen_before_candidate_generation": {"const": true}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "blocked"}}},
+      "then": {
+        "required": ["errors", "resume_condition"],
+        "properties": {
+          "seal_status": {"const": "sealed-blocked-not-for-unblinding"},
+          "frozen_before_candidate_generation": {"const": false}
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "scene_id": "scene-0014",
+  "blocks": [
+    {
+      "block_number": 298,
+      "source_faithful_korean": "아…",
+      "viewer_natural_korean": "아…",
+      "source_status": "abstained",
+      "viewer_status": "supported",
+      "evidence_refs": [
+        "asr:window-00288:reazonspeech-k2-v2",
+        "asr:window-00289:reazonspeech-k2-v2"
+      ]
+    }
+  ]
+}

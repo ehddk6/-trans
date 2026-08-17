@@ -245,7 +245,7 @@ def test_terra_prompt_contract_has_hash_and_required_failure_cases() -> None:
     manifest = ROOT / "prompts" / "terra-semantic-translation-v1.manifest.json"
     report = validate_prompt_contract(manifest)
     assert report["status"] == "pass"
-    assert report["test_case_count"] == 4
+    assert report["test_case_count"] == 6
 
 
 def test_gold_record_template_is_not_mistaken_for_adjudicated_gold(tmp_path: Path) -> None:

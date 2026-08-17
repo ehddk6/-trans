@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/pilot-metrics/v1",
+  "title": "SSIS-908 non-compensating pilot balance contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name",
+    "schema_version",
+    "title_id",
+    "status",
+    "result",
+    "lifecycle_status",
+    "expected_block_count",
+    "adjudicated_block_count",
+    "blocking_blocks",
+    "unresolved_blocks",
+    "gate_order",
+    "required_gate_count",
+    "passed_gate_count",
+    "all_required_gates_passed",
+    "gates",
+    "error_ledger_record_count",
+    "mqm_error_count",
+    "error_ledger_sha256",
+    "reason"
+  ],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/pilot-metrics"},
+    "schema_version": {"const": "1"},
+    "title_id": {"const": "SSIS-908"},
+    "status": {"enum": ["awaiting-human-review", "pilot-evaluated"]},
+    "result": {"type": ["string", "null"], "enum": [null, "pass", "fail", "inconclusive"]},
+    "lifecycle_status": {
+      "enum": [
+        "awaiting-human-review",
+        "pilot-evaluated/pass",
+        "pilot-evaluated/fail",
+        "pilot-evaluated/inconclusive"
+      ]
+    },
+    "expected_block_count": {"type": "integer", "minimum": 1},
+    "adjudicated_block_count": {"type": "integer", "minimum": 0},
+    "blocking_blocks": {"$ref": "#/$defs/block_numbers"},
+    "unresolved_blocks": {"$ref": "#/$defs/block_numbers"},
+    "gate_order": {
+      "const": [
+        "zero_new_critical_semantic_errors",
+        "critical_major_error_block_reduction",
+        "naturalness_balance"
+      ]
+    },
+    "required_gate_count": {"const": 3},
+    "passed_gate_count": {"type": "integer", "minimum": 0, "maximum": 3},
+    "all_required_gates_passed": {"type": ["boolean", "null"]},
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "zero_new_critical_semantic_errors",
+        "critical_major_error_block_reduction",
+        "naturalness_balance"
+      ],
+      "properties": {
+        "zero_new_critical_semantic_errors": {"$ref": "#/$defs/new_critical_gate"},
+        "critical_major_error_block_reduction": {"$ref": "#/$defs/error_reduction_gate"},
+        "naturalness_balance": {"$ref": "#/$defs/naturalness_gate"}
+      }
+    },
+    "error_ledger_record_count": {"type": "integer", "minimum": 1},
+    "mqm_error_count": {"type": "integer", "minimum": 0},
+    "error_ledger_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "reason": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "block_numbers": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1},
+      "uniqueItems": true
+    },
+    "gate_status": {
+      "enum": ["awaiting-human-review", "pass", "fail", "inconclusive"]
+    },
+    "new_critical_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "passed", "required_count", "observed_count", "reason"],
+      "properties": {
+        "status": {"$ref": "#/$defs/gate_status"},
+        "passed": {"type": ["boolean", "null"]},
+        "required_count": {"const": 0},
+        "observed_count": {"type": ["integer", "null"], "minimum": 0},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "error_reduction_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "passed",
+        "minimum_percent",
+        "observed_percent",
+        "baseline_error_block_count",
+        "improvement_error_block_count",
+        "reason"
+      ],
+      "properties": {
+        "status": {"$ref": "#/$defs/gate_status"},
+        "passed": {"type": ["boolean", "null"]},
+        "minimum_percent": {"const": 50.0},
+        "observed_percent": {"type": ["number", "null"], "maximum": 100},
+        "baseline_error_block_count": {"type": ["integer", "null"], "minimum": 0},
+        "improvement_error_block_count": {"type": ["integer", "null"], "minimum": 0},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "naturalness_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "passed",
+        "minimum_win_percent",
+        "maximum_loss_percent",
+        "observed_win_percent",
+        "observed_loss_percent",
+        "win_count",
+        "loss_count",
+        "tie_count",
+        "reason"
+      ],
+      "properties": {
+        "status": {"$ref": "#/$defs/gate_status"},
+        "passed": {"type": ["boolean", "null"]},
+        "minimum_win_percent": {"const": 65.0},
+        "maximum_loss_percent": {"const": 15.0},
+        "observed_win_percent": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+        "observed_loss_percent": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+        "win_count": {"type": ["integer", "null"], "minimum": 0},
+        "loss_count": {"type": ["integer", "null"], "minimum": 0},
+        "tie_count": {"type": ["integer", "null"], "minimum": 0},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

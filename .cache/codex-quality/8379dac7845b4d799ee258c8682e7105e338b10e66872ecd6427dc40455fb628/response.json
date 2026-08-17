@@ -1,0 +1,626 @@
+{
+  "scene_id": "scene-0014",
+  "reviews": [
+    {
+      "block_number": 406,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "intensity: 조건 진술을 필수·의무처럼 강화"
+      ],
+      "unsupported_additions": [
+        "‘먹어야’가 함께 먹는 것을 필요조건으로 명시"
+      ],
+      "naturalness_issues": [],
+      "reason": "‘먹으면 맛있다’는 조건 진술이 ‘먹어야 맛있다’는 필수 조건으로 강화됐다."
+    },
+    {
+      "block_number": 407,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "긍정 응답의 말힘과 낮은 강도가 음향·신뢰 소스·합의 프레임에 부합한다."
+    },
+    {
+      "block_number": 408,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "발화 행위에 합의 충돌이 있고 source_status도 abstained라 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 409,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "이동 주체가 합의되지 않았고 단일 음향 계열의 인식도 소스와 어긋나 의미를 지지하지 못한다."
+    },
+    {
+      "block_number": 410,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speaker",
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "화자·행위자·대상이 모두 충돌해 요청의 참여자 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 411,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "question",
+        "command_strength"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "행동은 들리지만 발화 행위·의문성·요구 강도가 충돌해 번역 말힘을 확정할 수 없다."
+    },
+    {
+      "block_number": 412,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "actor",
+        "location"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "극성·행위자·배경 위치가 합의되지 않아 성장 배경 진술을 안정적으로 복원할 수 없다."
+    },
+    {
+      "block_number": 413,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "짧은 반응의 발화 행위가 합의되지 않아 말줄임표 이상의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 414,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "사망 질문은 들리지만 핵심 극성이 충돌하고 source_status가 abstained라 확정할 수 없다."
+    },
+    {
+      "block_number": 415,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "떠난 사건의 극성과 버려진 대상이 합의되지 않아 제안 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 416,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "부정적 평가와 중간 강도가 원문 및 합의 프레임에 맞고 한국어도 자연스럽다."
+    },
+    {
+      "block_number": 417,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "미래에 어머니가 될 행위자가 합의되지 않아 핵심 명제를 확정할 수 없다."
+    },
+    {
+      "block_number": 418,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "‘자다’가 성관계를 뜻하는 구어로 기능하며 질문·참여자·진행 의미를 보존한다."
+    },
+    {
+      "block_number": 419,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "도움을 주는 행위자가 합의되지 않아 참여자 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 420,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "행동·발화 행위·요구 강도가 모두 충돌해 명령성 대사를 확정할 수 없다."
+    },
+    {
+      "block_number": 421,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "시제·상과 강도가 합의되지 않아 짧은 방식 설명의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 422,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "미래의 어머니 됨을 확인하는 질문으로 행동·행위자·말힘이 모두 일치한다."
+    },
+    {
+      "block_number": 423,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "도움 진술의 시제·상이 충돌해 조건절의 시간 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 424,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "행동과 요구의 말힘이 합의되지 않아 의미 있는 자막을 확정할 수 없다."
+    },
+    {
+      "block_number": 425,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 참조가 없고 행동·발화 행위·요구 강도도 충돌해 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 426,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "행동과 강도가 합의되지 않고 음향 인식도 소스 문장과 달라 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 427,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "refusal_permission"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 근거가 없고 중단 요청의 거부·허용 성격도 충돌해 확정할 수 없다."
+    },
+    {
+      "block_number": 428,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "대상·부정 극성·현재 이유 진술이 음향과 완전 합의 프레임에 일치한다."
+    },
+    {
+      "block_number": 429,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "현재의 강한 불쾌감을 자연스러운 구어로 전달하며 핵심 슬롯 충돌이 없다."
+    },
+    {
+      "block_number": 430,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "어머니라는 조건적 화제를 그대로 보존하며 등록과 대화 흐름도 자연스럽다."
+    },
+    {
+      "block_number": 431,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "refusal_permission: 자기 거부가 금지·불허로 읽힐 수 있음",
+        "target: ‘안 돼’가 상대 행동을 제지하는 표현으로 기울어짐"
+      ],
+      "unsupported_additions": [
+        "상대 행동에 대한 불허 의미"
+      ],
+      "naturalness_issues": [],
+      "reason": "‘안 돼’는 자기 거부보다 상대에 대한 금지로 읽힐 수 있어 합의된 거부 관계가 흔들린다."
+    },
+    {
+      "block_number": 432,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "actor"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "요청의 행위자가 합의되지 않아 참여자 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 433,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "단일 음향 계열뿐이며 발화 행위와 행동도 충돌해 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 434,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "단일 음향 근거에서 발화 행위와 강도까지 충돌해 반복 촉구인지 발성인지 확정할 수 없다."
+    },
+    {
+      "block_number": 435,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "command_strength",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "행동·발화 행위·요구 강도가 합의되지 않아 명령성 대사를 확정할 수 없다."
+    },
+    {
+      "block_number": 436,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "강한 긍정 감탄과 발성이 음향 및 합의 프레임에 맞고 표현도 자연스럽다."
+    },
+    {
+      "block_number": 437,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "미래의 어머니 됨을 확인하는 질문으로 합의 프레임과 일치한다."
+    },
+    {
+      "block_number": 438,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "중간 강도의 비언어적 발성으로 완전 합의된 프레임과 충돌하지 않는다."
+    },
+    {
+      "block_number": 439,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act: 발성을 시간 부사 표현으로 변경"
+      ],
+      "unsupported_additions": [
+        "‘이제’의 시간 의미"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향 참조가 없고 합의 프레임은 발성인데 ‘이제’가 시간 의미를 명시해 지지되지 않는다."
+    },
+    {
+      "block_number": 440,
+      "verdict": "repair",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "‘안쪽 깊이’의 결합이 어색함"
+      ],
+      "reason": "핥기·안쪽 방향·강한 명령은 맞지만 ‘안쪽 깊이’가 부자연스러운 한국어다."
+    },
+    {
+      "block_number": 441,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "소스가 unusable이고 프레임도 비어 있어 말줄임표가 지지되지 않은 의미를 추가하지 않는다."
+    },
+    {
+      "block_number": 442,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect",
+        "direction"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "중단 금지는 들리지만 시제·상과 방향이 충돌해 source_status가 abstained로 강제됐다."
+    },
+    {
+      "block_number": 443,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "합의 프레임이 전부 미확정이고 제안이 말줄임표뿐이라 핵심 의미를 임의로 추가하지 않는다."
+    },
+    {
+      "block_number": 444,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "계속하라는 명령의 극성과 시제·상이 충돌해 전체 대사의 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 445,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "안쪽으로 시도하라는 강한 명령은 잡히지만 의문성이 충돌해 말힘을 확정할 수 없다."
+    },
+    {
+      "block_number": 446,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "question"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "계속하라는 명령의 의문성이 합의되지 않아 종결 말힘을 확정할 수 없다."
+    },
+    {
+      "block_number": 447,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "action",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "미래 질문은 잡히지만 행동과 강도가 합의되지 않아 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 448,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity",
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "계속 핥으라는 명령에서 극성과 시제·상이 충돌해 금지·지속 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 449,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "question: 확인 질문을 평서형 종결로 표기"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "문장부호가 합의된 질문 말힘을 약화함"
+      ],
+      "reason": "‘없잖아.’는 단정으로 읽히기 쉬워 합의된 확인 질문의 말힘이 보존되지 않는다."
+    },
+    {
+      "block_number": 450,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "polarity: 혼합 극성의 유성 대사를 누락",
+        "intensity: 높은 강도의 대사를 말줄임표로 축소"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [
+        "긴 유성 대사를 말줄임표 하나로 처리해 대화 연속성과 가독성을 해침"
+      ],
+      "reason": "음향과 신뢰 소스에 여러 유성 대사가 있는데 전부 말줄임표로 대체되어 핵심 극성과 강도가 사라졌다."
+    },
+    {
+      "block_number": 451,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "계속하라는 명령의 시제·상이 충돌해 source_status가 abstained로 강제됐다."
+    },
+    {
+      "block_number": 452,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 참조가 없고 계속하라는 명령의 시제·상도 충돌해 의미를 지지할 수 없다."
+    },
+    {
+      "block_number": 453,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 참조가 없고 발화 행위·시제·상·강도도 충돌해 안쪽 방향 외 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 454,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act: 신뢰 소스의 호칭을 발성으로 변경",
+        "target: 상대를 가리키는 호칭이 누락"
+      ],
+      "unsupported_additions": [
+        "음향 근거 없는 ‘아…’ 발성"
+      ],
+      "naturalness_issues": [],
+      "reason": "음향 참조가 없고 신뢰 소스의 ‘お前’와 제안 발성이 충돌해 지지할 수 없다."
+    },
+    {
+      "block_number": 455,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향의 짧은 ‘あ’와 합의된 중간 강도 발성을 자연스럽게 반영한다."
+    },
+    {
+      "block_number": 456,
+      "verdict": "repair",
+      "critical_slot_conflicts": [
+        "question: 확인·능력 질문을 평서 명령으로 변경",
+        "intensity: 반복 촉구의 높은 강도를 약화"
+      ],
+      "unsupported_additions": [
+        "‘-아 봐’의 시도·시험 뉘앙스"
+      ],
+      "naturalness_issues": [],
+      "reason": "핥기 행동은 맞지만 질문 말힘과 반복 촉구의 강도가 사라지고 시도 의미가 추가됐다."
+    },
+    {
+      "block_number": 457,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "핥아 깨끗이 하는 행동은 들리지만 발화 행위가 합의되지 않아 질문·요구 말힘을 확정할 수 없다."
+    },
+    {
+      "block_number": 458,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speaker",
+        "actor",
+        "target"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "움직임 진술의 화자·행위자·대상이 모두 충돌해 참여자 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 459,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "polarity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "도망가는지 묻는 진행형 질문은 잡히지만 극성이 충돌해 의미를 확정할 수 없다."
+    },
+    {
+      "block_number": 460,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "tense_aspect"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "핥기 명령의 시제·상이 합의되지 않아 복합 명령의 시간 관계를 확정할 수 없다."
+    },
+    {
+      "block_number": 461,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "command_strength",
+        "action"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "부정 질문은 잡히지만 행동과 요구 강도가 충돌해 무엇을 하지 말라는지 확정할 수 없다."
+    },
+    {
+      "block_number": 462,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "단일 음향 계열뿐이며 도움 요청의 강도도 합의되지 않아 안정적으로 확정할 수 없다."
+    },
+    {
+      "block_number": 463,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 참조와 확정 프레임이 없는 상태에서 말줄임표가 임의의 행위자나 행동을 추가하지 않는다."
+    },
+    {
+      "block_number": 464,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "소스 문장이 훼손되고 음향·프레임도 비어 있어 말줄임표가 지지되지 않은 의미를 추가하지 않는다."
+    },
+    {
+      "block_number": 465,
+      "verdict": "quarantine",
+      "critical_slot_conflicts": [
+        "speech_act",
+        "refusal_permission",
+        "actor",
+        "target",
+        "tense_aspect",
+        "intensity"
+      ],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "음향 근거가 없고 거부 관련 핵심 슬롯 다수가 충돌해 의미를 전혀 확정할 수 없다."
+    }
+  ]
+}

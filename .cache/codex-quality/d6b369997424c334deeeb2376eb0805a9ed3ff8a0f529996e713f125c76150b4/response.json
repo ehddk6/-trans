@@ -1,0 +1,13 @@
+{
+  "scene_id": "scene-0004",
+  "reviews": [
+    {
+      "block_number": 78,
+      "verdict": "accept",
+      "critical_slot_conflicts": [],
+      "unsupported_additions": [],
+      "naturalness_issues": [],
+      "reason": "발화행위 합의가 없어 의미를 확정할 수 없으며, 말줄임표는 핵심 의미를 임의로 단정하거나 추가하지 않는 적절한 보류다."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "scene_id": "smoke-0002",
+  "frames": [
+    {
+      "block_number": 1,
+      "speech_act": "refusal",
+      "question": false,
+      "polarity": "negative",
+      "refusal_permission": "refusal",
+      "command_strength": null,
+      "speaker": null,
+      "actor": null,
+      "action": null,
+      "target": null,
+      "location": null,
+      "tense_aspect": null,
+      "direction": null,
+      "intensity": null,
+      "confidence": "high",
+      "evidence_refs": [
+        "ja:block:1"
+      ],
+      "reason": "Trusted Japanese SRT 「やめて」 supports a refusal/request to stop; no further action or target is specified."
+    }
+  ]
+}

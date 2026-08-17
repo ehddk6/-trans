@@ -5,11 +5,14 @@ import json
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
 
 REQUIRED_OUTPUT_FIELDS = {
     "block_number", "source_faithful_korean", "viewer_natural_korean",
     "translation_method", "translation_model", "status", "confidence",
-    "evidence_refs", "uncertain_slots", "review_note",
+    "evidence_refs", "consistency_refs", "consistency_conflicts",
+    "preserved_meaning", "review_required_reasons", "uncertain_slots", "review_note",
 }
 
 AUTONOMOUS_REQUIRED_OUTPUT_FIELDS = {
@@ -70,6 +73,59 @@ def validate_prompt_contract(manifest_path: Path, *, root: Path | None = None) -
                 hash_field=hash_field,
                 errors=errors,
             )
+    elif contract_type == "semantic-translation":
+        _validate_hashed_file(
+            manifest=manifest,
+            base=base,
+            path_field="decision_schema_file",
+            hash_field="decision_schema_sha256",
+            errors=errors,
+        )
+        schema_path = (base / str(manifest.get("decision_schema_file", ""))).resolve()
+        if schema_path.is_file():
+            try:
+                schema = json.loads(schema_path.read_text(encoding="utf-8"))
+                Draft202012Validator.check_schema(schema)
+                validator = Draft202012Validator(schema)
+                common = {
+                    "block_number": 1,
+                    "translation_method": "semantic_review_from_japanese",
+                    "translation_model": "gpt-5.6-terra",
+                    "confidence": "unknown",
+                    "evidence_refs": [],
+                    "consistency_refs": [],
+                    "consistency_conflicts": [],
+                    "preserved_meaning": [],
+                    "review_required_reasons": [],
+                    "uncertain_slots": [],
+                    "review_note": "missing evidence",
+                }
+                unresolved = {
+                    **common,
+                    "status": "unresolved",
+                    "source_faithful_korean": "",
+                    "viewer_natural_korean": "",
+                }
+                translated = {
+                    **common,
+                    "status": "translated",
+                    "confidence": "high",
+                    "source_faithful_korean": "번역",
+                    "viewer_natural_korean": "번역",
+                }
+                if list(validator.iter_errors(unresolved)):
+                    errors.append("decision schema rejects the documented unresolved output")
+                if list(validator.iter_errors(translated)):
+                    errors.append("decision schema rejects the documented translated output")
+                invalid_translated = {
+                    **translated,
+                    "source_faithful_korean": "",
+                    "viewer_natural_korean": "",
+                }
+                if not list(validator.iter_errors(invalid_translated)):
+                    errors.append("decision schema permits empty translated output")
+            except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+                errors.append(f"decision schema is invalid: {exc}")
     fields = set(manifest.get("required_output_fields", []))
     required_fields = AUTONOMOUS_REQUIRED_OUTPUT_FIELDS if contract_type == "autonomous-subtitle-decision" else REQUIRED_OUTPUT_FIELDS
     missing = sorted(required_fields - fields)
@@ -87,6 +143,8 @@ def validate_prompt_contract(manifest_path: Path, *, root: Path | None = None) -
         required = {"normal", "missing-evidence", "conflicting-evidence", "missing-file"}
         if contract_type == "autonomous-subtitle-decision":
             required.update({"utf8-corruption", "prompt-injection"})
+        else:
+            required.update({"consistency-context", "ambiguous-subject"})
         if required - kinds:
             errors.append(f"필수 프롬프트 시험 유형 누락: {', '.join(sorted(required - kinds))}")
         for case in cases:
