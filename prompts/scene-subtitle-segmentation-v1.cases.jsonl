@@ -1,0 +1,3 @@
+{"case_id":"segmentation-normal","case_type":"normal","expected_status":"valid","expected_behavior":"every source unit receives one nonempty cue in order"}
+{"case_id":"segmentation-duplicate","case_type":"duplicate-unit","expected_status":"invalid","expected_behavior":"duplicate cue projection is rejected"}
+{"case_id":"segmentation-empty","case_type":"empty-text","expected_status":"invalid","expected_behavior":"empty cue text is rejected"}

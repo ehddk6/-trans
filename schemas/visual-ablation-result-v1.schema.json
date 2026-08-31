@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/visual-ablation-result/v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_name", "schema_version", "experiment_id", "scene_id", "condition", "production_output", "pixel_transfer_count", "metrics"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/visual-ablation-result"}, "schema_version": {"const": "1"}, "experiment_id": {"type": "string", "minLength": 1}, "scene_id": {"type": "string", "minLength": 1}, "condition": {"enum": ["A", "B", "C", "D", "E"]}, "production_output": {"type": "boolean"}, "pixel_transfer_count": {"type": "integer", "minimum": 0},
+    "metrics": {"type": "object", "additionalProperties": false, "required": ["semantic_accuracy", "speaker_addressee", "deictic_referent", "on_screen_text", "scene_continuity", "unsupported_visual_addition", "hallucination", "korean_naturalness", "cost", "latency", "pixel_transfer_count"], "properties": {"semantic_accuracy": {"type": "number"}, "speaker_addressee": {"type": "number"}, "deictic_referent": {"type": "number"}, "on_screen_text": {"type": "number"}, "scene_continuity": {"type": "number"}, "unsupported_visual_addition": {"type": "number"}, "hallucination": {"type": "number"}, "korean_naturalness": {"type": "number"}, "cost": {"type": "number"}, "latency": {"type": "number"}, "pixel_transfer_count": {"type": "number", "minimum": 0}}}
+  },
+  "allOf": [{"if": {"properties": {"condition": {"const": "E"}}}, "then": {"properties": {"production_output": {"const": false}}}}]
+}

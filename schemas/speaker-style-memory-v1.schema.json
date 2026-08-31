@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/speaker-style-memory-v1",
+  "title": "Confirmed-only speaker style memory v1 JSONL row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title_id", "speaker_id", "status", "register", "first_person",
+    "second_person", "address_terms", "common_endings",
+    "average_utterance_length", "interjection_tendencies",
+    "prohibited_inferences", "evidence_refs", "provenance"
+  ],
+  "properties": {
+    "title_id": {"type": "string", "minLength": 1},
+    "speaker_id": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "minLength": 1},
+    "register": {"type": ["string", "null"]},
+    "first_person": {"type": ["string", "null"]},
+    "second_person": {"type": ["string", "null"]},
+    "address_terms": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "common_endings": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "average_utterance_length": {"type": ["number", "null"], "minimum": 0},
+    "interjection_tendencies": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "prohibited_inferences": {
+      "type": "array",
+      "allOf": [
+        {"contains": {"const": "actor"}}, {"contains": {"const": "target"}},
+        {"contains": {"const": "action"}}, {"contains": {"const": "relation"}},
+        {"contains": {"const": "consent"}}, {"contains": {"const": "location"}}
+      ],
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "provenance": {"type": "object"}
+  }
+}

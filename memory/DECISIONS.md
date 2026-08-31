@@ -54,3 +54,7 @@ sweep: `prompts/integrated-noisy-asr-recovery-v1.md`, `src/translation_forensics
 ## D-012 · 다운로드 작품 폴더의 일본어 SRT를 한국어로 번역 — 2026-08-30 (user, “다운로드 폴더에 품번보이지? 여기에 있는 자막 파일들 번역해봐 그럼”)
 
 사용자는 `C:\Users\ehddk\Downloads`의 품번별 작품 폴더에 있는 일본어 SRT를 실제로 한국어로 번역해 달라고 요청했다. 발견한 `*.ja.srt`는 원본 일본어 파일을 보존하고, 새 한국어 SRT 산출물로 제공한다.
+
+## D-013 · scene_v2 자연 대사 아키텍처 구현 승인 — 2026-08-31 (user, current request)
+
+사용자는 기존 `block_v1` 정본 경로와 최종 SRT 구조 계약을 보존한 채, 실제 장면 단위의 opt-in `scene_v2` 번역 경로를 구현하도록 승인했다. `scene_v2`는 의미 복원, 자연 대사 생성, source-faithful 생성, 의미 critic, 한국어 대사 critic, targeted repair를 분리하고, visual 입력은 시각적으로 해소 가능한 고영향 의미 모호성에만 제한한다. 인간 benchmark와 사용자 제공 외부 baseline이 검증되기 전에는 `scene_v2` 또는 Gemini 대비 우수성을 주장하지 않는다.

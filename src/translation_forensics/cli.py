@@ -93,6 +93,16 @@ from .pilot_report import (
 )
 from .process_title import ProcessTitleConfig, process_title
 from .prompt_contract import validate_prompt_contract
+from .scene_evaluation import (
+    build_scene_blind_review_pack,
+    build_visual_ablation_manifest,
+    ingest_external_baseline,
+    initialize_scene_benchmark,
+    summarize_scene_benchmark,
+    summarize_visual_ablation,
+    validate_scene_review,
+    validate_visual_ablation_result,
+)
 from .review_pack import build_review_pack, validate_review_decisions
 from .reverse_check import initialize_reverse_check, validate_reverse_check
 from .release_metrics import calculate_review_budget_metrics, validate_release_gate
@@ -2553,6 +2563,80 @@ def cmd_run(args: argparse.Namespace) -> int:
     return analyze_status
 
 
+def cmd_init_scene_benchmark(args: argparse.Namespace) -> int:
+    _emit(
+        initialize_scene_benchmark(
+            _project_root(args),
+            benchmark_id=args.benchmark_id,
+            scene_ids=args.scene_id,
+        ),
+        args,
+    )
+    return 0
+
+
+def cmd_ingest_external_baseline(args: argparse.Namespace) -> int:
+    _emit(ingest_external_baseline(args.input, args.output), args)
+    return 0
+
+
+def cmd_build_scene_blind_review_pack(args: argparse.Namespace) -> int:
+    _emit(
+        build_scene_blind_review_pack(
+            block_v1_path=args.block_v1,
+            scene_v2_path=args.scene_v2,
+            output_path=args.output,
+            random_seed=args.seed,
+            external_baseline_path=args.external_baseline,
+            key_path=args.internal_key,
+            semantic_context_path=args.semantic_context,
+        ),
+        args,
+    )
+    return 0
+
+
+def cmd_validate_scene_review(args: argparse.Namespace) -> int:
+    result = validate_scene_review(args.pack, args.review)
+    _emit(result, args)
+    return 0 if result["status"] == "pass" else 1
+
+
+def cmd_summarize_scene_benchmark(args: argparse.Namespace) -> int:
+    result = summarize_scene_benchmark(
+        args.pack,
+        args.review,
+        args.internal_key,
+        args.output,
+    )
+    _emit(result, args)
+    return 0
+
+
+def cmd_build_visual_ablation_manifest(args: argparse.Namespace) -> int:
+    result = build_visual_ablation_manifest(
+        args.output,
+        experiment_id=args.experiment_id,
+        scene_ids=args.scene_id,
+        allow_negative_control=args.allow_negative_control,
+        production_output=args.production_output,
+    )
+    _emit(result, args)
+    return 0
+
+
+def cmd_validate_visual_ablation_result(args: argparse.Namespace) -> int:
+    result = validate_visual_ablation_result(args.input, args.manifest)
+    _emit(result, args)
+    return 0 if result["status"] == "pass" else 1
+
+
+def cmd_summarize_visual_ablation(args: argparse.Namespace) -> int:
+    result = summarize_visual_ablation(args.manifest, args.result, args.output)
+    _emit(result, args)
+    return 0
+
+
 def cmd_process_title(args: argparse.Namespace) -> int:
     root = _project_root(args)
     config = ProcessTitleConfig(
@@ -2564,6 +2648,7 @@ def cmd_process_title(args: argparse.Namespace) -> int:
         japanese_bundle=args.japanese_bundle,
         legacy_captures=args.legacy_captures,
         translation_policy=args.translation_policy,
+        translation_architecture=args.translation_architecture,
         visual_policy=args.visual_policy,
         max_visual_units=args.max_visual_units,
         max_frames_per_unit=args.max_frames_per_unit,
@@ -2576,6 +2661,12 @@ def cmd_process_title(args: argparse.Namespace) -> int:
         resume=args.resume,
         codex_timeout_seconds=args.codex_timeout,
         audit_attempt=args.audit_attempt,
+        scene_gap_threshold_seconds=args.scene_gap_threshold_seconds,
+        scene_max_units=args.scene_max_units,
+        scene_max_source_characters=args.scene_max_source_characters,
+        naturalness_repair_attempts=args.naturalness_repair_attempts,
+        semantic_audit_scope=args.semantic_audit_scope,
+        dialogue_memory_policy=args.dialogue_memory_policy,
         output_root=args.output_root,
     )
     if args.dry_run:
@@ -2594,9 +2685,16 @@ def cmd_process_title(args: argparse.Namespace) -> int:
                     "approved-reference" if args.reference_ja else "ensemble"
                 ),
                 "translation_policy": args.translation_policy,
+                "translation_architecture": args.translation_architecture,
                 "visual_policy": args.visual_policy,
                 "max_visual_units": args.max_visual_units,
                 "max_frames_per_unit": args.max_frames_per_unit,
+                "scene_gap_threshold_seconds": args.scene_gap_threshold_seconds,
+                "scene_max_units": args.scene_max_units,
+                "scene_max_source_characters": args.scene_max_source_characters,
+                "naturalness_repair_attempts": args.naturalness_repair_attempts,
+                "semantic_audit_scope": args.semantic_audit_scope,
+                "dialogue_memory_policy": args.dialogue_memory_policy,
                 "external_image_transfer_authorized": args.visual_policy == "targeted",
                 "final_promotion_allowed": False,
             },
@@ -2722,6 +2820,57 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("prove-autonomous-claim", help="autonomous-release가 보장하는 속성과 식별 불가능한 사람 정답 주장을 분리"); _add_common(p); p.add_argument("--package", required=True, type=Path); p.add_argument("--output", type=Path); p.set_defaults(func=cmd_prove_autonomous_claim)
     p = sub.add_parser("package", help="새 버전으로 최종 산출물 패키징"); _add_common(p); _add_title(p); p.add_argument("--structure", type=Path); p.add_argument("--ja", type=Path, required=True); p.add_argument("--photos", type=Path); p.add_argument("--source-faithful", required=True, type=Path); p.add_argument("--viewer-natural", required=True, type=Path); p.add_argument("--previous-ko", type=Path); p.add_argument("--scenes", type=Path); p.add_argument("--asr", type=Path); p.add_argument("--decisions", type=Path); p.add_argument("--translation-queue", type=Path, help="결정의 evidence_refs를 대조할 원본 번역 큐"); p.add_argument("--semantic-frames", type=Path); p.add_argument("--hypothesis-ledger", type=Path); p.add_argument("--speaker-state", type=Path); p.add_argument("--alignment-evidence", type=Path); p.add_argument("--mqm-errors", type=Path); p.add_argument("--backtranslation-check", type=Path); p.add_argument("--evaluation-summary", type=Path); p.add_argument("--blind-review-pack", type=Path); p.add_argument("--release-gate", type=Path); p.add_argument("--timeline-validation", type=Path); p.add_argument("--output", type=Path); p.add_argument("--stage", choices=STAGES, default="text-crosschecked"); p.add_argument("--version", type=int); p.add_argument("--all-blocks-reviewed", action="store_true"); p.add_argument("--direct-human-listening", action="store_true"); p.add_argument("--evidence-complete", action="store_true"); p.set_defaults(func=cmd_package)
     p = sub.add_parser("run", help="결정적 단계만 수행하고 의미 판정 전 중단"); _add_common(p); _add_title(p); _input_args(p); p.set_defaults(func=cmd_run)
+    p = sub.add_parser("init-scene-benchmark", help="scene 단위 A/B/C benchmark 원장을 초기화")
+    _add_common(p)
+    p.add_argument("--benchmark-id", default="scene-v2")
+    p.add_argument("--scene-id", action="append", default=[])
+    p.set_defaults(func=cmd_init_scene_benchmark)
+    p = sub.add_parser("ingest-external-baseline", help="사용자가 제공한 외부 번역 baseline을 검증·수집")
+    _add_common(p)
+    p.add_argument("--input", required=True, type=Path)
+    p.add_argument("--output", required=True, type=Path)
+    p.set_defaults(func=cmd_ingest_external_baseline)
+    p = sub.add_parser("build-scene-blind-review-pack", help="scene 단위 blinded A/B/C 평가 pack 생성")
+    _add_common(p)
+    p.add_argument("--block-v1", required=True, type=Path)
+    p.add_argument("--scene-v2", required=True, type=Path)
+    p.add_argument("--external-baseline", type=Path)
+    p.add_argument("--semantic-context", type=Path)
+    p.add_argument("--seed", required=True, type=int)
+    p.add_argument("--output", required=True, type=Path)
+    p.add_argument("--internal-key", type=Path)
+    p.set_defaults(func=cmd_build_scene_blind_review_pack)
+    p = sub.add_parser("validate-scene-review", help="blind scene 평가 제출물의 완결성과 판정 규칙 검증")
+    _add_common(p)
+    p.add_argument("--pack", required=True, type=Path)
+    p.add_argument("--review", required=True, type=Path)
+    p.set_defaults(func=cmd_validate_scene_review)
+    p = sub.add_parser("summarize-scene-benchmark", help="검증 완료 평가만 deblind하여 scene 지표 산출")
+    _add_common(p)
+    p.add_argument("--pack", required=True, type=Path)
+    p.add_argument("--review", required=True, type=Path)
+    p.add_argument("--internal-key", required=True, type=Path)
+    p.add_argument("--output", required=True, type=Path)
+    p.set_defaults(func=cmd_summarize_scene_benchmark)
+    p = sub.add_parser("build-visual-ablation-manifest", help="외부 픽셀 전송 없는 visual ablation 계획 생성")
+    _add_common(p)
+    p.add_argument("--experiment-id", required=True)
+    p.add_argument("--scene-id", action="append", required=True)
+    p.add_argument("--allow-negative-control", action="store_true")
+    p.add_argument("--production-output", action="store_true")
+    p.add_argument("--output", required=True, type=Path)
+    p.set_defaults(func=cmd_build_visual_ablation_manifest)
+    p = sub.add_parser("validate-visual-ablation-result", help="visual ablation 결과 스키마·전송 정책 검증")
+    _add_common(p)
+    p.add_argument("--input", required=True, type=Path)
+    p.add_argument("--manifest", type=Path)
+    p.set_defaults(func=cmd_validate_visual_ablation_result)
+    p = sub.add_parser("summarize-visual-ablation", help="검증된 visual ablation 결과를 조건별로 집계")
+    _add_common(p)
+    p.add_argument("--manifest", required=True, type=Path)
+    p.add_argument("--result", action="append", required=True, type=Path)
+    p.add_argument("--output", required=True, type=Path)
+    p.set_defaults(func=cmd_summarize_visual_ablation)
     p = sub.add_parser("process-title", help="영상에서 일본어 원문을 복원하고 Terra/Sol 한국어 이중 산출을 패키징")
     _add_common(p)
     _add_title(p)
@@ -2731,6 +2880,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--japanese-bundle", type=Path, help="검증된 기존 일본어 자막 번들 디렉터리")
     p.add_argument("--legacy-captures", type=Path, help="timestamp가 파일명에 포함된 기존 프레임 디렉터리")
     p.add_argument("--translation-policy", choices=("dual",), default="dual")
+    p.add_argument(
+        "--translation-architecture",
+        choices=("block_v1", "scene_v2"),
+        default="block_v1",
+        help="번역 실행 구조. scene_v2는 opt-in experimental-unbenchmarked 경로",
+    )
     p.add_argument("--visual-policy", choices=("off", "metadata", "targeted"), default="targeted")
     p.add_argument("--max-visual-units", type=int, default=20)
     p.add_argument("--max-frames-per-unit", type=int, default=3)
@@ -2757,6 +2912,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=0,
         help="사용량 제한·timeout 뒤 Sol 감사를 새 immutable run으로 재시도할 번호",
+    )
+    p.add_argument("--scene-gap-threshold-seconds", type=float, default=4.0)
+    p.add_argument("--scene-max-units", type=int, default=24)
+    p.add_argument("--scene-max-source-characters", type=int, default=12000)
+    p.add_argument("--naturalness-repair-attempts", type=int, default=1)
+    p.add_argument("--semantic-audit-scope", choices=("all", "targeted"), default="all")
+    p.add_argument(
+        "--dialogue-memory-policy",
+        choices=("off", "confirmed-only", "provisional-style-only"),
+        default="confirmed-only",
     )
     p.add_argument("--output-root", type=Path, help="기본값: workspaces/<TITLE>/integrated")
     p.set_defaults(func=cmd_process_title)

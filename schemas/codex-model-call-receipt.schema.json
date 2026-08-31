@@ -18,7 +18,7 @@
     "status": {"const": "succeeded"},
     "title_id": {"type": "string", "minLength": 1},
     "call_id": {"type": "string", "minLength": 1},
-    "role": {"enum": ["meaning-frame-terra", "meaning-frame-sol", "translation-terra", "critique-sol", "repair-terra", "proxy-evaluator-terra", "proxy-evaluator-sol"]},
+    "role": {"enum": ["meaning-frame-terra", "meaning-frame-sol", "translation-terra", "translation-audit-sol", "dialogue-critic-sol", "critique-sol", "repair-terra", "proxy-evaluator-terra", "proxy-evaluator-sol"]},
     "provider": {"const": "codex-cli"},
     "execution_mode": {"const": "codex-exec-ephemeral"},
     "requested_model": {"enum": ["gpt-5.6-terra", "gpt-5.6-sol"]},

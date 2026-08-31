@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -94,6 +95,7 @@ class ProcessTitleConfig:
     japanese_bundle: Path | None = None
     legacy_captures: Path | None = None
     translation_policy: str = "dual"
+    translation_architecture: str = "block_v1"
     visual_policy: str = "targeted"
     max_visual_units: int = 20
     max_frames_per_unit: int = 3
@@ -106,6 +108,12 @@ class ProcessTitleConfig:
     resume: bool = False
     codex_timeout_seconds: int = 600
     audit_attempt: int = 0
+    scene_gap_threshold_seconds: float = 4.0
+    scene_max_units: int = 24
+    scene_max_source_characters: int = 12000
+    naturalness_repair_attempts: int = 1
+    semantic_audit_scope: str = "all"
+    dialogue_memory_policy: str = "confirmed-only"
     output_root: Path | None = None
 
     def validate(self) -> None:
@@ -113,6 +121,8 @@ class ProcessTitleConfig:
             raise ValueError("title_id is required")
         if self.translation_policy != "dual":
             raise ValueError("translation_policy must be dual")
+        if self.translation_architecture not in {"block_v1", "scene_v2"}:
+            raise ValueError("translation_architecture must be block_v1 or scene_v2")
         if self.visual_policy not in {"off", "metadata", "targeted"}:
             raise ValueError("visual_policy must be off, metadata, or targeted")
         if not 0 <= self.max_visual_units:
@@ -133,6 +143,25 @@ class ProcessTitleConfig:
             raise ValueError("model_batch_workers must be between 1 and 8")
         if self.audit_attempt < 0:
             raise ValueError("audit_attempt must be non-negative")
+        if self.translation_architecture == "scene_v2":
+            if not math.isfinite(self.scene_gap_threshold_seconds) or self.scene_gap_threshold_seconds <= 0:
+                raise ValueError("scene_gap_threshold_seconds must be positive")
+            if self.scene_max_units < 1:
+                raise ValueError("scene_max_units must be positive")
+            if self.scene_max_source_characters < 1:
+                raise ValueError("scene_max_source_characters must be positive")
+            if not 0 <= self.naturalness_repair_attempts <= 3:
+                raise ValueError("naturalness_repair_attempts must be between 0 and 3")
+            if self.semantic_audit_scope not in {"all", "targeted"}:
+                raise ValueError("semantic_audit_scope must be all or targeted")
+            if self.dialogue_memory_policy not in {
+                "off",
+                "confirmed-only",
+                "provisional-style-only",
+            }:
+                raise ValueError(
+                    "dialogue_memory_policy must be off, confirmed-only, or provisional-style-only"
+                )
         if self.reference_ja is not None and not self.reference_ja_approved:
             raise ValueError("--reference-ja requires --reference-ja-approved")
         if self.reference_ja_approved and self.reference_ja is None:
@@ -294,7 +323,7 @@ def process_title(
         reference_ja_approved=config.reference_ja_approved,
         japanese_bundle=existing_bundle,
     )
-    code_version = _code_version()
+    code_version = _code_version(config.translation_architecture)
     cache_identity = build_cache_identity(
         code_version=code_version,
         schema_version=PROCESS_SCHEMA_VERSION,
@@ -309,6 +338,7 @@ def process_title(
                 capture_inventory.get("aggregate_sha256") if capture_inventory else None
             ),
             "translation_policy": config.translation_policy,
+            "translation_architecture": config.translation_architecture,
             "visual_policy": config.visual_policy,
             "max_visual_units": config.max_visual_units,
             "max_frames_per_unit": config.max_frames_per_unit,
@@ -319,6 +349,18 @@ def process_title(
             "audit_attempt": config.audit_attempt,
             "qwen_root": str(Path(config.qwen_root).expanduser().resolve()) if config.qwen_root else None,
             "review_decisions_sha256": review_decisions_sha256,
+            "scene_v2": (
+                {
+                    "gap_threshold_seconds": config.scene_gap_threshold_seconds,
+                    "max_units": config.scene_max_units,
+                    "max_source_characters": config.scene_max_source_characters,
+                    "naturalness_repair_attempts": config.naturalness_repair_attempts,
+                    "semantic_audit_scope": config.semantic_audit_scope,
+                    "dialogue_memory_policy": config.dialogue_memory_policy,
+                }
+                if config.translation_architecture == "scene_v2"
+                else None
+            ),
         },
     )
     run_id = f"{config.title_id.upper()}-{cache_identity['identity_sha256'][:16]}"
@@ -356,6 +398,7 @@ def process_title(
         "reference_ja": _file_record(reference, known_sha256=reference_sha256) if reference else None,
         "reference_ja_approved": bool(config.reference_ja_approved),
         "legacy_captures": capture_inventory,
+        "translation_architecture": config.translation_architecture,
         "visual_capture": {
             "mode": "legacy_or_auto_generated",
             "auto_capture_frames": config.auto_capture_frames,
@@ -364,7 +407,7 @@ def process_title(
         },
         "quality_policy": config.quality_policy,
         "audit_attempt": config.audit_attempt,
-        "prompt_contracts": _prompt_contract_inventory(),
+        "prompt_contracts": _prompt_contract_inventory(config.translation_architecture),
         "review_decisions": (
             _file_record(review_decisions_path) if review_decisions_path else None
         ),
@@ -480,6 +523,19 @@ def process_title(
         preflight = provider.preflight()
         if preflight.get("status") != "pass":
             raise RuntimeError("Codex provider preflight failed: " + ", ".join(preflight.get("errors", [])))
+    if config.translation_architecture == "scene_v2":
+        return _process_scene_v2(
+            config=config,
+            provider=provider,
+            stage=stage,
+            output_root=output_root,
+            run_id=run_id,
+            cache_identity=cache_identity,
+            inputs=inputs,
+            bundle=bundle,
+            source_repeat=source_repeat,
+            indexed_legacy_frames=indexed_legacy_frames,
+        )
     decisions_path = stage / "translation_decisions.jsonl"
     automated_quality_path = stage / "automated_quality.jsonl"
     receipts_path = stage / "model_call_receipts.jsonl"
@@ -804,6 +860,7 @@ def process_title(
         "status": run_status,
         "stage": "packaged",
         "cache_identity": cache_identity,
+        "translation_architecture": "block_v1",
         "backend": bundle.backend,
         "bundle_valid": bundle.valid,
         "bundle_accepted": bundle.accepted,
@@ -887,6 +944,385 @@ def process_title(
         manifest_sha256=stream_sha256(stage / "run_manifest.json"),
     )
     return {**run_manifest, "cache_hit": False, "run_dir": str(promoted)}
+
+
+def _process_scene_v2(
+    *,
+    config: ProcessTitleConfig,
+    provider: Any,
+    stage: Path,
+    output_root: Path,
+    run_id: str,
+    cache_identity: Mapping[str, Any],
+    inputs: TranslationInputArtifacts,
+    bundle: JapaneseSubtitleBundle,
+    source_repeat: tuple[int, str],
+    indexed_legacy_frames: Sequence[VisualFrame],
+) -> dict[str, Any]:
+    """Run scene_v2 without changing the legacy block_v1 execution path."""
+
+    from .scene_segmentation import SceneSegmentationConfig, build_dialogue_scenes
+    from .scene_translation import run_scene_translation_v2
+
+    scenes = build_dialogue_scenes(
+        inputs.units,
+        config=SceneSegmentationConfig(
+            gap_threshold_seconds=config.scene_gap_threshold_seconds,
+            max_units=config.scene_max_units,
+            max_source_characters=config.scene_max_source_characters,
+        ),
+    )
+    visual_context_by_unit, visual_context_rows = _scene_visual_context(
+        config=config,
+        units=inputs.units,
+        indexed_frames=indexed_legacy_frames,
+    )
+    scene_result = run_scene_translation_v2(
+        provider,
+        title_id=config.title_id.upper(),
+        units=inputs.units,
+        scenes=scenes,
+        prompts_dir=Path(config.project_root).expanduser().resolve() / "prompts",
+        schemas_dir=Path(config.project_root).expanduser().resolve() / "schemas",
+        resume=config.resume,
+        repair_attempts=config.naturalness_repair_attempts,
+        cache_context={
+            "process_cache_identity_sha256": cache_identity["identity_sha256"],
+            "semantic_audit_scope": config.semantic_audit_scope,
+            "dialogue_memory_policy": config.dialogue_memory_policy,
+            "style_memory_by_scene": {},
+        },
+        visual_policy=config.visual_policy,
+        visual_context_by_unit=visual_context_by_unit,
+    )
+    decisions = [dict(row) for row in scene_result.decisions]
+    expected_unit_ids = [unit.unit_id for unit in inputs.units]
+    if [str(row.get("unit_id") or "") for row in decisions] != expected_unit_ids:
+        raise BundleBlockedError("scene_v2 decision order or unit coverage mismatch")
+    if len(set(expected_unit_ids)) != len(decisions):
+        raise BundleBlockedError("scene_v2 decisions do not cover every unit exactly once")
+
+    scene_artifact_names: list[str] = []
+    for raw_name, rows in scene_result.artifacts.items():
+        name = _safe_run_artifact_name(raw_name)
+        if name in _HASHED_RUN_ARTIFACTS or name in scene_artifact_names:
+            raise ValueError(f"scene_v2 artifact name collides with an integration artifact: {name}")
+        _write_jsonl_once_or_match(stage / name, rows, resume=config.resume)
+        scene_artifact_names.append(name)
+
+    receipts = [dict(row) for row in scene_result.receipts]
+    quality_records: list[dict[str, Any]] = []
+    for decision in decisions:
+        semantic_status = str(decision.get("semantic_drift_status") or "unknown")
+        dialogue_status = str(decision.get("korean_dialogue_status") or "unknown")
+        passed = semantic_status not in {"issue", "fail"} and dialogue_status not in {
+            "issue",
+            "fail",
+        }
+        evidence_id = f"scene-v2:{decision['scene_id']}:{decision['unit_id']}"
+        decision["confidence"] = decision.get("confidence") or ("high" if passed else "low")
+        decision["review_required_reasons"] = list(
+            dict.fromkeys(
+                [
+                    *decision.get("review_required_reasons", []),
+                    *([] if passed else ["scene_v2_unresolved_quality_issue"]),
+                ]
+            )
+        )
+        decision["automated_quality_status"] = "passed" if passed else "fallback"
+        decision["automated_quality_evidence_id"] = evidence_id
+        quality_records.append(
+            {
+                "unit_id": decision["unit_id"],
+                "scene_id": decision["scene_id"],
+                "status": "passed" if passed else "fallback",
+                "semantic_audit_status": "pass" if semantic_status != "issue" else "issue",
+                "dialogue_audit_status": dialogue_status,
+                "automated_quality_evidence_id": evidence_id,
+                "translation_architecture": "scene_v2",
+            }
+        )
+
+    _bind_scene_visual_receipts(visual_context_rows, receipts)
+    _make_generated_frame_paths_portable(stage, visual_context_rows, receipts)
+    _write_jsonl_atomic(stage / "visual_context.jsonl", visual_context_rows)
+    _ensure_capture_index(stage, visual_context_rows, resume=config.resume)
+    _write_jsonl_atomic(stage / "translation_draft_decisions.jsonl", decisions)
+    _write_jsonl_atomic(stage / "translation_draft_receipts.jsonl", receipts)
+    _write_jsonl_atomic(stage / "translation_decisions.jsonl", decisions)
+    _write_jsonl_atomic(stage / "model_call_receipts.jsonl", receipts)
+    _write_jsonl_atomic(stage / "automated_quality.jsonl", quality_records)
+    _write_checkpoint(
+        stage,
+        stage / "translation-stage.json",
+        (
+            "translation_draft_decisions.jsonl",
+            "translation_draft_receipts.jsonl",
+            "visual_context.jsonl",
+        ),
+    )
+
+    review_decisions = load_review_decisions(stage / "review_decisions.jsonl")
+    unit_translations = _package_translations(
+        inputs.units,
+        decisions,
+        bundle,
+        review_decisions,
+        automated_quality=True,
+    )
+    output_dir = stage / "outputs"
+    packaged = package_dual_outputs(
+        inputs.units,
+        unit_translations,
+        output_dir,
+        review_decisions=review_decisions,
+        bundle=bundle,
+        automated_quality=True,
+        replace_existing=output_dir.exists(),
+    )
+    quality_records = _attach_automated_render_hashes(
+        inputs.units,
+        decisions,
+        output_dir,
+        quality_records,
+        resume=config.resume,
+    )
+    _write_checkpoint(
+        stage,
+        stage / "quality-stage.json",
+        (
+            "translation_decisions.jsonl",
+            "automated_quality.jsonl",
+            "model_call_receipts.jsonl",
+        ),
+    )
+    _write_checkpoint(
+        stage,
+        stage / "packaging-stage.json",
+        (
+            "translation_decisions.jsonl",
+            "automated_quality.jsonl",
+            "outputs/viewer_complete_ko.srt",
+            "outputs/source_faithful_ko.srt",
+            "outputs/viewer_natural_ko.srt",
+            "outputs/translation_qa.json",
+        ),
+    )
+    _write_jsonl_atomic(stage / "review_queue.jsonl", ())
+    qa_report = _integrated_qa(
+        inputs,
+        decisions,
+        receipts,
+        bundle,
+        output_dir,
+        source_repeat=source_repeat,
+        review_queue=[],
+        quality_policy="automated",
+        translation_architecture="scene_v2",
+        automated_quality_records=quality_records,
+        visual_context_records=visual_context_rows,
+    )
+    qa_report["scene_v2"] = dict(scene_result.qa)
+    qa_report["architecture_status"] = scene_result.architecture_status
+    qa_report["benchmark_status"] = scene_result.benchmark_status
+    _write_json_atomic(stage / "qa_report.json", qa_report)
+    if not qa_report["verification_passed"]:
+        raise BundleBlockedError("scene_v2 integrated QA failed: " + ", ".join(qa_report["errors"]))
+
+    all_quality_passed = bool(quality_records) and all(
+        row.get("status") == "passed" and row.get("semantic_audit_status") == "pass"
+        for row in quality_records
+    )
+    unresolved_bundle_gate = any(
+        gate.status != "passed"
+        for gate in (bundle.recognition, bundle.alignment, bundle.presentation)
+    ) or not bundle.accepted
+    machine_uncertain = not all_quality_passed or unresolved_bundle_gate
+    run_status = "machine-uncertain" if machine_uncertain else "machine-verified"
+    run_stage = "machine-uncertain" if machine_uncertain else "machine-final"
+    visual_status_counts: dict[str, int] = {}
+    for row in visual_context_rows:
+        status = str(row.get("external_transfer_receipt", {}).get("status") or "unknown")
+        visual_status_counts[status] = visual_status_counts.get(status, 0) + 1
+    hashed_artifacts = (*_HASHED_RUN_ARTIFACTS, *scene_artifact_names)
+    run_manifest = {
+        "schema_name": "translation-forensics/integrated-run-manifest",
+        "schema_version": PROCESS_SCHEMA_VERSION,
+        "title_id": config.title_id.upper(),
+        "run_id": run_id,
+        "status": run_status,
+        "stage": "packaged",
+        "cache_identity": dict(cache_identity),
+        "translation_architecture": "scene_v2",
+        "architecture_status": scene_result.architecture_status,
+        "benchmark_status": scene_result.benchmark_status,
+        "scene_cache_identity": scene_result.cache_identity,
+        "scene_artifacts": scene_artifact_names,
+        "scene_qa": dict(scene_result.qa),
+        "backend": bundle.backend,
+        "bundle_valid": bundle.valid,
+        "bundle_accepted": bundle.accepted,
+        "complete_units": len(inputs.units),
+        "candidate_units": packaged.candidate_units,
+        "pending_review_count": 0,
+        "quality_policy": "automated",
+        "audit_attempt": config.audit_attempt,
+        "semantic_audit": {
+            "scope": config.semantic_audit_scope,
+            "passed": sum(row.get("semantic_audit_status") == "pass" for row in quality_records),
+            "issues": sum(row.get("semantic_audit_status") == "issue" for row in quality_records),
+            "inconclusive": 0,
+            "not_selected": 0,
+            "blocked": 0,
+        },
+        "visual_policy": config.visual_policy,
+        "visual_selected_units": len(visual_context_rows),
+        "visual_capture_mode": "legacy" if indexed_legacy_frames else "none",
+        "auto_generated_frame_count": 0,
+        "visual_status_counts": visual_status_counts,
+        "external_image_transfer_count": sum(
+            0
+            if receipt.get("cache_hit")
+            else int(receipt.get("pixel_external_transfer_count", 0) or 0)
+            for receipt in receipts
+        ),
+        "final_package_structure": {
+            "status": "locked-to-translation-units",
+            "unit_count": len(inputs.units),
+            "numbering_timing_order_preserved": True,
+        },
+        "human_reviewed": False,
+        "human_final_allowed": False,
+        "human_reference_equality": "unidentifiable",
+        "100_percent_equal": False,
+        "machine_final_allowed": not machine_uncertain,
+        "final_promotion_allowed": False,
+        "verification_status": "machine-uncertain" if machine_uncertain else "machine-verified",
+        "created_at": _read_json(stage / "run-state.json").get("started_at"),
+        "artifact_sha256": {
+            name: stream_sha256(stage / name) for name in hashed_artifacts
+        },
+    }
+    _write_json_atomic(stage / "run_manifest.json", run_manifest)
+    promoted = promote_staged_run(
+        output_root,
+        run_id,
+        verification_passed=True,
+        stage=run_stage,
+        pending_review_count=0,
+        required_artifacts=(*hashed_artifacts, "run_manifest.json"),
+        manifest_sha256=stream_sha256(stage / "run_manifest.json"),
+    )
+    return {**run_manifest, "cache_hit": False, "run_dir": str(promoted)}
+
+
+def _scene_visual_context(
+    *,
+    config: ProcessTitleConfig,
+    units: Sequence[TranslationUnit],
+    indexed_frames: Sequence[VisualFrame],
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+    if (
+        config.visual_policy == "off"
+        or not indexed_frames
+        or not config.max_visual_units
+        or not config.max_frames_per_unit
+    ):
+        return {}, []
+    context: dict[str, dict[str, Any]] = {}
+    rows: list[dict[str, Any]] = []
+    for unit in units[: config.max_visual_units]:
+        record = build_visual_context_record(
+            title_id=config.title_id.upper(),
+            unit_id=unit.unit_id,
+            start_seconds=unit.start,
+            end_seconds=unit.end,
+            frames=indexed_frames,
+            transfer_mode=(
+                "targeted" if config.visual_policy == "targeted" else "metadata-only"
+            ),
+            max_frames=config.max_frames_per_unit,
+        )
+        image_paths = [str(frame["path"]) for frame in record.get("frames", [])]
+        context[unit.unit_id] = {
+            "visual_eligible": bool(image_paths),
+            "image_paths": image_paths,
+            "available_frame_sha256": [
+                str(frame.get("sha256") or "") for frame in record.get("frames", [])
+            ],
+            "transfer_mode": record.get("transfer_mode"),
+        }
+        record["external_transfer_receipt"] = {
+            "status": "not-sent-scene-semantic-trigger-pending",
+            "external_transfer": False,
+            "pixel_transfer_count": 0,
+            "transferred_frame_sha256": [],
+            "provider": None,
+            "request_id": None,
+        }
+        rows.append(record)
+    return context, rows
+
+
+def _bind_scene_visual_receipts(
+    visual_context_rows: Sequence[dict[str, Any]],
+    receipts: Sequence[Mapping[str, Any]],
+) -> None:
+    for row in visual_context_rows:
+        unit_id = str(row.get("unit_id") or "")
+        receipt = next(
+            (
+                value
+                for value in receipts
+                if str(value.get("call_id") or "").endswith(
+                    f".{unit_id}.visual-semantic-observation"
+                )
+            ),
+            None,
+        )
+        if receipt is None:
+            metadata_only = row.get("transfer_mode") == "metadata-only"
+            row["external_transfer_receipt"] = {
+                "status": (
+                    "metadata-only-no-pixel-transfer"
+                    if metadata_only
+                    else "not-selected-by-scene-visual-trigger"
+                ),
+                "external_transfer": False,
+                "pixel_transfer_count": 0,
+                "transferred_frame_sha256": [],
+                "provider": None,
+                "request_id": None,
+            }
+            continue
+        cache_replay = bool(receipt.get("cache_hit"))
+        attachment_hashes = [
+            str(item.get("sha256") or "")
+            for item in receipt.get("image_attachments", [])
+            if isinstance(item, Mapping)
+        ]
+        row["external_transfer_receipt"] = {
+            "status": "cache-replay" if cache_replay else receipt.get("status", "succeeded"),
+            "external_transfer": False if cache_replay else bool(attachment_hashes),
+            "pixel_transfer_count": 0 if cache_replay else len(attachment_hashes),
+            "transferred_frame_sha256": [] if cache_replay else attachment_hashes,
+            "cache_origin_frame_sha256": attachment_hashes if cache_replay else [],
+            "provider": receipt.get("provider", "codex-cli"),
+            "request_id": receipt.get("request_sha256") or receipt.get("call_id"),
+        }
+
+
+def _safe_run_artifact_name(value: object) -> str:
+    name = str(value).replace("\\", "/")
+    path = Path(name)
+    if (
+        not name
+        or path.is_absolute()
+        or ".." in path.parts
+        or name.startswith("/")
+    ):
+        raise ValueError(f"unsafe scene_v2 artifact path: {value!r}")
+    return path.as_posix()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1456,6 +1892,7 @@ def _integrated_qa(
     source_repeat: tuple[int, str],
     review_queue: list[dict[str, Any]],
     quality_policy: str = "legacy",
+    translation_architecture: str = "block_v1",
     automated_quality_records: Iterable[Mapping[str, Any]] = (),
     visual_context_records: Iterable[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
@@ -1564,25 +2001,41 @@ def _integrated_qa(
         else:
             receipts_by_call_id[call_id] = receipt
     expected_calls: dict[str, str] = {}
-    for decision in decisions:
-        terra_call_id = str(decision.get("terra_call_id") or "")
-        if not terra_call_id:
-            receipt_errors.append(f"missing terra_call_id:{decision.get('unit_id')}")
-        else:
-            expected_calls[terra_call_id] = "translation-terra"
-        sol_call_id = str(decision.get("sol_call_id") or "")
-        blocked_visual = any(
-            str(reason).startswith("visual_review_blocked_")
-            for reason in decision.get("review_required_reasons", [])
-        )
-        if sol_call_id and not blocked_visual:
-            expected_calls[sol_call_id] = "critique-sol"
-        audit_call_id = str(decision.get("automated_quality_call_id") or "")
-        if audit_call_id:
-            expected_calls[audit_call_id] = "translation-audit-sol"
-        visual_repair_call_id = str(decision.get("visual_repair_terra_call_id") or "")
-        if visual_repair_call_id:
-            expected_calls[visual_repair_call_id] = "translation-terra"
+    if translation_architecture == "scene_v2":
+        required_roles = {
+            "meaning-frame-terra",
+            "translation-terra",
+            "translation-audit-sol",
+            "dialogue-critic-sol",
+        }
+        observed_roles = {str(receipt.get("role") or "") for receipt in receipts}
+        for role in sorted(required_roles - observed_roles):
+            receipt_errors.append(f"missing scene_v2 model-call role:{role}")
+        for receipt in receipts:
+            if not re.fullmatch(r"[0-9a-f]{64}", str(receipt.get("source_sha256") or "")):
+                receipt_errors.append(
+                    f"scene_v2 model-call receipt lacks source hash:{receipt.get('call_id')}"
+                )
+    else:
+        for decision in decisions:
+            terra_call_id = str(decision.get("terra_call_id") or "")
+            if not terra_call_id:
+                receipt_errors.append(f"missing terra_call_id:{decision.get('unit_id')}")
+            else:
+                expected_calls[terra_call_id] = "translation-terra"
+            sol_call_id = str(decision.get("sol_call_id") or "")
+            blocked_visual = any(
+                str(reason).startswith("visual_review_blocked_")
+                for reason in decision.get("review_required_reasons", [])
+            )
+            if sol_call_id and not blocked_visual:
+                expected_calls[sol_call_id] = "critique-sol"
+            audit_call_id = str(decision.get("automated_quality_call_id") or "")
+            if audit_call_id:
+                expected_calls[audit_call_id] = "translation-audit-sol"
+            visual_repair_call_id = str(decision.get("visual_repair_terra_call_id") or "")
+            if visual_repair_call_id:
+                expected_calls[visual_repair_call_id] = "translation-terra"
     for call_id, role in expected_calls.items():
         receipt = receipts_by_call_id.get(call_id)
         if receipt is None:
@@ -1618,12 +2071,16 @@ def _integrated_qa(
         "model_call_receipts": len(receipts),
         "receipt_validation_errors": receipt_errors,
         "external_image_transfer_count": sum(
-            int(receipt.get("pixel_external_transfer_count", 0) or 0) for receipt in receipts
+            0
+            if receipt.get("cache_hit")
+            else int(receipt.get("pixel_external_transfer_count", 0) or 0)
+            for receipt in receipts
         ),
         "review_queue_units": len(review_queue),
         "bundle_valid": bundle.valid,
         "bundle_accepted": bundle.accepted,
         "quality_policy": quality_policy,
+        "translation_architecture": translation_architecture,
         "automated_quality": {
             "units": len(automated_records),
             "passed": sum(row.get("status") == "passed" for row in automated_records),
@@ -1791,10 +2248,25 @@ def _verify_promoted_run(run_dir: Path, manifest: Mapping[str, Any]) -> None:
     hashes = manifest.get("artifact_sha256")
     if not isinstance(hashes, Mapping):
         raise ValueError("existing integrated run lacks current artifact hashes")
-    missing_hashes = [name for name in _HASHED_RUN_ARTIFACTS if name not in hashes]
+    artifact_names = list(_HASHED_RUN_ARTIFACTS)
+    architecture = str(manifest.get("translation_architecture") or "block_v1")
+    if architecture == "scene_v2":
+        if manifest.get("architecture_status") != "experimental-unbenchmarked":
+            raise ValueError("existing scene_v2 run has an invalid architecture status")
+        if manifest.get("benchmark_status") != "not-run":
+            raise ValueError("existing scene_v2 run has an invalid benchmark status")
+        scene_artifacts = manifest.get("scene_artifacts")
+        if not isinstance(scene_artifacts, list) or not scene_artifacts:
+            raise ValueError("existing scene_v2 run lacks its artifact manifest")
+        artifact_names.extend(_safe_run_artifact_name(name) for name in scene_artifacts)
+    elif architecture != "block_v1":
+        raise ValueError("existing integrated run has an unknown translation architecture")
+    if len(set(artifact_names)) != len(artifact_names):
+        raise ValueError("existing integrated run has duplicate artifact paths")
+    missing_hashes = [name for name in artifact_names if name not in hashes]
     if missing_hashes:
         raise ValueError(f"existing integrated run lacks artifact hashes: {missing_hashes}")
-    for name in _HASHED_RUN_ARTIFACTS:
+    for name in artifact_names:
         path = Path(run_dir) / name
         expected = str(hashes[name])
         if not path.is_file():
@@ -1900,7 +2372,7 @@ def _existing_bundle_identity(bundle_dir: Path) -> str:
     return digest.hexdigest()
 
 
-def _code_version() -> str:
+def _code_version(translation_architecture: str = "block_v1") -> str:
     repository_root = Path(__file__).resolve().parents[2]
     roots = [
         Path(__file__),
@@ -1922,6 +2394,23 @@ def _code_version() -> str:
             "prompts/integrated-noisy-asr-recovery-v1.md",
         )
     )
+    if translation_architecture == "scene_v2":
+        roots.extend(sorted((repository_root / "src" / "translation_forensics").glob("scene_*.py")))
+        roots.extend(
+            repository_root / "src" / "translation_forensics" / name
+            for name in ("dialogue_quality.py", "style_memory.py")
+        )
+        roots.extend(sorted((repository_root / "prompts").glob("scene-*.md")))
+        roots.extend(sorted((repository_root / "prompts").glob("scene-*.manifest.json")))
+        roots.extend(sorted((repository_root / "schemas").glob("scene-*.schema.json")))
+        roots.extend(
+            repository_root / relative
+            for relative in (
+                "prompts/korean-dialogue-critic-v1.md",
+                "prompts/korean-dialogue-critic-v1.manifest.json",
+                "schemas/korean-dialogue-critic-v1.schema.json",
+            )
+        )
     digest = hashlib.sha256()
     for path in roots:
         if path.is_file():
@@ -1934,7 +2423,9 @@ def _code_version() -> str:
     return digest.hexdigest()
 
 
-def _prompt_contract_inventory() -> list[dict[str, str]]:
+def _prompt_contract_inventory(
+    translation_architecture: str = "block_v1",
+) -> list[dict[str, str]]:
     repository_root = Path(__file__).resolve().parents[2]
     relative_paths = (
         "references/translation-prompt-v6.txt",
@@ -1948,6 +2439,24 @@ def _prompt_contract_inventory() -> list[dict[str, str]]:
         if not path.is_file():
             raise FileNotFoundError(f"missing prompt contract: {path}")
         records.append({"path": relative, "sha256": stream_sha256(path)})
+    if translation_architecture == "scene_v2":
+        scene_contracts = [
+            *sorted((repository_root / "prompts").glob("scene-*.md")),
+            *sorted((repository_root / "prompts").glob("scene-*.manifest.json")),
+            *sorted((repository_root / "schemas").glob("scene-*.schema.json")),
+            repository_root / "prompts" / "korean-dialogue-critic-v1.md",
+            repository_root / "prompts" / "korean-dialogue-critic-v1.manifest.json",
+            repository_root / "schemas" / "korean-dialogue-critic-v1.schema.json",
+        ]
+        if not scene_contracts:
+            raise FileNotFoundError("missing scene_v2 prompt/schema contracts")
+        for path in scene_contracts:
+            records.append(
+                {
+                    "path": path.relative_to(repository_root).as_posix(),
+                    "sha256": stream_sha256(path),
+                }
+            )
     return records
 
 

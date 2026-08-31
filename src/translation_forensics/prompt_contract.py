@@ -22,6 +22,17 @@ AUTONOMOUS_REQUIRED_OUTPUT_FIELDS = {
     "competing_interpretations", "risk_codes", "reason",
 }
 
+SCENE_V2_CONTRACTS: dict[str, tuple[str, str]] = {
+    "scene-semantic-reconstruction": ("gpt-5.6-terra", "meaning-frame-terra"),
+    "scene-dialogue-realization": ("gpt-5.6-terra", "translation-terra"),
+    "scene-subtitle-segmentation": ("gpt-5.6-terra", "translation-terra"),
+    "scene-source-faithful": ("gpt-5.6-terra", "translation-terra"),
+    "scene-semantic-drift-critic": ("gpt-5.6-sol", "translation-audit-sol"),
+    "korean-dialogue-critic": ("gpt-5.6-sol", "dialogue-critic-sol"),
+    "scene-dialogue-repair": ("gpt-5.6-terra", "repair-terra"),
+    "scene-visual-semantic-observation": ("gpt-5.6-sol", "meaning-frame-sol"),
+}
+
 
 def sha256_text(path: Path) -> str:
     """Hash UTF-8 text after universal-newline normalization.
@@ -65,6 +76,55 @@ def validate_prompt_contract(manifest_path: Path, *, root: Path | None = None) -
         actual = sha256_text(prompt_path)
         if expected != actual:
             errors.append("prompt_sha256가 프롬프트 본문과 일치하지 않습니다.")
+    if manifest.get("schema_name") == "translation-forensics/scene-v2-prompt-manifest":
+        contract_type = str(manifest.get("contract_type", ""))
+        expected = SCENE_V2_CONTRACTS.get(contract_type)
+        if expected is None:
+            errors.append(f"unknown scene-v2 contract type: {contract_type}")
+        else:
+            expected_model, expected_role = expected
+            if manifest.get("model") != expected_model:
+                errors.append(f"{contract_type} model must be {expected_model}.")
+            if manifest.get("role") != expected_role:
+                errors.append(f"{contract_type} role must be {expected_role}.")
+        _validate_hashed_file(
+            manifest=manifest,
+            base=base,
+            path_field="output_schema_file",
+            hash_field="output_schema_sha256",
+            errors=errors,
+        )
+        schema_path = (base / str(manifest.get("output_schema_file", ""))).resolve()
+        if schema_path.is_file():
+            try:
+                schema = json.loads(schema_path.read_text(encoding="utf-8"))
+                Draft202012Validator.check_schema(schema)
+                if schema.get("type") != "object" or schema.get("additionalProperties") is not False:
+                    errors.append("scene-v2 output schema must be a closed top-level object.")
+                fields = manifest.get("required_output_fields", [])
+                if not isinstance(fields, list) or not fields or not set(fields).issubset(set(schema.get("required", []))):
+                    errors.append("scene-v2 required_output_fields must be required by output schema.")
+            except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+                errors.append(f"scene-v2 output schema is invalid: {exc}")
+        tests_path = (base / str(manifest.get("test_cases_file", ""))).resolve()
+        cases: list[dict[str, Any]] = []
+        if not tests_path.is_file():
+            errors.append("scene-v2 test_cases_file does not exist.")
+        else:
+            try:
+                cases = [json.loads(line) for line in tests_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+                if not any(case.get("case_type") == "normal" for case in cases):
+                    errors.append("scene-v2 prompt cases need a normal case.")
+                for case in cases:
+                    if not case.get("case_id") or not case.get("expected_status") or not case.get("expected_behavior"):
+                        errors.append("scene-v2 prompt case is missing its contract expectation.")
+            except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+                errors.append(f"scene-v2 prompt cases are invalid: {exc}")
+        return {
+            "status": "pass" if not errors else "fail",
+            "manifest": str(manifest_path), "prompt": str(prompt_path),
+            "tests": str(tests_path), "test_case_count": len(cases), "errors": errors,
+        }
     if manifest.get("translation_model") != "gpt-5.6-terra":
         errors.append("공식 의미 번역 프롬프트 모델은 gpt-5.6-terra여야 합니다.")
     contract_type = str(manifest.get("contract_type", "semantic-translation"))

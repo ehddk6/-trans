@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/scene-blind-internal-key/v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_name", "schema_version", "created_at", "pack_sha256", "random_seed", "release_condition", "candidate_mapping", "reviewer_visible"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/scene-blind-internal-key"}, "schema_version": {"const": "1"}, "created_at": {"type": "string", "minLength": 1}, "pack_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "random_seed": {"type": "integer"}, "release_condition": {"type": "string", "minLength": 1}, "reviewer_visible": {"const": false},
+    "candidate_mapping": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["scene_id", "candidate_mapping"], "properties": {"scene_id": {"type": "string", "minLength": 1}, "candidate_mapping": {"type": "object", "minProperties": 2, "maxProperties": 3, "additionalProperties": {"enum": ["block_v1", "external_baseline", "scene_v2"]}}}}}
+  }
+}

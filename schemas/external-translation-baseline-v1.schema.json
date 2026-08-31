@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/external-translation-baseline/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scene_id", "system_label", "service_label", "model_label", "generation_date", "source_hash", "prompt_hash", "text_context_condition", "visual_condition", "outputs", "user_supplied"],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "scene_id": {"type": "string", "minLength": 1},
+    "system_label": {"type": "string", "minLength": 1},
+    "service_label": {"type": "string", "minLength": 1},
+    "model_label": {"type": "string", "minLength": 1},
+    "generation_date": {"type": "string", "minLength": 1},
+    "source_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "prompt_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "text_context_condition": {"type": "string", "minLength": 1},
+    "visual_condition": {"type": "string", "minLength": 1},
+    "outputs": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["korean"], "properties": {"unit_id": {"type": ["string", "integer"]}, "korean": {"type": "string", "minLength": 1}}}},
+    "user_supplied": {"const": true}
+  }
+}

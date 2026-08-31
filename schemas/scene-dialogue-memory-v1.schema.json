@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/scene-dialogue-memory-v1",
+  "title": "Bounded scene dialogue memory v1 JSONL row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title_id", "scene_id", "speaker_turns", "pending_question", "open_topic", "status", "provenance"],
+  "properties": {
+    "title_id": {"type": "string", "minLength": 1},
+    "scene_id": {"type": "string", "minLength": 1},
+    "speaker_turns": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["turn_id", "speaker_id", "korean"],
+        "properties": {
+          "turn_id": {"type": "string", "minLength": 1},
+          "speaker_id": {"type": "string", "minLength": 1},
+          "korean": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "pending_question": {"type": ["string", "null"]},
+    "open_topic": {"type": ["string", "null"]},
+    "status": {"enum": ["confirmed", "human-approved", "human_approved", "approved", "provisional-style-only", "machine-draft", "rejected"]},
+    "provenance": {"type": "object"}
+  }
+}

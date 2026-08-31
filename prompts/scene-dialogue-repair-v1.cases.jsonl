@@ -1,0 +1,3 @@
+{"case_id":"repair-normal","case_type":"normal","expected_status":"valid","expected_behavior":"only affected turn and units are repaired"}
+{"case_id":"repair-faithful-leak","case_type":"forbidden-input","expected_status":"invalid","expected_behavior":"source-faithful Korean is absent from repair input"}
+{"case_id":"repair-unaffected","case_type":"scope-expansion","expected_status":"invalid","expected_behavior":"unaffected turn regeneration is rejected"}

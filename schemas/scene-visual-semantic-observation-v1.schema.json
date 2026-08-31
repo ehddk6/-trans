@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/scene-visual-semantic-observation-v1",
+  "title": "Scene visual semantic observation response v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["observations"],
+  "properties": {
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scene_id", "unit_id", "observed_slots", "unresolved_slots", "confidence", "frame_evidence_refs", "unsupported_inference_warnings"],
+        "properties": {
+          "scene_id": {"type": "string", "minLength": 1},
+          "unit_id": {"type": "string", "minLength": 1},
+          "observed_slots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["slot", "observation"],
+              "properties": {
+                "slot": {"enum": ["speaker", "addressee", "deictic_location", "deictic_referent", "on_screen_text", "scene_continuity"]},
+                "observation": {"type": "string", "minLength": 1}
+              }
+            },
+            "uniqueItems": true
+          },
+          "unresolved_slots": {"type": "array", "items": {"enum": ["speaker", "addressee", "deictic_location", "deictic_referent", "on_screen_text", "scene_continuity"]}, "uniqueItems": true},
+          "confidence": {"enum": ["high", "medium", "low", "unknown"]},
+          "frame_evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+          "unsupported_inference_warnings": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+        }
+      }
+    }
+  }
+}

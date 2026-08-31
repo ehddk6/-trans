@@ -1,0 +1,3 @@
+{"case_id":"semantic-critic-normal","case_type":"normal","expected_status":"valid","expected_behavior":"only semantic categories are returned"}
+{"case_id":"semantic-critic-style","case_type":"forbidden-category","expected_status":"invalid","expected_behavior":"style or naturalness issue is rejected"}
+{"case_id":"semantic-critic-no-evidence","case_type":"missing-evidence","expected_status":"uncertain","expected_behavior":"unsupported claim is marked uncertain"}

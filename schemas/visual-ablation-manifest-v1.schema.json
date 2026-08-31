@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/visual-ablation-manifest/v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_name", "schema_version", "experiment_id", "created_at", "scene_ids", "conditions", "negative_control_enabled", "production_output", "external_pixel_transfer_opt_in", "metrics", "evaluation_status", "condition_definitions"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/visual-ablation-manifest"}, "schema_version": {"const": "1"}, "experiment_id": {"type": "string", "minLength": 1}, "created_at": {"type": "string", "minLength": 1}, "scene_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}, "conditions": {"type": "array", "minItems": 4, "uniqueItems": true, "items": {"enum": ["A", "B", "C", "D", "E"]}}, "negative_control_enabled": {"type": "boolean"}, "production_output": {"type": "boolean"}, "external_pixel_transfer_opt_in": {"type": "boolean"}, "metrics": {"type": "array", "minItems": 11}, "evaluation_status": {"const": "not-evaluated"}, "condition_definitions": {"type": "object"}
+  },
+  "allOf": [{"if": {"properties": {"production_output": {"const": true}}}, "then": {"properties": {"conditions": {"not": {"contains": {"const": "E"}}}}}}]
+}

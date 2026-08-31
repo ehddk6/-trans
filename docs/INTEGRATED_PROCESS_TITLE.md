@@ -1,5 +1,17 @@
 # 일본어 영상→한국어 자막 통합 실행 계약
 
+## Architecture selection
+
+The existing path is `block_v1`: canonical and default, with its output and structure-lock contracts preserved. `scene_v2` is an implemented, synthetic-test-verified opt-in and remains `experimental-unbenchmarked`; select `block_v1` to roll back. This is evidence of code-path behavior only, not a human-quality or Gemini comparison claim.
+
+The intended scene pass order is scene construction → semantic reconstruction → targeted visual observation → scene dialogue realization → projection → independent source-faithful output → deterministic QA → semantic critic → Korean dialogue critic → targeted repair and re-audit → packaging. Viewer-natural never receives source-faithful text as input. Final packaging preserves source cue count, IDs, timestamps, order, and one-time unit coverage.
+
+## `scene_v2` CLI contract
+
+`process-title` accepts `--translation-architecture {block_v1,scene_v2}` and defaults to `block_v1`. The `scene_v2` controls are `--scene-gap-threshold-seconds`, `--scene-max-units`, `--scene-max-source-characters`, `--naturalness-repair-attempts`, `--semantic-audit-scope {all,targeted}`, and `--dialogue-memory-policy {off,confirmed-only,provisional-style-only}`. The run manifest records `architecture_status=experimental-unbenchmarked` and `benchmark_status=not-run`; a machine gate must not be represented as human evaluation.
+
+For `scene_v2`, `off` and `metadata` make no visual-observation model call and send zero pixels. `targeted` adds one observation call only for an exact semantic trigger plus a verified selected frame; its receipt and observation artifact are preserved. The core process-title integration test exercises all three policies, resume, artifacts, and the final SRT structure lock with a fake provider.
+
 `process-title`은 새 작업의 단일 정본 명령이다. 기본 `--quality-policy automated`는 사람 승인 없이 질문·부정·숫자·명령·일본어 잔존·빈 번역을 자동 검사하고, Terra 결과를 별도 Sol 감사기가 `pass/fail/unknown`과 근거로 판정한다. 감사기는 번역문을 수정하지 않으며, 실패·미확정 단위는 원문 충실 번역으로 보수적 폴백한다. 기존 `run`, 정적 번역표, 자동 초안 재포장 경로는 호환·분석 용도로 남지만 통합 산출물로 승격하지 않는다.
 
 ## 입력 선택

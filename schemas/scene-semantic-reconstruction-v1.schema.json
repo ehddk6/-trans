@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/scene-semantic-reconstruction-v1",
+  "title": "Scene semantic reconstruction response v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["frames"],
+  "properties": {
+    "frames": {
+      "type": "array", "minItems": 1,
+      "items": {"$ref": "#/$defs/frame"}
+    }
+  },
+  "$defs": {
+    "nullableText": {"type": ["string", "null"]},
+    "frame": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "scene_id", "unit_id", "utterance_type", "semantic_summary", "speech_act", "question", "polarity", "refusal_permission", "stop_continue", "command_strength", "speaker", "addressee", "actor", "action", "target", "location", "direction", "tense_aspect", "completion", "intensity", "numeric_tokens", "register", "response_to_unit_id", "continues_from_unit_id", "continues_to_unit_id", "must_preserve", "uncertain_slots", "competing_interpretations", "visual_resolvable_slots", "expected_translation_delta", "audio_only_uncertainty", "confidence", "evidence_refs"],
+      "properties": {
+        "schema_version": {"const": "1"}, "scene_id": {"type": "string", "minLength": 1}, "unit_id": {"type": "string", "minLength": 1},
+        "utterance_type": {"enum": ["dialogue", "narration", "reaction", "song", "on_screen_text", "unknown"]},
+        "semantic_summary": {"type": "string", "minLength": 1}, "speech_act": {"enum": ["statement", "question", "request", "command", "response", "refusal", "permission", "reaction", "unknown"]},
+        "question": {"enum": ["yes", "no", "unknown"]}, "polarity": {"enum": ["positive", "negative", "mixed", "unknown"]},
+        "refusal_permission": {"enum": ["refusal", "permission", "neither", "unknown"]}, "stop_continue": {"enum": ["stop", "continue", "neither", "unknown"]},
+        "command_strength": {"enum": ["none", "suggestion", "request", "command", "unknown"]},
+        "speaker": {"$ref": "#/$defs/nullableText"}, "addressee": {"$ref": "#/$defs/nullableText"}, "actor": {"$ref": "#/$defs/nullableText"}, "action": {"$ref": "#/$defs/nullableText"}, "target": {"$ref": "#/$defs/nullableText"}, "location": {"$ref": "#/$defs/nullableText"}, "direction": {"$ref": "#/$defs/nullableText"}, "tense_aspect": {"$ref": "#/$defs/nullableText"}, "completion": {"enum": ["complete", "incomplete", "ongoing", "unknown"]}, "intensity": {"$ref": "#/$defs/nullableText"},
+        "numeric_tokens": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}, "register": {"enum": ["formal", "informal", "neutral", "unknown"]},
+        "response_to_unit_id": {"$ref": "#/$defs/nullableText"}, "continues_from_unit_id": {"$ref": "#/$defs/nullableText"}, "continues_to_unit_id": {"$ref": "#/$defs/nullableText"},
+        "must_preserve": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true}, "uncertain_slots": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "competing_interpretations": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}, "visual_resolvable_slots": {"type": "array", "items": {"enum": ["speaker", "addressee", "deictic_location", "deictic_referent", "on_screen_text", "scene_continuity"]}, "uniqueItems": true},
+        "expected_translation_delta": {"enum": ["none", "minor", "major", "critical"]}, "audio_only_uncertainty": {"type": "boolean"}, "confidence": {"enum": ["high", "medium", "low", "unknown"]}, "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    }
+  }
+}

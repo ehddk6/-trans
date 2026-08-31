@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/scene-blind-review-pack/v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_name", "schema_version", "created_at", "scene_count", "candidate_codes", "candidate_identity_hidden", "random_seed_hidden", "review_status", "human_evaluation_claimed"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/scene-blind-review-pack"}, "schema_version": {"const": "1"}, "created_at": {"type": "string", "minLength": 1}, "scene_count": {"type": "integer", "minimum": 1},
+    "candidate_codes": {"type": "array", "minItems": 2, "maxItems": 3, "uniqueItems": true, "items": {"enum": ["candidate-a", "candidate-b", "candidate-c"]}},
+    "candidate_identity_hidden": {"const": true}, "random_seed_hidden": {"const": true}, "review_status": {"const": "awaiting-review-submission"}, "human_evaluation_claimed": {"const": false}
+  }
+}

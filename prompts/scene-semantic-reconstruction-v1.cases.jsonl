@@ -1,0 +1,3 @@
+{"case_id":"semantic-normal","case_type":"normal","expected_status":"valid","expected_behavior":"all input units are covered once without Korean surface dialogue"}
+{"case_id":"semantic-duplicate","case_type":"duplicate-unit","expected_status":"invalid","expected_behavior":"duplicate unit_id is rejected by coverage validation"}
+{"case_id":"semantic-unknown-evidence","case_type":"unknown-evidence","expected_status":"invalid","expected_behavior":"evidence reference absent from input is rejected"}

@@ -9,6 +9,8 @@ Rule: an unresolved item remains here until a decision or verified finding close
 
 ## Resolutions
 
+- Q-003 — `unknown`, 2026-08-31: D-013 approves scene_v2 implementation, but current code/CLI and human benchmark status must be rechecked before recording it as operational or superior. Gemini remains a user-supplied baseline slot.
+
 - F-001 — `observed`, 2026-08-24: sealed human answers는 없다. `evaluation/gold/manifest.json`은 `empty-no-gold-answers`이고 pilot human review/adjudication은 완료되지 않았다. 자동화로 입증 가능한 범위는 구조·계약 불변성과 synthetic ASR-conflict detection뿐이며, 실제 번역 정확도는 포함하지 않는다.
 - F-002 — `observed`, 2026-08-24: commit `0dddfe4`와 현재 작업트리의 동일 실제 영상·동일 blind human rubric 비교는 없다. 따라서 8월 17일 변경의 실제 번역 품질 향상은 `not-demonstrated`다. 이번 작업은 별도로 같은 synthetic fixture에서 bridge 전후의 conflict-blocking 개선만 재현했다.
 

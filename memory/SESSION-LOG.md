@@ -1,5 +1,12 @@
 # SESSION LOG — append, dated
 
+## 2026-08-31
+
+- D-013에 따라 scene_v2 문서 계약을 추가·동기화했다. block_v1 기본/롤백, scene_v2 experimental-unbenchmarked, pass 순서, 구조 잠금, source-faithful와 viewer-natural 분리, critics 분리, targeted visual 정책을 명시했다.
+- benchmark 문서에 user-supplied 외부 baseline, blinded A/B/C, human benchmark not evaluated, 성공 목표를 기록했다. visual ablation A–E와 production negative-control guard를 기록했다.
+- 문서 초안 단계에서는 실제 코드/CLI 구현을 아직 확인하지 않았고, 이후 구현·합성 통합 검증을 반영해 PRODUCT-TRUTH를 수정했다. Gemini·인간 우수성은 계속 미검증이다.
+- D-013에 따라 실제 `scene_v2` 코드·CLI·schema·평가 원장을 구현했다. fake-provider 기반 통합 테스트는 `off`·`metadata`의 픽셀 전송 0, 정확한 targeted trigger만의 관찰 영수증, resume·산출물 해시·SRT 구조 잠금을 확인했다. 이는 합성 엔지니어링 검증이며 인간 자연스러움 또는 Gemini 비교 결과가 아니다.
+
 One short section per working session: what was worked on, what was decided, and what remains.
 
 ---

@@ -2,5 +2,15 @@
   "schema_version": "translation-forensics/translation-model/1",
   "default_translation_model": "gpt-5.6-terra",
   "allowed_translation_models": ["gpt-5.6-terra"],
+  "default_translation_architecture": "block_v1",
+  "allowed_translation_architectures": ["block_v1", "scene_v2"],
+  "scene_v2_defaults": {
+    "gap_threshold_seconds": 4.0,
+    "max_units": 24,
+    "max_source_characters": 12000,
+    "naturalness_repair_attempts": 1,
+    "semantic_audit_scope": "all",
+    "dialogue_memory_policy": "confirmed-only"
+  },
   "scope": "Korean semantic translation decisions and their SRT application only"
 }

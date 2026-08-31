@@ -42,3 +42,12 @@ claims may trigger semantic conflict escalation. This is a validation guard,
 not an ASR semantic parser or a quality-improvement result. See
 `docs/FINAL_STATUS_REPORT.md` for the full evidence boundary and experiment
 status.
+
+## 2026-08-31 scene_v2 boundary
+
+D-013 authorizes a parallel scene-level architecture while preserving the
+canonical `block_v1` path. The intended scene passes, critic separation,
+source-faithful isolation, structure-locked projection, and targeted visual
+policy are recorded in `SCENE_V2_ARCHITECTURE.md`. At this audit point,
+operational CLI availability and end-to-end verification must be established
+from the current code; human benchmark and Gemini comparison remain unknown.

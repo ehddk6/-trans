@@ -24,6 +24,7 @@ ROLE_POLICY = {
     "meaning-frame-sol": (SOL_MODEL, "xhigh"),
     "translation-terra": (TERRA_MODEL, "high"),
     "translation-audit-sol": (SOL_MODEL, "xhigh"),
+    "dialogue-critic-sol": (SOL_MODEL, "xhigh"),
     "critique-sol": (SOL_MODEL, "xhigh"),
     "repair-terra": (TERRA_MODEL, "high"),
     "proxy-evaluator-terra": (TERRA_MODEL, "high"),

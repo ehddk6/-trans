@@ -1,0 +1,3 @@
+{"case_id":"dialogue-normal","case_type":"normal","expected_status":"valid","expected_behavior":"scene units are consumed once in source order"}
+{"case_id":"dialogue-faithful-leak","case_type":"forbidden-input","expected_status":"invalid","expected_behavior":"source-faithful Korean is absent from realization input"}
+{"case_id":"dialogue-japanese-output","case_type":"japanese-output","expected_status":"invalid","expected_behavior":"Japanese residue is rejected"}

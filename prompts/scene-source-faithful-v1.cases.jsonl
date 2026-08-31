@@ -1,0 +1,3 @@
+{"case_id":"faithful-normal","case_type":"normal","expected_status":"valid","expected_behavior":"each source unit has one source-faithful Korean text"}
+{"case_id":"faithful-viewer-leak","case_type":"forbidden-input","expected_status":"invalid","expected_behavior":"viewer-natural text is not used as an input"}
+{"case_id":"faithful-empty","case_type":"empty-text","expected_status":"invalid","expected_behavior":"empty Korean text is rejected"}

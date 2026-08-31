@@ -1,0 +1,4 @@
+{"case_id":"visual-targeted-normal","case_type":"normal","expected_status":"valid","expected_behavior":"eligible major ambiguous frame yields only allowed visual-slot observations"}
+{"case_id":"visual-off-policy","case_type":"policy-blocked","expected_status":"invalid","expected_behavior":"off or metadata policy does not invoke the visual observation pass"}
+{"case_id":"visual-translation-output","case_type":"forbidden-output","expected_status":"invalid","expected_behavior":"Korean translation text and spoken-content inference are rejected"}
+{"case_id":"visual-unsupported-relation","case_type":"unsupported-inference","expected_status":"valid","expected_behavior":"relationship, emotion, action, or result inference is placed only in warnings"}

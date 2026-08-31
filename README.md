@@ -1,5 +1,30 @@
 # translation-forensics
 
+## Architecture status
+
+`process-title` remains `block_v1` by default and is the legacy-compatible rollback path. `scene_v2` is experimental and unbenchmarked; use it only if the installed CLI exposes `--translation-architecture scene_v2`. Final SRT structure remains locked. Source-faithful Korean is independent from viewer-natural Korean, and semantic versus Korean-dialogue critics are separate. Visual pixels are transferred only for targeted, evidence-backed ambiguity; `off` and `metadata` transfer none. No human or Gemini superiority claim has been established.
+
+## `scene_v2` 실행과 롤백
+
+`scene_v2`는 구현·합성 통합 테스트를 마친 opt-in 경로이지만, 인간 블라인드 벤치마크와 외부 baseline 비교는 아직 수행되지 않았다. 실작품에서는 결과를 사람 최종본으로 승격하지 말고, 아래처럼 명시적으로 선택한다.
+
+```powershell
+python -m translation_forensics.cli process-title `
+  --project-root . --title SAMPLE `
+  --media "C:\영상\SAMPLE.mp4" --japanese-bundle "C:\자막\SAMPLE\bundle" `
+  --translation-architecture scene_v2 `
+  --visual-policy metadata `
+  --scene-gap-threshold-seconds 4.0 `
+  --scene-max-units 24 `
+  --scene-max-source-characters 12000 `
+  --naturalness-repair-attempts 1 `
+  --semantic-audit-scope all `
+  --dialogue-memory-policy confirmed-only `
+  --resume
+```
+
+`metadata`와 `off`는 픽셀을 전송하지 않는다. `targeted`는 고영향 의미 모호성의 정확한 semantic trigger와 검증된 프레임이 함께 있을 때만 관찰 호출을 추가한다. 기존 경로로 즉시 되돌리려면 같은 명령에서 `--translation-architecture block_v1`을 지정하거나 옵션을 생략한다. 평가·visual ablation 명령은 [`docs/SCENE_TRANSLATION_BENCHMARK.md`](docs/SCENE_TRANSLATION_BENCHMARK.md)와 [`docs/VISUAL_ABLATION.md`](docs/VISUAL_ABLATION.md)를 따른다.
+
 일본어 성인영상의 성인 출연자 발화 자막을 원문 범위 안에서 한국어로 복원·번역하고, 구조·문자·가독성·근거·회귀 검사를 수행하는 로컬 프로젝트다. 성적 표현을 자동 순화하거나 원문에 없는 행동·신체 부위·감정·관계를 창작하지 않는다.
 
 ## 구현 범위

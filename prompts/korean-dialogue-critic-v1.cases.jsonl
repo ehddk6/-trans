@@ -1,0 +1,3 @@
+{"case_id":"dialogue-critic-normal","case_type":"normal","expected_status":"valid","expected_behavior":"only dialogue naturalness categories are returned"}
+{"case_id":"dialogue-critic-semantic","case_type":"forbidden-category","expected_status":"invalid","expected_behavior":"semantic drift category is rejected"}
+{"case_id":"dialogue-critic-rewrite","case_type":"forbidden-output","expected_status":"invalid","expected_behavior":"critic does not emit replacement translation text"}

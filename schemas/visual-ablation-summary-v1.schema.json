@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/visual-ablation-summary/v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_name", "schema_version", "experiment_id", "evaluation_status", "human_evaluation_claimed", "results", "condition_summary", "errors"],
+  "properties": {"schema_name": {"const": "translation-forensics/visual-ablation-summary"}, "schema_version": {"const": "1"}, "experiment_id": {"type": "string", "minLength": 1}, "evaluation_status": {"enum": ["not-evaluated", "summarized-from-submitted-results"]}, "human_evaluation_claimed": {"const": false}, "results": {"type": "integer", "minimum": 0}, "condition_summary": {"type": "object"}, "errors": {"type": "array", "items": {"type": "string"}}, "note": {"type": "string"}}
+}

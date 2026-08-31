@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "translation-forensics/scene-benchmark-summary/v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_name", "schema_version", "created_at", "evaluation_status", "human_evaluation_claimed", "key_read_after_review_validation", "review_validation", "comparisons", "note"],
+  "properties": {
+    "schema_name": {"const": "translation-forensics/scene-benchmark-summary"}, "schema_version": {"const": "1"}, "created_at": {"type": "string", "minLength": 1}, "evaluation_status": {"enum": ["not-evaluated", "evaluated-from-submitted-review-records"]}, "human_evaluation_claimed": {"const": false}, "key_read_after_review_validation": {"type": "boolean"}, "review_validation": {"type": "object"}, "scenes": {"type": "integer", "minimum": 1}, "comparisons": {"type": "array"}, "note": {"type": "string", "minLength": 1}
+  },
+  "allOf": [{"if": {"properties": {"evaluation_status": {"const": "not-evaluated"}}}, "then": {"properties": {"key_read_after_review_validation": {"const": false}, "comparisons": {"maxItems": 0}}}}]
+}
