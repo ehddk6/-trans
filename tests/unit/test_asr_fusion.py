@@ -148,6 +148,25 @@ def test_stop_continue_markers_are_conflict() -> None:
     assert fusion["risk_codes"] == ["stop-continue-marker-divergence"]
 
 
+def test_direction_risk_code_is_family_order_invariant() -> None:
+    forward = fuse_asr_transcripts(
+        [row(WHISPER, "上げて"), row(REAZON, "下げて")]
+    )
+    reverse = fuse_asr_transcripts(
+        [row(WHISPER, "下げて"), row(REAZON, "上げて")]
+    )
+    assert forward["risk_codes"] == ["direction-up-down-divergence"]
+    assert reverse["risk_codes"] == ["direction-up-down-divergence"]
+
+
+def test_direction_out_polite_request_is_detected() -> None:
+    fusion = fuse_asr_transcripts(
+        [row(WHISPER, "入れて"), row(REAZON, "出して")]
+    )
+    assert fusion["state"] == "dual_conflict"
+    assert fusion["risk_codes"] == ["direction-in-out-divergence"]
+
+
 def test_srt_timestamps_drive_wide_window_overlap_selection():
     record = {
         "schema_name": "translation-forensics/block-acoustic-evidence",

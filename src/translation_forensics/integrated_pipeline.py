@@ -12,10 +12,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, BinaryIO, Iterable, Mapping, Sequence
 
+from .evidence_bridge import build_unit_source_evidence
 from .srt import SubtitleBlock, seconds_to_timecode, write_srt
 
 
-INTEGRATION_SCHEMA_VERSION = "1"
+INTEGRATION_SCHEMA_VERSION = "2"
+_READABLE_INTEGRATION_SCHEMA_VERSIONS = frozenset({"1", INTEGRATION_SCHEMA_VERSION})
 CACHE_SCHEMA_VERSION = "1"
 TRANSCRIPT_BASENAME = "transcript_ja.jsonl"
 REVIEW_HOLD_TEXT = "[검수 보류]"
@@ -168,6 +170,7 @@ class TranslationUnit:
     quality_status: str
     evidence_ids: tuple[str, ...]
     speaker: str = "speaker_unknown"
+    source_evidence: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.quality_status not in _UNIT_QUALITY_STATUSES:
@@ -196,6 +199,7 @@ class TranslationUnit:
             "quality_status": self.quality_status,
             "evidence_ids": list(self.evidence_ids),
             "speaker": self.speaker,
+            "source_evidence": dict(self.source_evidence),
         }
 
 
@@ -410,6 +414,10 @@ def build_translation_inputs(
             )
         if any(not isinstance(word, dict) for word in words):
             raise IntegrationPipelineError(f"word entries at line {line_number} must be objects")
+        quality_status = classify_unit_quality(
+            warnings, explicit_status=row.get("quality_status")
+        )
+        evidence_ids = tuple(str(value) for value in evidence_values)
         unit = TranslationUnit(
             unit_id=unit_id,
             start=float(row["start"]),
@@ -418,11 +426,22 @@ def build_translation_inputs(
             source_segment_ids=tuple(int(value) for value in source_ids),
             words=tuple(dict(word) for word in words),
             asr_warnings=warnings,
-            quality_status=classify_unit_quality(
-                warnings, explicit_status=row.get("quality_status")
-            ),
-            evidence_ids=tuple(str(value) for value in evidence_values),
+            quality_status=quality_status,
+            evidence_ids=evidence_ids,
             speaker=str(row.get("speaker") or "speaker_unknown"),
+            source_evidence=build_unit_source_evidence(
+                unit_id=unit_id,
+                start=float(row["start"]),
+                end=float(row["end"]),
+                source_text=text_raw,
+                asr_metrics=(
+                    row.get("asr_metrics")
+                    if isinstance(row.get("asr_metrics"), Mapping)
+                    else None
+                ),
+                source_quality_status=quality_status,
+                evidence_ids=evidence_ids,
+            ),
         )
         units.append(unit)
     if not units:
@@ -494,10 +513,21 @@ def load_translation_units(path: Path) -> tuple[TranslationUnit, ...]:
             row = json.loads(line)
             if not isinstance(row, dict):
                 raise TypeError("row is not an object")
-            if row.get("schema_version") != INTEGRATION_SCHEMA_VERSION:
+            row_schema_version = str(row.get("schema_version") or "")
+            if row_schema_version not in _READABLE_INTEGRATION_SCHEMA_VERSIONS:
                 raise ResumeRejected(
                     f"translation unit schema is not current at line {line_number}"
                 )
+            if (
+                row_schema_version == INTEGRATION_SCHEMA_VERSION
+                and "source_evidence" not in row
+            ):
+                raise ResumeRejected(
+                    f"translation unit lacks source_evidence at line {line_number}"
+                )
+            source_evidence = row.get("source_evidence", {})
+            if not isinstance(source_evidence, Mapping):
+                raise TypeError("source_evidence is not an object")
             unit = TranslationUnit(
                 unit_id=str(row["unit_id"]),
                 start=float(row["start"]),
@@ -509,6 +539,7 @@ def load_translation_units(path: Path) -> tuple[TranslationUnit, ...]:
                 quality_status=str(row["quality_status"]),
                 evidence_ids=tuple(str(value) for value in row["evidence_ids"]),
                 speaker=str(row.get("speaker") or "speaker_unknown"),
+                source_evidence=dict(source_evidence),
             )
         except ResumeRejected:
             raise

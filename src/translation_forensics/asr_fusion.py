@@ -158,7 +158,10 @@ def _surface_risk_flags(value: Any) -> dict[str, bool]:
         "direction_up": any(token in text_lower for token in ("上げ", "あが", "あげ")),
         "direction_down": any(token in text_lower for token in ("下げ", "さが", "おろ", "おりろ")),
         "direction_in": any(token in text_lower for token in ("入れ", "いれ")),
-        "direction_out": any(token in text_lower for token in ("出せ", "だせ", "出て", "でて")),
+        "direction_out": any(
+            token in text_lower
+            for token in ("出せ", "だせ", "出て", "でて", "出し", "だし")
+        ),
     }
 
 
@@ -182,14 +185,18 @@ def _meaning_flip_risks(left: Any, right: Any) -> list[str]:
         right_flags["stop"] and left_flags["continue"]
     ):
         risks.append("stop-continue-marker-divergence")
-    if left_flags["direction_up"] and right_flags["direction_down"]:
+    if (
+        left_flags["direction_up"] and right_flags["direction_down"]
+    ) or (
+        left_flags["direction_down"] and right_flags["direction_up"]
+    ):
         risks.append("direction-up-down-divergence")
-    if left_flags["direction_down"] and right_flags["direction_up"]:
-        risks.append("direction-down-up-divergence")
-    if left_flags["direction_in"] and right_flags["direction_out"]:
+    if (
+        left_flags["direction_in"] and right_flags["direction_out"]
+    ) or (
+        left_flags["direction_out"] and right_flags["direction_in"]
+    ):
         risks.append("direction-in-out-divergence")
-    if left_flags["direction_out"] and right_flags["direction_in"]:
-        risks.append("direction-out-in-divergence")
     return risks
 
 

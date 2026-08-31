@@ -52,7 +52,7 @@ from .visual_context import (
 )
 
 
-PROCESS_SCHEMA_VERSION = "2"
+PROCESS_SCHEMA_VERSION = "3"
 _HASHED_RUN_ARTIFACTS = (
     "input_manifest.json",
     "capture_index.jsonl",
@@ -100,6 +100,7 @@ class ProcessTitleConfig:
     auto_capture_frames: bool = True
     quality_policy: str = "automated"
     translation_batch_size: int = 40
+    model_batch_workers: int = 1
     qwen_root: Path | None = None
     review_decisions: Path | None = None
     resume: bool = False
@@ -128,6 +129,8 @@ class ProcessTitleConfig:
             )
         if self.translation_batch_size < 1:
             raise ValueError("translation_batch_size must be positive")
+        if not 1 <= self.model_batch_workers <= 8:
+            raise ValueError("model_batch_workers must be between 1 and 8")
         if self.audit_attempt < 0:
             raise ValueError("audit_attempt must be non-negative")
         if self.reference_ja is not None and not self.reference_ja_approved:
@@ -312,6 +315,7 @@ def process_title(
             "auto_capture_frames": config.auto_capture_frames,
             "quality_policy": config.quality_policy,
             "translation_batch_size": config.translation_batch_size,
+            "model_batch_workers": config.model_batch_workers,
             "audit_attempt": config.audit_attempt,
             "qwen_root": str(Path(config.qwen_root).expanduser().resolve()) if config.qwen_root else None,
             "review_decisions_sha256": review_decisions_sha256,
@@ -498,6 +502,7 @@ def process_title(
             units=model_units,
             resume=config.resume,
             batch_size=config.translation_batch_size,
+            max_batch_workers=config.model_batch_workers,
         )
 
         base_visual_records: dict[str, dict[str, Any]] = {}
@@ -651,6 +656,7 @@ def process_title(
                     decisions=decisions,
                     batch_size=max(1, min(config.translation_batch_size, 20)),
                     resume=config.resume,
+                    max_batch_workers=config.model_batch_workers,
                 )
                 receipts.extend(audit_receipts)
                 deterministic_by_id = {
@@ -661,14 +667,17 @@ def process_title(
                     base.update(model_record)
                 automated_quality_records = list(deterministic_by_id.values())
             except (CodexUsageLimitError, CodexTimeoutError) as exc:
-                # A service quota must not resurrect a human gate.  Mark the
-                # deterministic result uncertain and preserve a safe fallback.
+                # A service quota is not a semantic finding. Preserve the completed
+                # genre-first candidate and record that its independent semantic
+                # audit could not run; do not relabel every line as a literal
+                # fallback.
                 blocked_reason = (
                     "usage-limit" if isinstance(exc, CodexUsageLimitError) else "timeout"
                 )
                 for decision in decisions:
-                    decision["automated_quality_status"] = "fallback"
                     decision["automated_quality_call_id"] = None
+                    decision["semantic_audit_status"] = "blocked"
+                    decision["semantic_audit_issue_codes"] = []
                     decision["automated_quality_reasons"] = list(
                         dict.fromkeys(
                             [
@@ -678,10 +687,11 @@ def process_title(
                         )
                     )
                 for record in automated_quality_records:
-                    record["status"] = "fallback"
                     record["model_status"] = "blocked"
                     record["model_block_reason"] = blocked_reason
                     record["retry_after"] = getattr(exc, "retry_after", None)
+                    record["semantic_audit_status"] = "blocked"
+                    record["semantic_audit_issue_codes"] = []
             # Visual review writes its pre-audit decisions first; the audited
             # decisions replace them atomically before packaging.
             _write_jsonl_atomic(decisions_path, decisions)
@@ -763,12 +773,18 @@ def process_title(
     all_automated_passed = bool(automated_quality_records) and all(
         row.get("status") == "passed" for row in automated_quality_records
     )
+    all_semantic_audits_resolved = bool(automated_quality_records) and all(
+        row.get("semantic_audit_status") in {"pass", "not-selected"}
+        for row in automated_quality_records
+    )
     unresolved_bundle_gate = any(
         gate.status != "passed"
         for gate in (bundle.recognition, bundle.alignment, bundle.presentation)
     ) or not bundle.accepted
     machine_uncertain = automated and (
-        not all_automated_passed or unresolved_bundle_gate
+        not all_automated_passed
+        or not all_semantic_audits_resolved
+        or unresolved_bundle_gate
     )
     run_stage = (
         "machine-uncertain" if automated and machine_uncertain
@@ -800,6 +816,29 @@ def process_title(
         "automated_quality_fallback_units": sum(
             row.get("status") == "fallback" for row in automated_quality_records
         ),
+        "semantic_audit": {
+            "scope": "targeted-semantic-only",
+            "passed": sum(
+                row.get("semantic_audit_status") == "pass"
+                for row in automated_quality_records
+            ),
+            "issues": sum(
+                row.get("semantic_audit_status") == "issue"
+                for row in automated_quality_records
+            ),
+            "inconclusive": sum(
+                row.get("semantic_audit_status") == "inconclusive"
+                for row in automated_quality_records
+            ),
+            "not_selected": sum(
+                row.get("semantic_audit_status") == "not-selected"
+                for row in automated_quality_records
+            ),
+            "blocked": sum(
+                row.get("semantic_audit_status") == "blocked"
+                for row in automated_quality_records
+            ),
+        },
         "visual_policy": config.visual_policy,
         "visual_selected_units": len(visual_context_rows),
         "visual_capture_mode": (
@@ -1058,6 +1097,8 @@ def _unit_for_model(unit: TranslationUnit) -> dict[str, Any]:
         "asr_warnings": list(unit.asr_warnings),
         "quality_status": unit.quality_status,
         "evidence_ids": list(unit.evidence_ids),
+        "speaker": unit.speaker,
+        "source_evidence": dict(unit.source_evidence),
     }
 
 
@@ -1087,6 +1128,7 @@ def _visual_candidate_ids(
             decision.get("confidence") != "high"
             or bool(decision.get("uncertain_slots"))
             or bool(decision.get("review_required_reasons"))
+            or bool(decision.get("critic_required"))
             or unit.quality_status != "trusted"
         )
         if not ambiguous:
@@ -1110,6 +1152,8 @@ def _visual_selection_reasons(
         reasons.append("translation_uncertain_slots")
     if decision.get("review_required_reasons"):
         reasons.append("translation_review_required")
+    if decision.get("critic_required"):
+        reasons.append("translation_semantic_critic_required")
     if unit.quality_status != "trusted":
         reasons.append(f"source_{unit.quality_status}")
     reasons.extend(f"visual_slot_{slot}" for slot in sorted(set(slots)))
@@ -1262,20 +1306,20 @@ def _attach_automated_render_hashes(
     complete_blocks, _, _ = parse_srt(Path(output_dir) / "viewer_complete_ko.srt")
     if not (len(faithful_blocks) == len(natural_blocks) == len(complete_blocks) == len(units)):
         raise BundleBlockedError("automated quality cannot bind rendered SRT hashes")
-    decision_by_id = {str(row["unit_id"]): row for row in decisions}
     record_by_id = {str(row["unit_id"]): dict(row) for row in records}
     if set(record_by_id) != {unit.unit_id for unit in units}:
         raise BundleBlockedError("automated quality record coverage mismatch before render binding")
     rendered: list[dict[str, Any]] = []
     for index, unit in enumerate(units):
         record = record_by_id[unit.unit_id]
-        decision = decision_by_id[unit.unit_id]
         source_text = faithful_blocks[index].text
         natural_text = natural_blocks[index].text
         complete_text = complete_blocks[index].text
-        fallback = str(decision.get("automated_quality_status")) == "fallback"
-        selected_variant = "source-faithful" if fallback else "viewer-natural"
-        selected_text = source_text if fallback else natural_text
+        # The semantic audit is non-destructive. Even when it flags a meaning
+        # concern, its record must bind the displayed viewer-natural subtitle,
+        # not silently substitute the source-faithful baseline.
+        selected_variant = "viewer-natural"
+        selected_text = natural_text
         record.update(
             {
                 "source_faithful_sha256": hashlib.sha256(source_text.encode("utf-8")).hexdigest(),
@@ -1328,16 +1372,22 @@ def _package_translations(
             else unit.evidence_ids if clean_machine_candidate or human_approved else ()
         )
         if automated_quality and decision.get("automated_quality_status") == "fallback":
-            # Never promote an unverified natural rewrite over the faithful
-            # draft when the local semantic invariants disagree.
-            faithful_safe = bool(decision.get("automated_quality_faithful_safe", False))
+            # A fallback is review metadata, not a reason to erase a complete
+            # Japanese-to-Korean draft. Preserve each renderable model field and
+            # reserve the marker for an actually empty or Japanese-residual field.
+            source_candidate = str(decision.get("source_faithful_korean") or "").strip()
+            viewer_candidate = str(decision.get("viewer_natural_korean") or "").strip()
             source_faithful = (
-                str(decision.get("source_faithful_korean") or "[원문 불명확]")
-                if faithful_safe
+                source_candidate
+                if source_candidate and not has_japanese(source_candidate)
                 else "[원문 불명확]"
             )
-            viewer_natural = source_faithful
-            if not faithful_safe:
+            viewer_natural = (
+                viewer_candidate
+                if viewer_candidate and not has_japanese(viewer_candidate)
+                else source_faithful
+            )
+            if source_faithful == "[원문 불명확]":
                 evidence = ()
         else:
             source_faithful = str(decision["source_faithful_korean"])
@@ -1442,6 +1492,14 @@ def _integrated_qa(
         errors.append("viewer_complete_contains_japanese_residual")
     automated_records = [dict(row) for row in automated_quality_records]
     automated_statuses = {str(row.get("status") or "") for row in automated_records}
+    semantic_audit_statuses = {
+        str(row.get("semantic_audit_status") or "not-selected")
+        for row in automated_records
+    }
+    semantic_audits_complete = bool(automated_records) and all(
+        row.get("semantic_audit_status") in {"pass", "not-selected"}
+        for row in automated_records
+    )
     if quality_policy == "automated":
         automated_ids = [str(row.get("unit_id") or "") for row in automated_records]
         expected_ids = [unit.unit_id for unit in inputs.units]
@@ -1461,11 +1519,7 @@ def _integrated_qa(
             record = next((row for row in automated_records if str(row.get("unit_id")) == unit.unit_id), None)
             if record is None:
                 continue
-            selected_text = (
-                faithful_blocks[index].text
-                if record.get("selected_variant") == "source-faithful"
-                else natural_blocks[index].text
-            )
+            selected_text = natural_blocks[index].text
             expected_hashes = {
                 "source_faithful_sha256": hashlib.sha256(faithful_blocks[index].text.encode("utf-8")).hexdigest(),
                 "viewer_natural_sha256": hashlib.sha256(natural_blocks[index].text.encode("utf-8")).hexdigest(),
@@ -1575,6 +1629,30 @@ def _integrated_qa(
             "passed": sum(row.get("status") == "passed" for row in automated_records),
             "fallback": sum(row.get("status") == "fallback" for row in automated_records),
             "statuses": sorted(automated_statuses),
+            "semantic_audit_scope": "targeted-semantic-only",
+            "semantic_audit_statuses": sorted(semantic_audit_statuses),
+            "semantic_audit": {
+                "passed": sum(
+                    row.get("semantic_audit_status") == "pass"
+                    for row in automated_records
+                ),
+                "issues": sum(
+                    row.get("semantic_audit_status") == "issue"
+                    for row in automated_records
+                ),
+                "inconclusive": sum(
+                    row.get("semantic_audit_status") == "inconclusive"
+                    for row in automated_records
+                ),
+                "not_selected": sum(
+                    row.get("semantic_audit_status") == "not-selected"
+                    for row in automated_records
+                ),
+                "blocked": sum(
+                    row.get("semantic_audit_status") == "blocked"
+                    for row in automated_records
+                ),
+            },
         },
         "human_reviewed": False,
         "human_final_allowed": False,
@@ -1585,6 +1663,7 @@ def _integrated_qa(
             and not errors
             and bool(automated_records)
             and all(row.get("status") == "passed" for row in automated_records)
+            and semantic_audits_complete
             and bundle_machine_ready
         ),
         "verification_status": (
@@ -1592,6 +1671,7 @@ def _integrated_qa(
             if quality_policy == "automated"
             and (
                 any(row.get("status") == "fallback" for row in automated_records)
+                or not semantic_audits_complete
                 or not bundle_machine_ready
             )
             else "machine-verified" if quality_policy == "automated" and not errors

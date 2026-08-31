@@ -1,0 +1,135 @@
+{
+  "schema_name": "translation-forensics/canonical-evidence-bridge-evaluation",
+  "schema_version": "1",
+  "status": "pass",
+  "evaluation_kind": "synthetic-contrast-engineering-safety",
+  "suite": "tests/fixtures/source-evidence-contrast-cases.json",
+  "suite_sha256": "8678f2cabcf32e75ec6e836916cbda99e9594b52e3eaa305fd93e1187b4f34ad",
+  "baseline_contract": "deterministic audit without source_evidence",
+  "bridge_contract": "same deterministic audit with canonical source_evidence; source conflicts are semantic-audit targets, not automatic rewrites",
+  "case_count": 9,
+  "hazard_count": 6,
+  "clean_control_count": 3,
+  "newly_queued_hazards": 6,
+  "missed_hazards": 0,
+  "clean_control_regressions": 0,
+  "covered_asr_reason_codes": [
+    "asr_direction_in_out_divergence",
+    "asr_direction_up_down_divergence",
+    "asr_family_conflict",
+    "asr_polarity_marker_divergence",
+    "asr_question_marker_divergence",
+    "asr_refusal_permission_marker_divergence",
+    "asr_stop_continue_marker_divergence"
+  ],
+  "results": [
+    {
+      "case_id": "polarity-flip",
+      "category": "hazard",
+      "fusion_state": "dual_conflict",
+      "fusion_risk_codes": ["polarity-marker-divergence"],
+      "baseline_status": "passed",
+      "bridge_status": "passed",
+      "bridge_reason_codes": [
+        "asr_polarity_marker_divergence",
+        "asr_family_conflict"
+      ]
+    },
+    {
+      "case_id": "question-flip",
+      "category": "hazard",
+      "fusion_state": "dual_conflict",
+      "fusion_risk_codes": ["question-marker-divergence"],
+      "baseline_status": "passed",
+      "bridge_status": "passed",
+      "bridge_reason_codes": [
+        "asr_question_marker_divergence",
+        "asr_family_conflict"
+      ]
+    },
+    {
+      "case_id": "refusal-permission-flip",
+      "category": "hazard",
+      "fusion_state": "dual_conflict",
+      "fusion_risk_codes": ["refusal-permission-marker-divergence"],
+      "baseline_status": "passed",
+      "bridge_status": "passed",
+      "bridge_reason_codes": [
+        "asr_refusal_permission_marker_divergence",
+        "asr_family_conflict"
+      ]
+    },
+    {
+      "case_id": "stop-continue-flip",
+      "category": "hazard",
+      "fusion_state": "dual_conflict",
+      "fusion_risk_codes": ["stop-continue-marker-divergence"],
+      "baseline_status": "passed",
+      "bridge_status": "passed",
+      "bridge_reason_codes": [
+        "asr_stop_continue_marker_divergence",
+        "asr_family_conflict"
+      ]
+    },
+    {
+      "case_id": "direction-up-down-flip",
+      "category": "hazard",
+      "fusion_state": "dual_conflict",
+      "fusion_risk_codes": ["direction-up-down-divergence"],
+      "baseline_status": "passed",
+      "bridge_status": "passed",
+      "bridge_reason_codes": [
+        "asr_direction_up_down_divergence",
+        "asr_family_conflict"
+      ]
+    },
+    {
+      "case_id": "direction-in-out-flip",
+      "category": "hazard",
+      "fusion_state": "dual_conflict",
+      "fusion_risk_codes": ["direction-in-out-divergence"],
+      "baseline_status": "passed",
+      "bridge_status": "passed",
+      "bridge_reason_codes": [
+        "asr_direction_in_out_divergence",
+        "asr_family_conflict"
+      ]
+    },
+    {
+      "case_id": "exact-clean-control",
+      "category": "clean-control",
+      "fusion_state": "dual_agreement",
+      "fusion_risk_codes": [],
+      "baseline_status": "passed",
+      "bridge_status": "passed",
+      "bridge_reason_codes": []
+    },
+    {
+      "case_id": "compatible-clean-control",
+      "category": "clean-control",
+      "fusion_state": "dual_compatible",
+      "fusion_risk_codes": [],
+      "baseline_status": "passed",
+      "bridge_status": "passed",
+      "bridge_reason_codes": []
+    },
+    {
+      "case_id": "no-evidence-clean-control",
+      "category": "clean-control",
+      "fusion_state": "empty",
+      "fusion_risk_codes": [],
+      "baseline_status": "passed",
+      "bridge_status": "passed",
+      "bridge_reason_codes": []
+    }
+  ],
+  "errors": [],
+  "human_quality_proven": false,
+  "limits": [
+    "hand-authored synthetic cases",
+    "no model call",
+    "no direct audio listening",
+    "no adjudicated human gold"
+  ],
+  "claim_scope": "deterministic source-evidence conflict targeting only; no human translation-quality claim"
+}

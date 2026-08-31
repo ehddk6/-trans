@@ -6,10 +6,22 @@ import pytest
 
 from translation_forensics.codex_exec_provider import CodexUsageLimitError
 from translation_forensics.integrated_translation import (
+    AUTOMATED_AUDIT_PROMPT,
+    _terra_translation_prompt,
     audit_translations_with_sol,
     review_translation_with_visuals,
     translate_units_with_terra,
 )
+
+
+def _semantic_slots(**values):
+    keys = (
+        "speech_act", "question", "polarity", "refusal_permission", "stop_continue",
+        "command_strength", "speaker", "addressee", "actor", "action", "target",
+        "location", "direction", "tense_aspect", "completion", "intensity",
+        "numeric_tokens", "register",
+    )
+    return {key: values.get(key) for key in keys}
 
 
 class FakeProvider:
@@ -23,6 +35,9 @@ class FakeProvider:
                 kwargs["payload"].get("contract")
                 == "source_bound_visual_slot_repair_not_final"
             )
+            units = kwargs["payload"].get("units") or [
+                packet["focus_unit"] for packet in kwargs["payload"]["scene_packets"]
+            ]
             return {
                 "translations": [
                     {
@@ -40,8 +55,19 @@ class FakeProvider:
                             "FUNCTIONAL_RECOVERY" if unit["unit_id"] == "u2" else "RELIABLE"
                         ),
                         "recovery_basis": ["neighboring_turns"] if unit["unit_id"] == "u2" else [],
+                        "semantic_slots": _semantic_slots(
+                            speech_act="statement", question="no", polarity="positive"
+                        ),
+                        "preserved_meaning": ["polarity"],
+                        "competing_interpretations": [],
+                        "risk_codes": (
+                            ["SEMANTIC_CONFLICT_ADDRESSEE"]
+                            if unit["unit_id"] == "u2"
+                            else []
+                        ),
+                        "critic_required": unit["unit_id"] == "u2",
                     }
-                    for unit in kwargs["payload"]["units"]
+                    for unit in units
                 ]
             }, {"call_id": kwargs["call_id"], "image_attachments": []}
         if kwargs["role"] == "translation-audit-sol":
@@ -58,6 +84,8 @@ class FakeProvider:
                         "reasons": [],
                         "meaning_flip": False,
                         "uncertainty_codes": [],
+                        "critical_slot_issues": [],
+                        "unsupported_addition": False,
                     }
                     for unit in kwargs["payload"]["units"]
                 ]
@@ -101,11 +129,49 @@ def test_terra_translates_every_unit_even_when_source_is_suspect():
     assert decisions[1]["recovery_classification"] == "FUNCTIONAL_RECOVERY"
     assert decisions[0]["source_profile"] == "MIXED"
     assert len(receipts) == 2
-    assert provider.calls[0]["payload"]["units"][0]["next_source_japanese"] == "そこ。"
-    assert provider.calls[1]["payload"]["units"][0]["previous_source_japanese"] == "行く？"
+    first_packet = provider.calls[0]["payload"]["scene_packets"][0]
+    second_packet = provider.calls[1]["payload"]["scene_packets"][0]
+    assert first_packet["next_units"][0]["source_japanese"] == "そこ。"
+    assert second_packet["previous_units"][0]["source_japanese"] == "行く？"
+    assert set(decisions[0]["semantic_slots"]) == {
+        "speech_act", "question", "polarity", "refusal_permission", "stop_continue",
+        "command_strength", "speaker", "addressee", "actor", "action", "target",
+        "location", "direction", "tense_aspect", "completion", "intensity",
+        "numeric_tokens", "register",
+    }
 
 
-def test_terra_permits_unresolved_marker_only_for_unusable_unresolved_unit():
+def test_parallel_terra_batches_preserve_source_order():
+    provider = FakeProvider()
+    units = [
+        {
+            "unit_id": f"u{index}",
+            "start": float(index),
+            "end": float(index + 1),
+            "source_japanese": f"台詞{index}",
+            "quality_status": "suspect" if index == 2 else "trusted",
+        }
+        for index in range(1, 5)
+    ]
+
+    decisions, receipts = translate_units_with_terra(
+        provider,
+        title_id="TEST-001",
+        units=units,
+        batch_size=1,
+        max_batch_workers=2,
+    )
+
+    assert [row["unit_id"] for row in decisions] == ["u1", "u2", "u3", "u4"]
+    assert [receipt["call_id"] for receipt in receipts] == [
+        "batch-0001.translation.terra",
+        "batch-0002.translation.terra",
+        "batch-0003.translation.terra",
+        "batch-0004.translation.terra",
+    ]
+
+
+def test_terra_permits_unresolved_marker_only_for_missing_source_text():
     class UnresolvedProvider(FakeProvider):
         def run_structured(self, **kwargs):
             return {
@@ -119,18 +185,188 @@ def test_terra_permits_unresolved_marker_only_for_unusable_unresolved_unit():
                         "review_required_reasons": ["source_unusable"],
                         "recovery_classification": "UNRESOLVED",
                         "recovery_basis": [],
+                        "semantic_slots": _semantic_slots(),
+                        "preserved_meaning": [],
+                        "competing_interpretations": ["unknown"],
+                        "risk_codes": ["source_unusable"],
+                        "critic_required": True,
                     }
                 ]
             }, {"call_id": kwargs["call_id"], "image_attachments": []}
 
     units = [{
         "unit_id": "u1", "start": 0.0, "end": 1.0,
-        "source_japanese": "ご視聴ありがとうございました",
+        "source_japanese": "",
         "quality_status": "unusable",
     }]
     decisions, _ = translate_units_with_terra(UnresolvedProvider(), title_id="TEST-001", units=units)
     assert decisions[0]["source_faithful_korean"] == "[불명]"
     assert decisions[0]["recovery_classification"] == "UNRESOLVED"
+
+
+def test_terra_rejects_unresolved_marker_for_suspect_lexical_source():
+    class SuspectUnresolvedProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            response["translations"][0].update(
+                {
+                    "source_faithful_korean": "[불명]",
+                    "viewer_natural_korean": "[불명]",
+                    "recovery_classification": "UNRESOLVED",
+                    "recovery_basis": [],
+                    "uncertain_slots": ["utterance_function"],
+                    "critic_required": True,
+                }
+            )
+            return response, receipt
+
+    units = [{
+        "unit_id": "u1", "start": 0.0, "end": 1.0,
+        "source_japanese": "聞き取れない", "quality_status": "suspect",
+    }]
+    with pytest.raises(ValueError, match="lexical Japanese"):
+        translate_units_with_terra(
+            SuspectUnresolvedProvider(), title_id="TEST-001", units=units
+        )
+
+
+def test_terra_retries_cached_unresolved_marker_for_lexical_source():
+    class RetryProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            if (
+                kwargs["role"] == "translation-terra"
+                and not kwargs["call_id"].endswith(".lexical-completion-retry")
+            ):
+                response["translations"][0].update(
+                    {
+                        "source_faithful_korean": "[불명]",
+                        "viewer_natural_korean": "[불명]",
+                        "recovery_classification": "UNRESOLVED",
+                        "recovery_basis": [],
+                    }
+                )
+            return response, receipt
+
+    provider = RetryProvider()
+    decisions, receipts = translate_units_with_terra(
+        provider,
+        title_id="TEST-001",
+        units=[{
+            "unit_id": "u1", "start": 0.0, "end": 1.0,
+            "source_japanese": "聞き取れない", "quality_status": "suspect",
+        }],
+    )
+
+    assert decisions[0]["viewer_natural_korean"] == "자연 u1"
+    assert decisions[0]["recovery_classification"] == "RELIABLE"
+    assert decisions[0]["terra_call_id"] == (
+        "batch-0001.translation.terra.u1.lexical-completion-retry"
+    )
+    assert [call["call_id"] for call in provider.calls] == [
+        "batch-0001.translation.terra",
+        "batch-0001.translation.terra.u1.lexical-completion-retry",
+    ]
+    assert [receipt["call_id"] for receipt in receipts] == [
+        "batch-0001.translation.terra",
+        "batch-0001.translation.terra.u1.lexical-completion-retry",
+    ]
+
+
+def test_terra_retries_multiple_lexical_units_without_changing_receipt_order():
+    class MultipleRetryProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            if (
+                kwargs["role"] == "translation-terra"
+                and kwargs["call_id"].endswith(".translation.terra")
+            ):
+                for row in response["translations"]:
+                    row.update(
+                        {
+                            "source_faithful_korean": "[불명]",
+                            "viewer_natural_korean": "[불명]",
+                            "recovery_classification": "UNRESOLVED",
+                            "recovery_basis": [],
+                        }
+                    )
+            return response, receipt
+
+    decisions, receipts = translate_units_with_terra(
+        MultipleRetryProvider(),
+        title_id="TEST-001",
+        units=_units(),
+        batch_size=2,
+        max_batch_workers=2,
+    )
+
+    assert [row["unit_id"] for row in decisions] == ["u1", "u2"]
+    assert [row["terra_call_id"] for row in decisions] == [
+        "batch-0001.translation.terra.u1.lexical-completion-retry",
+        "batch-0001.translation.terra.u2.lexical-completion-retry",
+    ]
+    assert [receipt["call_id"] for receipt in receipts] == [
+        "batch-0001.translation.terra",
+        "batch-0001.translation.terra.u1.lexical-completion-retry",
+        "batch-0001.translation.terra.u2.lexical-completion-retry",
+    ]
+
+
+def test_terra_escalates_a_single_unit_that_repeats_unresolved_marker():
+    class EscalationProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            if (
+                kwargs["role"] == "translation-terra"
+                and not kwargs["call_id"].endswith(".escalation")
+            ):
+                response["translations"][0].update(
+                    {
+                        "source_faithful_korean": "[불명]",
+                        "viewer_natural_korean": "[불명]",
+                        "recovery_classification": "UNRESOLVED",
+                        "recovery_basis": [],
+                    }
+                )
+            return response, receipt
+
+    provider = EscalationProvider()
+    decisions, receipts = translate_units_with_terra(
+        provider,
+        title_id="TEST-001",
+        units=[{
+            "unit_id": "u1", "start": 0.0, "end": 1.0,
+            "source_japanese": "聞き取れない", "quality_status": "suspect",
+        }],
+    )
+
+    assert decisions[0]["viewer_natural_korean"] == "자연 u1"
+    assert decisions[0]["terra_call_id"] == (
+        "batch-0001.translation.terra.u1.lexical-completion-retry.escalation"
+    )
+    assert [call["call_id"] for call in provider.calls] == [
+        "batch-0001.translation.terra",
+        "batch-0001.translation.terra.u1.lexical-completion-retry",
+        "batch-0001.translation.terra.u1.lexical-completion-retry.escalation",
+    ]
+    assert [receipt["call_id"] for receipt in receipts] == [
+        "batch-0001.translation.terra",
+        "batch-0001.translation.terra.u1.lexical-completion-retry.escalation",
+    ]
+
+
+def test_terra_rejects_human_hold_marker_for_lexical_source():
+    class HoldMarkerProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            response["translations"][0]["source_faithful_korean"] = "[원문 불명확]"
+            response["translations"][0]["viewer_natural_korean"] = "[원문 불명확]"
+            return response, receipt
+
+    with pytest.raises(ValueError, match="lexical completion escalation failed"):
+        translate_units_with_terra(
+            HoldMarkerProvider(), title_id="TEST-001", units=_units()[:1]
+        )
 
 
 def test_terra_rejects_unresolved_classification_with_invented_text():
@@ -151,13 +387,13 @@ def test_terra_rejects_unresolved_classification_with_invented_text():
         "unit_id": "u1", "start": 0.0, "end": 1.0,
         "source_japanese": "ご視聴ありがとうございました", "quality_status": "unusable",
     }]
-    with pytest.raises(ValueError, match="exactly"):
+    with pytest.raises(ValueError, match="lexical Japanese"):
         translate_units_with_terra(
             InventedUnresolvedProvider(), title_id="TEST-001", units=units
         )
 
 
-def test_terra_rejects_unresolved_marker_for_recoverable_source():
+def test_terra_rejects_unresolved_marker_for_lexical_source():
     class InvalidMarkerProvider(FakeProvider):
         def run_structured(self, **kwargs):
             response, receipt = super().run_structured(**kwargs)
@@ -166,7 +402,7 @@ def test_terra_rejects_unresolved_marker_for_recoverable_source():
             response["translations"][0]["recovery_classification"] = "UNRESOLVED"
             return response, receipt
 
-    with pytest.raises(ValueError, match="unresolved_marker"):
+    with pytest.raises(ValueError, match="lexical Japanese"):
         translate_units_with_terra(InvalidMarkerProvider(), title_id="TEST-001", units=_units()[:1])
 
 
@@ -196,6 +432,38 @@ def test_terra_rejects_missing_recovery_contract_fields_from_any_provider():
         )
 
 
+def test_terra_rejects_missing_semantic_slots_from_any_provider():
+    class MissingSlotsProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            response["translations"][0].pop("semantic_slots")
+            return response, receipt
+
+    with pytest.raises(ValueError, match="semantic_slots"):
+        translate_units_with_terra(
+            MissingSlotsProvider(), title_id="TEST-001", units=_units()[:1]
+        )
+
+
+def test_terra_scene_packet_carries_three_turns_of_context():
+    provider = FakeProvider()
+    units = [
+        {
+            "unit_id": f"u{index}", "start": float(index), "end": float(index + 1),
+            "source_japanese": f"台詞{index}",
+            "quality_status": "suspect" if index == 2 else "trusted",
+            "speaker": f"speaker-{index % 2}",
+        }
+        for index in range(1, 8)
+    ]
+    translate_units_with_terra(provider, title_id="TEST-001", units=units, batch_size=7)
+    packet = provider.calls[0]["payload"]["scene_packets"][3]
+    assert packet["focus_unit"]["unit_id"] == "u4"
+    assert [row["unit_id"] for row in packet["previous_units"]] == ["u1", "u2", "u3"]
+    assert [row["unit_id"] for row in packet["next_units"]] == ["u5", "u6", "u7"]
+    assert packet["focus_unit"]["speaker"] == "speaker-0"
+
+
 def test_terra_requires_basis_for_functional_recovery():
     class MissingBasisProvider(FakeProvider):
         def run_structured(self, **kwargs):
@@ -211,13 +479,47 @@ def test_terra_requires_basis_for_functional_recovery():
         )
 
 
-def test_terra_rejects_missing_batch_coverage():
-    class MissingProvider(FakeProvider):
+def test_terra_retries_missing_batch_coverage_with_a_fresh_call():
+    class CoverageRetryProvider(FakeProvider):
         def run_structured(self, **kwargs):
-            return {"translations": []}, {}
+            if kwargs["call_id"] == "batch-0001.translation.terra":
+                self.calls.append(kwargs)
+                return {"translations": []}, {"call_id": kwargs["call_id"]}
+            return super().run_structured(**kwargs)
 
+    provider = CoverageRetryProvider()
+    decisions, receipts = translate_units_with_terra(
+        provider, title_id="TEST-001", units=_units()
+    )
+
+    assert [row["unit_id"] for row in decisions] == ["u1", "u2"]
+    assert [row["terra_call_id"] for row in decisions] == [
+        "batch-0001.translation.terra.coverage-retry",
+        "batch-0001.translation.terra.coverage-retry",
+    ]
+    assert [receipt["call_id"] for receipt in receipts] == [
+        "batch-0001.translation.terra",
+        "batch-0001.translation.terra.coverage-retry",
+    ]
+    assert "Mandatory batch coverage retry" in provider.calls[1]["prompt"]
+
+
+def test_terra_rejects_missing_batch_coverage_after_retry():
+    class MissingProvider(FakeProvider):
+        def __init__(self):
+            super().__init__()
+
+        def run_structured(self, **kwargs):
+            self.calls.append(kwargs)
+            return {"translations": []}, {"call_id": kwargs["call_id"]}
+
+    provider = MissingProvider()
     with pytest.raises(ValueError, match="coverage mismatch"):
-        translate_units_with_terra(MissingProvider(), title_id="TEST-001", units=_units())
+        translate_units_with_terra(provider, title_id="TEST-001", units=_units())
+    assert [call["call_id"] for call in provider.calls] == [
+        "batch-0001.translation.terra",
+        "batch-0001.translation.terra.coverage-retry",
+    ]
 
 
 def test_terra_drops_only_unrequested_extra_rows_and_records_warning():
@@ -234,6 +536,11 @@ def test_terra_drops_only_unrequested_extra_rows_and_records_warning():
                         "review_required_reasons": [],
                         "recovery_classification": "RELIABLE",
                         "recovery_basis": [],
+                        "semantic_slots": _semantic_slots(),
+                        "preserved_meaning": [],
+                        "competing_interpretations": [],
+                        "risk_codes": [],
+                        "critic_required": False,
                 }
             )
             return response, receipt
@@ -252,17 +559,71 @@ def test_sol_audit_returns_item_level_evidence_without_rewriting_translation():
     decisions, _ = translate_units_with_terra(provider, title_id="TEST-001", units=_units())
     original = [row["viewer_natural_korean"] for row in decisions]
     updated, receipts, records = audit_translations_with_sol(
-        provider, title_id="TEST-001", decisions=decisions, batch_size=1
+        provider,
+        title_id="TEST-001",
+        decisions=decisions,
+        batch_size=1,
+        max_batch_workers=2,
     )
     assert [row["viewer_natural_korean"] for row in updated] == original
-    assert len(receipts) == len(records) == 2
-    assert all(row["sol_audit_status"] == "completed" for row in records)
-    assert all(row["audit_call_id"].endswith("translation-audit.sol") for row in records)
-    assert provider.calls[-2]["payload"]["units"][0]["next_source_japanese"] == "そこ。"
-    assert provider.calls[-1]["payload"]["units"][0]["previous_source_japanese"] == "行く？"
+    assert len(receipts) == 1
+    assert len(records) == 2
+    assert records[0]["semantic_audit_status"] == "not-selected"
+    assert records[0]["semantic_audit_selection_reasons"] == []
+    assert records[1]["semantic_audit_status"] == "pass"
+    assert records[1]["audit_call_id"].endswith("translation-audit.sol")
+    audit_call = next(
+        call for call in provider.calls if call["role"] == "translation-audit-sol"
+    )
+    assert [row["unit_id"] for row in audit_call["payload"]["units"]] == ["u2"]
+    assert audit_call["payload"]["units"][0]["previous_source_japanese"] == "行く？"
 
 
-def test_sol_pass_with_empty_backtranslation_or_low_score_is_fallback():
+def test_sol_skips_generic_source_and_uncertainty_metadata():
+    provider = FakeProvider()
+    decisions, _ = translate_units_with_terra(
+        provider, title_id="TEST-001", units=_units()[:1]
+    )
+    decisions[0].update(
+        {
+            "critic_required": True,
+            "uncertain_slots": ["addressee"],
+            "competing_interpretations": ["A or B"],
+            "risk_codes": [
+                "SUSPECT_SOURCE",
+                "SINGLE_FAMILY_ASR",
+                "GARBLED_SOURCE",
+            ],
+        }
+    )
+
+    updated, receipts, records = audit_translations_with_sol(
+        provider, title_id="TEST-001", decisions=decisions
+    )
+
+    assert receipts == []
+    assert updated[0]["semantic_audit_status"] == "not-selected"
+    assert records[0]["semantic_audit_selection_reasons"] == []
+    assert not [call for call in provider.calls if call["role"] == "translation-audit-sol"]
+
+
+def test_sol_skips_heuristic_fallback_without_an_explicit_semantic_conflict():
+    provider = FakeProvider()
+    decisions, _ = translate_units_with_terra(
+        provider, title_id="TEST-001", units=_units()[:1]
+    )
+    decisions[0]["automated_quality_status"] = "fallback"
+
+    updated, receipts, records = audit_translations_with_sol(
+        provider, title_id="TEST-001", decisions=decisions
+    )
+
+    assert receipts == []
+    assert updated[0]["semantic_audit_status"] == "not-selected"
+    assert records[0]["semantic_audit_selection_reasons"] == []
+
+
+def test_sol_missing_backtranslation_is_inconclusive_without_flattening_display():
     class WeakAuditProvider(FakeProvider):
         def run_structured(self, **kwargs):
             response, receipt = super().run_structured(**kwargs)
@@ -276,12 +637,47 @@ def test_sol_pass_with_empty_backtranslation_or_low_score_is_fallback():
         provider, title_id="TEST-001", units=_units()[:1]
     )
     decisions[0]["automated_quality_status"] = "passed"
+    decisions[0]["critic_required"] = True
+    decisions[0]["risk_codes"] = ["SEMANTIC_CONFLICT_MEANING"]
+    updated, _, records = audit_translations_with_sol(
+        provider, title_id="TEST-001", decisions=decisions
+    )
+    assert updated[0]["automated_quality_status"] == "passed"
+    assert records[0]["model_verdict"] == "pass"
+    assert records[0]["semantic_audit_status"] == "inconclusive"
+    assert "sol_backtranslation_empty" in records[0]["reasons"]
+
+
+def test_sol_critical_slot_issue_forces_fallback():
+    class CriticalSlotProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            if kwargs["role"] == "translation-audit-sol":
+                response["audits"][0]["critical_slot_issues"] = ["polarity"]
+            return response, receipt
+
+    provider = CriticalSlotProvider()
+    decisions, _ = translate_units_with_terra(
+        provider, title_id="TEST-001", units=_units()[:1]
+    )
+    decisions[0]["automated_quality_status"] = "passed"
+    decisions[0]["critic_required"] = True
+    decisions[0]["risk_codes"] = ["SEMANTIC_CONFLICT_POLARITY"]
     updated, _, records = audit_translations_with_sol(
         provider, title_id="TEST-001", decisions=decisions
     )
     assert updated[0]["automated_quality_status"] == "fallback"
-    assert records[0]["model_verdict"] == "fail"
-    assert "sol_backtranslation_empty" in records[0]["reasons"]
+    assert records[0]["model_verdict"] == "pass"
+    assert records[0]["semantic_audit_status"] == "issue"
+    assert "sol_critical_slot:polarity" in records[0]["reasons"]
+
+
+def test_translation_and_audit_prompts_keep_style_and_semantics_separate():
+    translation_prompt = _terra_translation_prompt()
+    assert "viewer-natural field is the primary subtitle" in translation_prompt
+    assert "Draft it first" in translation_prompt
+    assert "not a naturalness, tone, censorship, or literalness review" in AUTOMATED_AUDIT_PROMPT
+    assert "adult-genre register" in AUTOMATED_AUDIT_PROMPT
 
 
 def test_visual_review_is_bounded_and_records_transfer(tmp_path):

@@ -937,6 +937,9 @@ def test_end_to_end_conflict_rerun_is_block_local_and_re_fused(tmp_path, monkeyp
         "scene-0001.meaning-rerun.sol",
         "scene-0001.meaning-rerun.terra",
     ]
+    initial_locked = provider.payloads["scene-0001.meaning.terra"]["locked_blocks"]
+    assert initial_locked[0]["source_text_evidence_ref"] == "source-srt:block-1"
+    assert initial_locked[0]["asr_fusion"]["state"] == "empty"
     decisions = {
         int(row["block_number"]): row
         for row in (

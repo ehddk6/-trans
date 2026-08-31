@@ -12,4 +12,6 @@
 
 Terra 계약은 translation queue의 `consistency_context`를 입력으로 받는다. source-faithful이 근거·불확실성·일관성 충돌을 먼저 기록하고, viewer-natural은 같은 의미 범위 안에서만 자막화를 수행한다. 현재 블록과 무관한 장편 원장 전체는 전달하지 않는다.
 
-프롬프트 manifest의 해시는 파일 무결성·계약 버전을 확인한다. 모델이 실제로 해당 규칙을 따랐는지나 인간 번역 품질을 증명하지는 않는다.
+`process-title`의 운영 overlay는 schema v3부터 각 unit의 additive `source_evidence`도 받는다. 이 record는 원시 ASR metric을 명령으로 취급하지 않고, canonical family fusion·risk·utterance route를 읽기 전용 진단으로 제공한다. dual conflict는 불확실성·보류를 강화하지만 dual agreement만으로 확신도나 final 상태를 높이지 않는다.
+
+프롬프트 manifest의 텍스트 해시는 UTF-8과 LF newline을 canonical identity로 사용하므로 Windows CRLF checkout에서도 같은 계약을 가리킨다. 실제 내용 변경은 해시 불일치로 거부한다. 이 해시는 파일 무결성·계약 버전을 확인할 뿐, 모델이 실제로 규칙을 따랐는지나 인간 번역 품질을 증명하지는 않는다.

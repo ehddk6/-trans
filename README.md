@@ -52,6 +52,8 @@ python -m translation_forensics process-title `
 승인된 일본어 SRT를 정본으로 사용할 때만 `--reference-ja ... --reference-ja-approved`를 함께 쓴다. 참조와 기존 번들이 모두 없으면 VAD를 끈 `large-v3-turbo` 전체 전사와 제한적 Qwen 검증을 실행한다. `targeted`는 모호한 단위에 한해 최대 3장을 Codex에 전송한다. 전송을 원치 않으면 `--visual-policy metadata` 또는 `off`를 쓴다.
 `--legacy-captures`를 생략하거나 사진 폴더가 비어 있으면 선택된 모호 단위의 시작·중앙·끝 프레임을 영상에서 자동 생성한다. 생성 프레임은 실행 번들의 `generated-frames/`와 `capture_index.jsonl`에 해시·타임스탬프와 함께 기록된다.
 
+ensemble transcript에 `asr_metrics.backend`와 `qwen_alternatives`가 있으면 정본 경로는 이를 `translation_units_ja.jsonl.source_evidence`로 보존한다. 같은 Whisper 계열의 별칭·반복은 한 표로 합치며, 극성·질문·거절/허용·중단/계속·방향의 Qwen/Whisper 충돌은 `automated_quality.jsonl`에 이유 코드를 남기고 해당 단위를 `machine-uncertain`으로 제한한다. 근거가 없으면 `unavailable`이며, ASR 합의만으로 상태나 확신도를 올리지 않는다.
+
 산출물은 `workspaces/<TITLE>/integrated/<run-id>/`에 원자적으로 생성된다. 기본 `automated` 정책은 사람 승인 없이 자동 의미 보존 게이트를 적용하고, 실패 단위는 원문 충실 폴백과 `automated_quality.jsonl`로 표시한다. 모두 통과하면 `machine-final`, 폴백이 있으면 `machine-uncertain` 상태가 된다. 기존 사람 승인 동작이 필요하면 `--quality-policy legacy`를 사용한다. 상세 계약은 [`docs/INTEGRATED_PROCESS_TITLE.md`](docs/INTEGRATED_PROCESS_TITLE.md)에 있다.
 
 ## 초보 사용자를 위한 짧은 요청
@@ -175,6 +177,14 @@ python -m translation_forensics.cli build-translation-queue --project-root . --t
 python -m translation_forensics.cli validate-quality-regressions `
   --input .\tests\fixtures\translation-quality-regressions.json
 ```
+
+정본 evidence bridge의 최소대조 평가는 같은 deterministic audit를 bridge 전후로 실행한다. 현재 동결 fixture는 위험 6건과 정상 대조 3건이며, 결과는 `evaluation/engineering/canonical-evidence-bridge-v1.json`에 있다.
+
+```powershell
+python -c "import json; from pathlib import Path; from translation_forensics.evidence_bridge_evaluation import evaluate_source_evidence_contrasts; print(json.dumps(evaluate_source_evidence_contrasts(Path('tests/fixtures/source-evidence-contrast-cases.json')), ensure_ascii=False, indent=2))"
+```
+
+이 평가는 ASR 충돌 탐지의 engineering evidence일 뿐, 사람 청취 번역 품질 점수가 아니다.
 
 기존 큐/적용 경로의 반복 번역에는 [prompts/terra-semantic-translation-v1.md](prompts/terra-semantic-translation-v1.md)와 함께 제공하는 버전·해시·시험 사례 계약을 사용한다. 이 legacy 경로는 템플릿 계약만 검사하고 모델을 호출하지 않는다. 실제 Codex Terra/Sol 호출은 영수증을 남기는 `process-title` 또는 명시적 autonomous 명령에서만 수행한다.
 

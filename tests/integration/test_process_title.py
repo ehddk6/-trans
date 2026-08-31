@@ -26,6 +26,16 @@ from subtitle_pipeline.media import build_media_binding
 process_title_module = importlib.import_module("translation_forensics.process_title")
 
 
+def _semantic_slots(**values):
+    keys = (
+        "speech_act", "question", "polarity", "refusal_permission", "stop_continue",
+        "command_strength", "speaker", "addressee", "actor", "action", "target",
+        "location", "direction", "tense_aspect", "completion", "intensity",
+        "numeric_tokens", "register",
+    )
+    return {key: values.get(key) for key in keys}
+
+
 class FakeProvider:
     def __init__(self) -> None:
         self.calls = []
@@ -34,7 +44,10 @@ class FakeProvider:
         self.calls.append(kwargs)
         if kwargs["role"] == "translation-terra":
             translations = []
-            for unit in kwargs["payload"]["units"]:
+            units = kwargs["payload"].get("units") or [
+                packet["focus_unit"] for packet in kwargs["payload"]["scene_packets"]
+            ]
+            for unit in units:
                 ambiguous = unit["unit_id"] == "utt_000002"
                 translations.append(
                     {
@@ -48,6 +61,17 @@ class FakeProvider:
                             "FUNCTIONAL_RECOVERY" if ambiguous else "RELIABLE"
                         ),
                         "recovery_basis": ["neighboring_turns"] if ambiguous else [],
+                        "semantic_slots": _semantic_slots(
+                            speech_act="question" if ambiguous else "greeting",
+                            question="yes" if ambiguous else "no",
+                            polarity="positive",
+                        ),
+                        "preserved_meaning": ["question"] if ambiguous else [],
+                        "competing_interpretations": [],
+                        "risk_codes": (
+                            ["SEMANTIC_CONFLICT_ADDRESSEE"] if ambiguous else []
+                        ),
+                        "critic_required": ambiguous,
                     }
                 )
             return {"translations": translations}, self._receipt(kwargs)
@@ -67,6 +91,8 @@ class FakeProvider:
                         "reasons": ["ambiguous context"] if ambiguous else [],
                         "meaning_flip": False,
                         "uncertainty_codes": ["context_ambiguous"] if ambiguous else [],
+                        "critical_slot_issues": [],
+                        "unsupported_addition": False,
                     }
                 )
             return {"audits": audits}, self._receipt(kwargs)
@@ -261,6 +287,7 @@ def test_process_title_packages_complete_draft_but_holds_unaccepted_bundle_candi
     run_dir = Path(result["run_dir"])
     complete, _, _ = parse_srt(run_dir / "outputs" / "viewer_complete_ko.srt")
     faithful, _, _ = parse_srt(run_dir / "outputs" / "source_faithful_ko.srt")
+    natural, _, _ = parse_srt(run_dir / "outputs" / "viewer_natural_ko.srt")
     assert len(complete) == 2 and all(block.text for block in complete)
     assert [block.text for block in faithful] == ["[검수 보류]", "[검수 보류]"]
     assert result["candidate_units"] == 0
@@ -309,6 +336,7 @@ def test_automated_quality_policy_replaces_human_holds_with_safe_fallback(tmp_pa
     run_dir = Path(result["run_dir"])
     complete, _, _ = parse_srt(run_dir / "outputs" / "viewer_complete_ko.srt")
     faithful, _, _ = parse_srt(run_dir / "outputs" / "source_faithful_ko.srt")
+    natural, _, _ = parse_srt(run_dir / "outputs" / "viewer_natural_ko.srt")
     assert result["quality_policy"] == "automated"
     assert result["pending_review_count"] == 0
     assert result["candidate_units"] == 2
@@ -325,15 +353,139 @@ def test_automated_quality_policy_replaces_human_holds_with_safe_fallback(tmp_pa
     assert qa_report["final_promotion_allowed"] is False
     assert all("검수 보류" not in block.text for block in complete + faithful)
     assert faithful[1].text == "당신은 거기 있나요?"
+    assert natural[1].text == "거기 있어요?"
+    assert complete[1].text == "거기 있어요?"
     audits = [
         json.loads(line)
         for line in (run_dir / "automated_quality.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
     assert len(audits) == 2
-    assert {row["status"] for row in audits} == {"passed", "fallback"}
+    assert {row["status"] for row in audits} == {"passed"}
+    assert {row["semantic_audit_status"] for row in audits} == {
+        "not-selected",
+        "inconclusive",
+    }
     assert all(row["selected_sha256"] for row in audits)
     assert all(row["render_binding"] == "unit_order_and_unit_id" for row in audits)
+
+
+def test_clean_low_risk_lines_do_not_require_an_independent_semantic_call(tmp_path):
+    media, bundle, _ = _make_existing_bundle(tmp_path, accepted=True)
+
+    class CleanProvider(FakeProvider):
+        def run_structured(self, **kwargs):
+            response, receipt = super().run_structured(**kwargs)
+            if kwargs["role"] == "translation-terra":
+                for row in response["translations"]:
+                    row.update(
+                        {
+                            "confidence": "high",
+                            "uncertain_slots": [],
+                            "recovery_classification": "RELIABLE",
+                            "recovery_basis": [],
+                            "risk_codes": [],
+                            "critic_required": False,
+                        }
+                    )
+            return response, receipt
+
+    provider = CleanProvider()
+    result = process_title(
+        ProcessTitleConfig(
+            project_root=tmp_path / "project",
+            title_id="ADN-622",
+            media=media,
+            japanese_bundle=bundle,
+            visual_policy="off",
+            quality_policy="automated",
+            resume=True,
+        ),
+        provider=provider,
+    )
+
+    assert result["status"] == "machine-verified"
+    assert not [
+        call for call in provider.calls if call["role"] == "translation-audit-sol"
+    ]
+    audits = [
+        json.loads(line)
+        for line in (
+            Path(result["run_dir"]) / "automated_quality.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert {row["semantic_audit_status"] for row in audits} == {"not-selected"}
+
+
+def test_process_title_carries_asr_conflict_into_machine_uncertain_gate(tmp_path):
+    media, bundle, _ = _make_existing_bundle(tmp_path, accepted=True)
+    transcript = bundle / "transcript_ja.jsonl"
+    rows = [
+        json.loads(line)
+        for line in transcript.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    rows[0]["asr_metrics"] = {
+        "backend": "faster-whisper-large-v3",
+        "qwen_alternatives": ["こんにちは？"],
+    }
+    transcript.write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
+        encoding="utf-8",
+        newline="\n",
+    )
+    provider = FakeProvider()
+
+    result = process_title(
+        ProcessTitleConfig(
+            project_root=tmp_path / "project",
+            title_id="ADN-622",
+            media=media,
+            japanese_bundle=bundle,
+            visual_policy="off",
+            quality_policy="automated",
+            resume=True,
+        ),
+        provider=provider,
+    )
+
+    run_dir = Path(result["run_dir"])
+    decisions = [
+        json.loads(line)
+        for line in (run_dir / "translation_decisions.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        if line.strip()
+    ]
+    audits = [
+        json.loads(line)
+        for line in (run_dir / "automated_quality.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        if line.strip()
+    ]
+    assert result["status"] == "machine-uncertain"
+    assert decisions[0]["source_evidence"]["asr_fusion"]["state"] == "dual_conflict"
+    assert decisions[0]["translation_status"] == "machine_uncertain"
+    assert audits[0]["source_evidence_risk_codes"] == [
+        "question-marker-divergence"
+    ]
+    assert "asr_question_marker_divergence" in audits[0]["reasons"]
+
+    terra_payload = next(
+        call["payload"] for call in provider.calls if call["role"] == "translation-terra"
+    )
+    sol_payload = next(
+        call["payload"]
+        for call in provider.calls
+        if call["role"] == "translation-audit-sol"
+    )
+    assert (
+        terra_payload["scene_packets"][0]["focus_unit"]["source_evidence"]["bridge_state"]
+        == "conflict"
+    )
+    assert sol_payload["units"][0]["source_evidence"]["bridge_state"] == "conflict"
 
 
 def test_metadata_visual_policy_never_transfers_pixels(tmp_path):
@@ -516,7 +668,11 @@ def test_partial_resume_repairs_tampered_output_and_missing_audit_receipts(tmp_p
         if line.strip()
     ]
     receipt_ids = {row["call_id"] for row in receipts}
-    assert {row["audit_call_id"] for row in audits} <= receipt_ids
+    assert {
+        row["audit_call_id"]
+        for row in audits
+        if row.get("audit_call_id")
+    } <= receipt_ids
 
 
 def test_existing_bundle_is_rejected_after_same_path_media_content_changes(tmp_path):
@@ -617,7 +773,11 @@ def test_audit_attempt_creates_superseding_run_after_usage_limit(tmp_path):
         .splitlines()
         if line.strip()
     ]
-    assert all(row.get("sol_audit_status") == "completed" for row in retry_records)
+    assert any(row.get("sol_audit_status") == "completed" for row in retry_records)
+    assert all(
+        row.get("semantic_audit_status") in {"pass", "inconclusive", "not-selected"}
+        for row in retry_records
+    )
 
 
 def test_promoted_manifest_tamper_is_rejected_before_latest_repair(tmp_path):

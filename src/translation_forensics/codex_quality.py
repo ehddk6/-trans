@@ -11,8 +11,9 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from .codex_exec_provider import CodexExecProvider, canonical_json, sha256_json, validate_call_receipt
-from .local_asr import FasterWhisperBackend, LocalASRError, ReazonSpeechBackend, run_conflict_asr_rerun
+from .local_asr import LocalASRError, run_conflict_asr_rerun
 from .asr_fusion import add_asr_fusion
+from .evidence_bridge import prepare_acoustic_evidence
 from .graduated_recovery import (
     build_frame_agreement,
     derive_slot_corroboration,
@@ -320,6 +321,7 @@ def _scene_payload(
                 "start": block.start,
                 "end": block.end,
                 "japanese_srt": block.text,
+                "source_text_evidence_ref": f"source-srt:block-{block.number}",
                 "source_quality_status": source_quality[block.number]["source_quality_status"],
                 "source_quality_reasons": source_quality[block.number].get("reason_codes", []),
                 "evidence_refs": acoustic[block.number].get("evidence_refs", []),
@@ -574,7 +576,12 @@ def run_codex_quality_title(
     expected = [block.number for block in structure]
     source_text_by_number = {block.number: block.text for block in structure}
     source_quality = _load_by_block(source_quality_map_path, expected, "source quality")
-    acoustic = _load_by_block(acoustic_evidence_path, expected, "acoustic evidence")
+    acoustic = {
+        number: prepare_acoustic_evidence(record)
+        for number, record in _load_by_block(
+            acoustic_evidence_path, expected, "acoustic evidence"
+        ).items()
+    }
     ceiling = evaluate_evidence_ceiling(
         title_id=title_id,
         expected_blocks=expected,
@@ -654,7 +661,7 @@ def run_codex_quality_title(
     all_agreements: list[dict[str, Any]] = []
     all_receipts: list[dict[str, Any]] = []
     all_critiques: list[dict[str, Any]] = []
-    conflict_backends: list[Any] | None = None
+    conflict_backends: list[Any] = []
 
     for scene_index, scene in enumerate(scenes):
         scene_id = f"scene-{scene_index + 1:04d}"
@@ -703,14 +710,6 @@ def run_codex_quality_title(
         ]
         if conflict_numbers and audio_path is not None:
             try:
-                if conflict_backends is None:
-                    conflict_backends = [
-                        FasterWhisperBackend(
-                            force_cpu=force_cpu,
-                            local_files_only=not allow_model_download,
-                        ),
-                        ReazonSpeechBackend(),
-                    ]
                 by_block = {block.number: block for block in scene}
                 rerun_evidence = run_conflict_asr_rerun(
                     title_id=title_id,
@@ -720,7 +719,7 @@ def run_codex_quality_title(
                     force_cpu=force_cpu,
                     allow_model_download=allow_model_download,
                     resume=resume,
-                    backends=conflict_backends,
+                    backend_cache=conflict_backends,
                 )
                 for number, evidence in rerun_evidence.items():
                     acoustic[number] = add_asr_fusion(

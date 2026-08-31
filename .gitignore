@@ -6,6 +6,10 @@
 .cache/
 pilot-rerun*.log
 
+# Local assistant configuration and disposable run logs.
+.claude/
+visual-runs-*/
+
 # 모든 생성 산출물 (workspaces 내 전부 제외)
 workspaces/
 !workspaces/.gitkeep

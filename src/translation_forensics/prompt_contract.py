@@ -24,7 +24,17 @@ AUTONOMOUS_REQUIRED_OUTPUT_FIELDS = {
 
 
 def sha256_text(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """Hash UTF-8 text after universal-newline normalization.
+
+    Git may materialize CRLF on Windows even when a manifest was created from
+    the LF repository blob. Prompt and JSON contracts are text, so their
+    integrity identity is canonical UTF-8 with LF newlines rather than an
+    operating-system checkout detail.
+    """
+
+    with path.open("r", encoding="utf-8-sig", newline=None) as handle:
+        canonical = handle.read()
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _validate_hashed_file(

@@ -2570,6 +2570,7 @@ def cmd_process_title(args: argparse.Namespace) -> int:
         auto_capture_frames=args.auto_capture_frames,
         quality_policy=args.quality_policy,
         translation_batch_size=args.translation_batch_size,
+        model_batch_workers=args.model_batch_workers,
         qwen_root=args.qwen_root,
         review_decisions=args.review_decisions,
         resume=args.resume,
@@ -2746,6 +2747,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="사람 승인 없이 자동 품질 게이트를 사용 (기본값: automated)",
     )
     p.add_argument("--translation-batch-size", type=int, default=40)
+    p.add_argument("--model-batch-workers", type=int, default=1, help="동시에 실행할 독립 모델 배치 수 (기본값: 1)")
     p.add_argument("--qwen-root", type=Path, help="Qwen3ASR 런타임 루트; 환경변수도 지원")
     p.add_argument("--review-decisions", type=Path, help="사람 검수 결정 JSONL")
     p.add_argument("--resume", action="store_true")

@@ -12,6 +12,18 @@
 
 번역 원문은 항상 `transcript_ja.jsonl`의 `text_raw`다. 반복 축약·표시 최적화가 적용된 `viewer_ja.srt`는 번역 입력이 아니다. `translation_ja.srt`는 공백 정규화 후 원문 내용이 100% 일치할 때만 생성된다.
 
+## Canonical source-evidence bridge
+
+`process-title` schema v3은 subtitle ensemble이 `asr_metrics`에 남긴 primary backend와 Qwen 대안을 버리지 않고 각 `TranslationUnit.source_evidence`에 복사한다. 공용 bridge가 다음 순서로 처리한다.
+
+1. 원시 source text, 대안, 선언 계열명, evidence ID를 보존한다.
+2. `whisper`, `faster-whisper-*`처럼 같은 계열의 별칭을 canonical family 하나로 합친다. 등록되지 않은 계열명은 모두 `unverified` 한 계열로 접어 독립 투표를 만들지 못하게 한다.
+3. 기존 v2 `asr_fusion`으로 dual agreement/compatible/conflict와 의미 반전 risk를 다시 계산하고, frame 없는 단계에서 보수적 utterance route를 기록한다.
+4. 같은 record를 Terra 입력, Sol 감사 입력, deterministic gate, 실행 결정에 운반한다.
+5. 합의는 승격에 사용하지 않는다. dual conflict, 특히 polarity/question/refusal-permission/stop-continue/direction risk만 자동 폴백을 추가한다.
+
+필드가 없는 과거 translation-unit v1은 `source_evidence={}`로 읽을 수 있다. 새 v2 단위에서 필드가 빠지면 resume을 거부한다. process schema v3은 bridge 이전 partial/cache 실행을 현재 실행으로 오인해 재사용하지 않는다.
+
 ## 게이트
 
 - `valid=false` 또는 구조/인식/정렬 실패: 실행 중단
@@ -47,9 +59,9 @@ Sol 사용량 제한이나 timeout으로 `machine-uncertain`이 된 immutable �
 - `input_manifest.json`: 원본 경로·크기·mtime·SHA-256
 - `japanese/**/source_media.json`: 일본어 자막 번들과 원본 미디어의 SHA-256·실제 길이 결속
 - `japanese_bundle.json`: backend, 독립 게이트, 아티팩트 해시
-- `translation-input/translation_units_ja.jsonl`: 원문·시각·단어 시각·경고·근거
+- `translation-input/translation_units_ja.jsonl`: 원문·시각·단어 시각·경고·근거와 additive `source_evidence`
 - `translation_decisions.jsonl`: Terra/Sol 기계 결정
-- `automated_quality.jsonl`: deterministic 의미 보존 검사·점수·폴백 사유와 Sol `pass/fail/unknown`·역번역 보조 증거·감사 호출 ID
+- `automated_quality.jsonl`: deterministic 의미 보존 검사·점수·ASR fusion state/risk·폴백 사유와 Sol `pass/fail/unknown`·역번역 보조 증거·감사 호출 ID
 - `visual_context.jsonl`: 프레임 선택·허용 슬롯·전송 영수증
 - `review_queue.jsonl`, `review_decisions.jsonl`: `legacy` 호환 정책의 보류 사유와 사람 결정(`automated`에서는 비어 있음)
 - `qa_report.json`: 커버리지, 일본어 잔존, 반복, 질문/부정, 영수증 검사

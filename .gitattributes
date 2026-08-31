@@ -1,0 +1,11 @@
+* text=auto
+
+# Prompt contracts and their hashed schemas use canonical LF text hashes.
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf

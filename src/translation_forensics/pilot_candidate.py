@@ -8,6 +8,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from .manifest import sha256_file
+from .prompt_contract import sha256_text
 from .srt import SubtitleBlock, compare_structure, has_japanese, parse_srt, write_srt
 
 
@@ -79,6 +80,17 @@ def _file_ref(path: Path, project_root: Path) -> dict[str, Any]:
     return {
         "path": _portable_path(resolved, project_root),
         "sha256": sha256_file(resolved),
+        "size_bytes": resolved.stat().st_size,
+    }
+
+
+def _prompt_ref(path: Path, project_root: Path) -> dict[str, Any]:
+    """Bind a prompt to the same canonical text identity as its manifest."""
+
+    resolved = path.expanduser().resolve()
+    return {
+        "path": _portable_path(resolved, project_root),
+        "sha256": sha256_text(resolved),
         "size_bytes": resolved.stat().st_size,
     }
 
@@ -409,8 +421,8 @@ def build_pilot_candidate(
         "inputs": {
             "locked_structure": _file_ref(structure_path, project_root),
             "frozen_baseline": _file_ref(baseline_path, project_root),
-            "terra_prompt": _file_ref(terra_prompt_path, project_root),
-            "sol_prompt": _file_ref(sol_prompt_path, project_root),
+            "terra_prompt": _prompt_ref(terra_prompt_path, project_root),
+            "sol_prompt": _prompt_ref(sol_prompt_path, project_root),
         },
         "stages": [
             {

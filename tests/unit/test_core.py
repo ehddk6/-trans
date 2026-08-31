@@ -15,7 +15,7 @@ from translation_forensics.discovery import DiscoveryError, resolve_role
 from translation_forensics.forensics_adapter import build_fallback_queue
 from translation_forensics.forensic_model import empty_semantic_frame, evidence_independence, frame_conflicts, initialize_forensic_records, validate_forensic_records
 from translation_forensics.manifest import build_project_manifest, sha256_file
-from translation_forensics.prompt_contract import validate_prompt_contract
+from translation_forensics.prompt_contract import sha256_text, validate_prompt_contract
 from translation_forensics.mqm import validate_mqm_csv
 from translation_forensics.evidence_artifacts import validate_alignment_evidence, validate_backtranslation_check, validate_speaker_state
 from translation_forensics.evaluation import build_blind_review_pack, initialize_gold_record, migrate_gold_layout, summarize_blind_review, validate_evaluation_summary, validate_gold_record, validate_gold_suite
@@ -246,6 +246,31 @@ def test_terra_prompt_contract_has_hash_and_required_failure_cases() -> None:
     report = validate_prompt_contract(manifest)
     assert report["status"] == "pass"
     assert report["test_case_count"] == 6
+
+
+def test_prompt_text_hash_is_newline_canonical_but_content_sensitive(tmp_path: Path) -> None:
+    lf = tmp_path / "lf.md"
+    crlf = tmp_path / "crlf.md"
+    changed = tmp_path / "changed.md"
+    lf.write_bytes(b"first\nsecond\n")
+    crlf.write_bytes(b"first\r\nsecond\r\n")
+    changed.write_bytes(b"first\nchanged\n")
+    assert sha256_text(lf) == sha256_text(crlf)
+    assert sha256_text(lf) != sha256_text(changed)
+
+
+def test_terra_manifest_required_fields_match_decision_schema() -> None:
+    manifest = json.loads(
+        (ROOT / "prompts" / "terra-semantic-translation-v1.manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    schema = json.loads(
+        (ROOT / "schemas" / "translation-decision.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert set(manifest["required_output_fields"]) == set(schema["required"])
 
 
 def test_gold_record_template_is_not_mistaken_for_adjudicated_gold(tmp_path: Path) -> None:

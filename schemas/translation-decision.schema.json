@@ -10,7 +10,13 @@
     "translation_model",
     "status",
     "confidence",
-    "evidence_refs"
+    "evidence_refs",
+    "consistency_refs",
+    "consistency_conflicts",
+    "preserved_meaning",
+    "review_required_reasons",
+    "uncertain_slots",
+    "review_note"
   ],
   "properties": {
     "block_number": {"type": "integer", "minimum": 1},

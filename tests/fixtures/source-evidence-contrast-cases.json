@@ -1,0 +1,105 @@
+{
+  "schema_name": "translation-forensics/source-evidence-contrast-suite",
+  "schema_version": "1",
+  "cases": [
+    {
+      "case_id": "polarity-flip",
+      "category": "hazard",
+      "source_japanese": "もう行くよ",
+      "source_faithful_korean": "이제 갈게.",
+      "viewer_natural_korean": "이제 갈게.",
+      "asr_metrics": {"backend": "faster-whisper-large-v3", "qwen_alternatives": ["もう行かないよ"]},
+      "expected_fusion_state": "dual_conflict",
+      "expected_risk_codes": ["polarity-marker-divergence"],
+      "expected_bridge_status": "passed"
+    },
+    {
+      "case_id": "question-flip",
+      "category": "hazard",
+      "source_japanese": "行く",
+      "source_faithful_korean": "갈게.",
+      "viewer_natural_korean": "갈게.",
+      "asr_metrics": {"backend": "whisper", "qwen_alternatives": ["行く？"]},
+      "expected_fusion_state": "dual_conflict",
+      "expected_risk_codes": ["question-marker-divergence"],
+      "expected_bridge_status": "passed"
+    },
+    {
+      "case_id": "refusal-permission-flip",
+      "category": "hazard",
+      "source_japanese": "どうぞ",
+      "source_faithful_korean": "하세요.",
+      "viewer_natural_korean": "하세요.",
+      "asr_metrics": {"backend": "whisper", "qwen_alternatives": ["いや"]},
+      "expected_fusion_state": "dual_conflict",
+      "expected_risk_codes": ["refusal-permission-marker-divergence"],
+      "expected_bridge_status": "passed"
+    },
+    {
+      "case_id": "stop-continue-flip",
+      "category": "hazard",
+      "source_japanese": "続けて",
+      "source_faithful_korean": "계속해.",
+      "viewer_natural_korean": "계속해.",
+      "asr_metrics": {"backend": "whisper", "qwen_alternatives": ["やめて"]},
+      "expected_fusion_state": "dual_conflict",
+      "expected_risk_codes": ["stop-continue-marker-divergence"],
+      "expected_bridge_status": "passed"
+    },
+    {
+      "case_id": "direction-up-down-flip",
+      "category": "hazard",
+      "source_japanese": "上げて",
+      "source_faithful_korean": "올려.",
+      "viewer_natural_korean": "올려.",
+      "asr_metrics": {"backend": "whisper", "qwen_alternatives": ["下げて"]},
+      "expected_fusion_state": "dual_conflict",
+      "expected_risk_codes": ["direction-up-down-divergence"],
+      "expected_bridge_status": "passed"
+    },
+    {
+      "case_id": "direction-in-out-flip",
+      "category": "hazard",
+      "source_japanese": "入れて",
+      "source_faithful_korean": "넣어.",
+      "viewer_natural_korean": "넣어.",
+      "asr_metrics": {"backend": "whisper", "qwen_alternatives": ["出して"]},
+      "expected_fusion_state": "dual_conflict",
+      "expected_risk_codes": ["direction-in-out-divergence"],
+      "expected_bridge_status": "passed"
+    },
+    {
+      "case_id": "exact-clean-control",
+      "category": "clean-control",
+      "source_japanese": "もう行く",
+      "source_faithful_korean": "이제 갈게.",
+      "viewer_natural_korean": "이제 갈게.",
+      "asr_metrics": {"backend": "whisper", "qwen_alternatives": ["もう行く"]},
+      "expected_fusion_state": "dual_agreement",
+      "expected_risk_codes": [],
+      "expected_bridge_status": "passed"
+    },
+    {
+      "case_id": "compatible-clean-control",
+      "category": "clean-control",
+      "source_japanese": "もうやめて",
+      "source_faithful_korean": "이제 그만해.",
+      "viewer_natural_korean": "이제 그만해.",
+      "asr_metrics": {"backend": "whisper", "qwen_alternatives": ["やめて"]},
+      "expected_fusion_state": "dual_compatible",
+      "expected_risk_codes": [],
+      "expected_bridge_status": "passed"
+    },
+    {
+      "case_id": "no-evidence-clean-control",
+      "category": "clean-control",
+      "source_japanese": "こんにちは",
+      "source_faithful_korean": "안녕하세요.",
+      "viewer_natural_korean": "안녕하세요.",
+      "asr_metrics": {},
+      "expected_fusion_state": "empty",
+      "expected_risk_codes": [],
+      "expected_bridge_status": "passed"
+    }
+  ]
+}

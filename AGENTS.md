@@ -134,3 +134,10 @@ init-title → inspect → validate-timeline → analyze
 - 변경한 경로의 정상·실패·경계값을 함께 검사한다.
 - GitHub Actions가 통과하지 않은 최신 HEAD를 검증 완료로 간주하지 않는다.
 - 테스트를 실행하지 못하면 통과했다고 표현하지 않고 이유와 영향을 남긴다.
+
+## Session start (ballast)
+
+1. Before substantive work, read `memory/00-INDEX.md` and `memory/DECISIONS.md`. Standing decisions are followed without relitigating; changes use the supersede protocol.
+2. Record decisions and important facts in `memory/` in the same session. Unresolved items and provisional readings go to `memory/OPEN-QUESTIONS.md`.
+3. Claims carry labels: confirmed, observed, assumed, hearsay, or unknown.
+4. External-facing product claims require evidence in `memory/PRODUCT-TRUTH.md`.

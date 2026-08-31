@@ -12,3 +12,13 @@ python -m translation_forensics.cli validate-quality-regressions `
 ```
 
 이 묶음은 외부 모델을 호출하거나 실제 번역 정확도 점수를 산출하지 않는다. 프롬프트·결정·일관성 계층을 변경했을 때 대표 실패를 다시 허용하지 않기 위한 회귀 계약이다.
+
+## Source-evidence 최소대조 묶음
+
+`tests/fixtures/source-evidence-contrast-cases.json`은 정본 evidence bridge 전용 9개 사례다. 이전 deterministic audit와 bridge 적용 audit를 같은 한국어 후보에 실행하여 다음 비상쇄 조건을 검사한다.
+
+- 위험 6건: 극성, 질문, 거절/허용, 중단/계속, 위/아래, 안/밖 ASR 충돌을 모두 새로 보류한다.
+- 정상 3건: exact agreement, compatible agreement, evidence unavailable의 상태가 바뀌지 않는다.
+- missed hazard와 clean-control regression은 각각 0이어야 한다.
+
+동결 결과 `evaluation/engineering/canonical-evidence-bridge-v1.json`은 위험 `6/6` 차단, 정상 신규 보류 `0/3`으로 pass다. 이는 hand-authored synthetic engineering evidence이며, 실제 모델 호출·원음 청취·사람 gold 판정을 포함하지 않는다. 따라서 번역 품질 향상이나 사람 동등성을 증명하지 않는다.

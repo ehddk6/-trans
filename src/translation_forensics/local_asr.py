@@ -547,6 +547,7 @@ def run_conflict_asr_rerun(
     allow_model_download: bool = True,
     resume: bool = True,
     backends: list[ASRBackend] | None = None,
+    backend_cache: list[ASRBackend] | None = None,
 ) -> dict[int, dict[str, Any]]:
     """Run both ASR families once per clustered boundary-expanded conflict clip."""
     output_dir = output_dir.expanduser().resolve()
@@ -562,11 +563,18 @@ def run_conflict_asr_rerun(
     planned = plan_conflict_rerun_windows(blocks, duration_seconds=duration)
     windows = [window for window, _ in planned]
     clip_paths = extract_audio_windows(audio_path, windows, output_dir / "clips")
+    if backends is None and backend_cache:
+        backends = backend_cache
     if backends is None:
-        backends = [
+        created = [
             FasterWhisperBackend(force_cpu=force_cpu, local_files_only=not allow_model_download),
             ReazonSpeechBackend(),
         ]
+        if backend_cache is not None:
+            backend_cache.extend(created)
+            backends = backend_cache
+        else:
+            backends = created
     records: list[dict[str, Any]] = []
     for (window, covered_blocks), clip_path in zip(planned, clip_paths):
         transcripts: list[dict[str, Any]] = []
